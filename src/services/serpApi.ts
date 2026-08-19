@@ -34,17 +34,49 @@ export interface SerpHotelResult {
   gps_coordinates?: { latitude: number; longitude: number };
 }
 
+// Available proxy options (fallback chain if one is rate limited or blocked on Cloudflare/deployment)
+const PROXIES = [
+  (target: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
+  (target: string) => `https://corsproxy.io/?${encodeURIComponent(target)}`,
+  (target: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
+  (target: string) => `https://thingproxy.freeboard.io/fetch/${target}`,
+];
+
 async function fetchSerp(params: Record<string, string>): Promise<any> {
   const query = new URLSearchParams({ ...params, api_key: SERP_API_KEY });
   const targetUrl = `${SERP_BASE_URL}?${query.toString()}`;
-  const url = `https://corsproxy.io/?` + encodeURIComponent(targetUrl);
 
-  const res = await fetch(url);
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "");
-    throw new Error(`SerpAPI error ${res.status}: ${res.statusText} ${errorText}`);
+  let lastError: any = null;
+
+  for (const buildProxyUrl of PROXIES) {
+    try {
+      const url = buildProxyUrl(targetUrl);
+      const res = await fetch(url);
+      if (res.ok) {
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          if (data && !data.error) {
+            return data;
+          }
+        } catch {
+          // Response wasn't valid JSON, try next proxy
+        }
+      }
+    } catch (err) {
+      lastError = err;
+    }
   }
-  return res.json();
+
+  // If external proxies fail, attempt direct fetch as last resort
+  try {
+    const directRes = await fetch(targetUrl);
+    if (directRes.ok) return await directRes.json();
+  } catch (err) {
+    lastError = err;
+  }
+
+  throw lastError || new Error("Unable to load live data through proxy network.");
 }
 
 // ── SECTION: HOME ──────────────────────────────────────────────────────────
