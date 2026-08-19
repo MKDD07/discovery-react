@@ -34,13 +34,26 @@ export interface SerpHotelResult {
   gps_coordinates?: { latitude: number; longitude: number };
 }
 
-// Available proxy options (fallback chain if one is rate limited or blocked on Cloudflare/deployment)
+// Available proxy options (Cloudflare/Production compatible)
 const PROXIES = [
   (target: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`,
-  (target: string) => `https://corsproxy.io/?${encodeURIComponent(target)}`,
   (target: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
   (target: string) => `https://thingproxy.freeboard.io/fetch/${target}`,
+  (target: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
 ];
+
+async function fetchWithTimeout(url: string, ms = 6000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
 
 async function fetchSerp(params: Record<string, string>): Promise<any> {
   const query = new URLSearchParams({ ...params, api_key: SERP_API_KEY });
@@ -51,16 +64,18 @@ async function fetchSerp(params: Record<string, string>): Promise<any> {
   for (const buildProxyUrl of PROXIES) {
     try {
       const url = buildProxyUrl(targetUrl);
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url, 7000);
       if (res.ok) {
         const text = await res.text();
         try {
-          const data = JSON.parse(text);
-          if (data && !data.error) {
+          const parsed = JSON.parse(text);
+          // If returned as { contents: "..." } from allorigins.win/get
+          const data = parsed?.contents ? JSON.parse(parsed.contents) : parsed;
+          if (data && !data.error && (data.properties || data.best_flights || data.other_flights || data.organic_results || data.search_metadata)) {
             return data;
           }
         } catch {
-          // Response wasn't valid JSON, try next proxy
+          // JSON parse failed, try next proxy
         }
       }
     } catch (err) {
@@ -70,7 +85,7 @@ async function fetchSerp(params: Record<string, string>): Promise<any> {
 
   // If external proxies fail, attempt direct fetch as last resort
   try {
-    const directRes = await fetch(targetUrl);
+    const directRes = await fetchWithTimeout(targetUrl, 5000);
     if (directRes.ok) return await directRes.json();
   } catch (err) {
     lastError = err;
