@@ -50,7 +50,7 @@ export const HotelOffersSection: React.FC<HotelOffersSectionProps> = ({
             },
           }}
         >
-          {HOTEL_IMAGES.map((imgSrc, idx) => (
+          {[...HOTEL_IMAGES, ...HOTEL_IMAGES].map((imgSrc, idx) => (
             <SwiperSlide key={idx}>
               <div
                 className="rounded-4 overflow-hidden shadow-sm"
