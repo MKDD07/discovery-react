@@ -34,54 +34,24 @@ export interface SerpHotelResult {
   gps_coordinates?: { latitude: number; longitude: number };
 }
 
-// Available CORS Gateways that support Cloudflare Workers and production origins
-const PROXIES = [
-  (target: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`,
-  (target: string) => `https://cors.eu.org/${target}`,
-  (target: string) => `https://proxy.cors.sh/${target}`,
-  (target: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`,
-];
-
-async function fetchWithTimeout(url: string, ms = 5000): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), ms);
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(id);
-    return res;
-  } catch (err) {
-    clearTimeout(id);
-    throw err;
-  }
-}
-
 async function fetchSerp(params: Record<string, string>): Promise<any> {
   const query = new URLSearchParams({ ...params, api_key: SERP_API_KEY });
   const targetUrl = `${SERP_BASE_URL}?${query.toString()}`;
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
-  for (const buildProxyUrl of PROXIES) {
-    try {
-      const url = buildProxyUrl(targetUrl);
-      const res = await fetchWithTimeout(url, 5000);
-      if (res.ok) {
-        const text = await res.text();
-        try {
-          const parsed = JSON.parse(text);
-          const data = parsed?.contents ? JSON.parse(parsed.contents) : parsed;
-          if (data && !data.error && (data.properties || data.best_flights || data.other_flights || data.organic_results)) {
-            return data;
-          }
-        } catch {
-          // JSON parsing failed, try next proxy
-        }
-      }
-    } catch {
-      // Proxy failed or blocked by CORS, try next
-    }
+  const res = await fetch(proxyUrl);
+  if (!res.ok) {
+    throw new Error(`Proxy error: ${res.status}`);
   }
 
-  // Graceful simulated fallback generation so UI displays high quality data seamlessly
-  return generateFallbackData(params);
+  const json = await res.json();
+  if (json.contents) {
+    const data = JSON.parse(json.contents);
+    if (data.error) throw new Error(data.error);
+    return data;
+  }
+
+  return json;
 }
 
 function generateFallbackData(params: Record<string, string>): any {
