@@ -32,6 +32,26 @@ export interface SerpHotelResult {
   thumbnail: string;
   images: string[];
   gps_coordinates?: { latitude: number; longitude: number };
+  description?: string;
+  amenities?: string[];
+  type?: string;
+  check_in_time?: string;
+  check_out_time?: string;
+  location?: string;
+}
+
+export interface SerpHotelDetail extends SerpHotelResult {
+  address?: string;
+  phone?: string;
+  website?: string;
+  nearby_places?: Array<{ name: string; transportations: Array<{ type: string; duration: string }> }>;
+  included?: string[];
+  excluded?: string[];
+  highlights?: string[];
+  duration?: string;
+  groupSize?: string;
+  languages?: string[];
+  cancellation?: string;
 }
 
 async function fetchSerp(params: Record<string, string>): Promise<any> {
@@ -402,15 +422,157 @@ export function extractHotels(data: any, max = 4): SerpHotelResult[] {
   });
 }
 
+// ── HOTEL DETAIL (single hotel by name + location) ──────────────────────────
+export async function searchHotelByName(name: string, location: string) {
+  const today = new Date();
+  const checkIn = new Date(today.getTime() + 86400000).toISOString().split("T")[0];
+  const checkOut = new Date(today.getTime() + 86400000 * 4).toISOString().split("T")[0];
+  return fetchSerp({
+    engine: "google_hotels",
+    q: `${name} ${location}`,
+    check_in_date: checkIn,
+    check_out_date: checkOut,
+    adults: "2",
+    currency: "INR",
+    gl: "us",
+    hl: "en",
+    slot: "1",
+  });
+}
+
+export function extractHotelDetail(data: any, hotelName: string): SerpHotelDetail | null {
+  const properties: any[] = data?.properties || [];
+
+  // Find closest name match first, fall back to first result
+  const match =
+    properties.find((p: any) =>
+      p.name?.toLowerCase().includes(hotelName.toLowerCase()) ||
+      hotelName.toLowerCase().includes(p.name?.toLowerCase() || "")
+    ) || properties[0];
+
+  if (!match) return null;
+
+  // Image assembly
+  let primaryFeatured = "";
+  if (typeof match.featured_image === "string") primaryFeatured = resizeGoogleImage(match.featured_image);
+  else if (match.featured_image?.original_image) primaryFeatured = resizeGoogleImage(match.featured_image.original_image);
+  else if (match.featured_image?.thumbnail) primaryFeatured = resizeGoogleImage(match.featured_image.thumbnail);
+
+  const rawImages: string[] = primaryFeatured ? [primaryFeatured] : [];
+  (match.images || []).forEach((img: any) => {
+    const src = typeof img === "string" ? img : (img?.original_image || img?.thumbnail || "");
+    const resized = resizeGoogleImage(src);
+    if (resized && !rawImages.includes(resized)) rawImages.push(resized);
+  });
+  const thumb = resizeGoogleImage(match.thumbnail || "");
+  if (thumb && !rawImages.includes(thumb)) rawImages.push(thumb);
+  const allImages = rawImages.filter(Boolean);
+
+  // Price
+  let rawPriceNum = 9999;
+  const rpn = match.rate_per_night;
+  if (rpn?.extracted_lowest) rawPriceNum = rpn.extracted_lowest;
+  else if (rpn?.extracted_before_taxes_fees) rawPriceNum = rpn.extracted_before_taxes_fees;
+  else if (typeof rpn?.lowest === "number") rawPriceNum = rpn.lowest;
+  else if (typeof rpn?.lowest === "string") {
+    const p = parseInt(rpn.lowest.replace(/[^0-9]/g, ""), 10);
+    if (!isNaN(p) && p > 0) rawPriceNum = p;
+  }
+
+  // Amenities from SerpApi
+  const amenities: string[] = (match.amenities || []).map((a: any) =>
+    typeof a === "string" ? a : (a?.name || a?.amenity || "")
+  ).filter(Boolean);
+
+  // Nearby places
+  const nearbyPlaces = (match.nearby_places || []).map((np: any) => ({
+    name: np.name || "",
+    transportations: (np.transportations || []).map((t: any) => ({
+      type: t.type || "",
+      duration: t.duration || "",
+    })),
+  }));
+
+  // Generate rich included/excluded list from amenities + context
+  const included: string[] = [];
+  const excluded: string[] = [];
+  const amenitySet = amenities.map((a) => a.toLowerCase());
+
+  const includeMap: Record<string, string> = {
+    "free breakfast": "Breakfast included",
+    breakfast: "Breakfast included",
+    wifi: "Free Wi-Fi",
+    "free wifi": "Free Wi-Fi",
+    "free wi-fi": "Free Wi-Fi",
+    pool: "Swimming pool access",
+    "swimming pool": "Swimming pool access",
+    parking: "Free parking",
+    "free parking": "Free parking",
+    spa: "Spa access",
+    gym: "Fitness centre access",
+    fitness: "Fitness centre access",
+    airport: "Airport transfer",
+    "air conditioning": "Air conditioning",
+    "room service": "Room service",
+    restaurant: "On-site restaurant",
+  };
+  const alwaysExcluded = ["Personal expenses", "Travel insurance", "Optional excursions"];
+
+  Object.entries(includeMap).forEach(([key, label]) => {
+    if (amenitySet.some((a) => a.includes(key))) {
+      if (!included.includes(label)) included.push(label);
+    }
+  });
+  if (included.length === 0) included.push("Hotel accommodation", "Welcome amenities");
+  excluded.push(...alwaysExcluded);
+
+  const mapsUrl = match.gps_coordinates
+    ? `https://www.google.com/maps/search/?api=1&query=${match.gps_coordinates.latitude},${match.gps_coordinates.longitude}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(match.name || hotelName)}`;
+
+  return {
+    name: match.name || hotelName,
+    rating: match.overall_rating || match.rating || 4.5,
+    reviews: match.reviews || 0,
+    price: `₹${rawPriceNum.toLocaleString("en-IN")}`,
+    rawPrice: rawPriceNum,
+    originalPrice: Math.round(rawPriceNum * 1.25),
+    link: match.link || mapsUrl,
+    thumbnail: allImages[0] || "",
+    images: allImages,
+    gps_coordinates: match.gps_coordinates,
+    description: match.description || match.hotel_class || "",
+    amenities,
+    type: match.type || match.hotel_class || "Hotel",
+    check_in_time: match.check_in_time || "12:00 PM",
+    check_out_time: match.check_out_time || "11:00 AM",
+    address: match.gps_coordinates
+      ? `${match.gps_coordinates.latitude.toFixed(4)}, ${match.gps_coordinates.longitude.toFixed(4)}`
+      : "",
+    website: match.link || "",
+    nearby_places: nearbyPlaces,
+    included,
+    excluded,
+    highlights: amenities.slice(0, 5),
+    duration: "2 Nights / 3 Days",
+    groupSize: "1 – 8 guests",
+    languages: ["English", "Hindi"],
+    cancellation: "Free cancellation up to 24 hours before check-in",
+    location: hotelName,
+  };
+}
+
 const SerpAPI = {
   searchHome,
   searchFlights,
   searchInternational,
   searchHotels,
+  searchHotelByName,
   searchVacations,
   extractOrganicResults,
   extractFlights,
   extractHotels,
+  extractHotelDetail,
 };
 
 export default SerpAPI;
