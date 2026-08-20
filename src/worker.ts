@@ -27,8 +27,9 @@ export default {
         });
       }
 
-      const key1 = env.SERP_API_KEY_1;
-      const key2 = env.SERP_API_KEY_2;
+      const key1 = env?.SERP_API_KEY_1;
+      const key2 = env?.SERP_API_KEY_2;
+      const clientKey = searchParams.get("api_key");
       const slot = searchParams.get("slot");
       searchParams.delete("slot");
       searchParams.delete("api_key");
@@ -42,17 +43,13 @@ export default {
         if (key2) keysToTry.push(key2);
       }
 
-      if (keysToTry.length === 0) {
-        return new Response(
-          JSON.stringify({ error: "No SerpApi keys configured on Cloudflare Worker" }),
-          {
-            status: 500,
-            headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-            },
-          }
-        );
+      // If env keys are missing, fallback to client-supplied key or default SerpApi key
+      if (clientKey && !keysToTry.includes(clientKey)) {
+        keysToTry.push(clientKey);
+      }
+      const DEFAULT_KEY = "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
+      if (!keysToTry.includes(DEFAULT_KEY)) {
+        keysToTry.push(DEFAULT_KEY);
       }
 
       let lastStatus = 502;

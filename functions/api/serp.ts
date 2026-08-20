@@ -37,13 +37,12 @@ export const onRequest = async (context: PagesContext<Env>): Promise<Response> =
     });
   }
 
-  const key1 = context.env.SERP_API_KEY_1;
-  const key2 = context.env.SERP_API_KEY_2;
-
-  // Which key this section should try first (default: key1)
+  const key1 = context.env?.SERP_API_KEY_1;
+  const key2 = context.env?.SERP_API_KEY_2;
+  const clientKey = searchParams.get("api_key");
   const slot = searchParams.get("slot");
-  searchParams.delete("slot"); // never forward this to SerpApi
-  searchParams.delete("api_key"); // never trust a client-supplied key
+  searchParams.delete("slot");
+  searchParams.delete("api_key");
 
   const keysToTry: string[] = [];
   if (slot === "2" && key2) {
@@ -54,17 +53,13 @@ export const onRequest = async (context: PagesContext<Env>): Promise<Response> =
     if (key2) keysToTry.push(key2);
   }
 
-  if (keysToTry.length === 0) {
-    return new Response(
-      JSON.stringify({ error: "No SerpApi keys configured on server" }),
-      {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      }
-    );
+  // Fallback to client key or default key if env vars are missing
+  if (clientKey && !keysToTry.includes(clientKey)) {
+    keysToTry.push(clientKey);
+  }
+  const DEFAULT_KEY = "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
+  if (!keysToTry.includes(DEFAULT_KEY)) {
+    keysToTry.push(DEFAULT_KEY);
   }
 
   let lastStatus = 502;
