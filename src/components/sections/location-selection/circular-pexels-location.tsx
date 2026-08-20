@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 
-const PEXELS_API_KEY = "y6WP5reQNH7abdL2uzdLTyV8pq0kMmF3CHf7ZNkiHo98DXIvORUOBSfi";
+const PEXELS_API_KEY =
+  (import.meta as any).env?.VITE_PEXELS_API_KEY ||
+  "y6WP5reQNH7abdL2uzdLTyV8pq0kMmF3CHf7ZNkiHo98DXIvORUOBSfi";
 
 // List of 20 popular Indian locations / destinations for query search (focused on scenery/landscape/nature/architecture without people)
 const INDIA_LOCATIONS = [

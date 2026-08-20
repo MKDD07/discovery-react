@@ -45,8 +45,8 @@ export const BrandsArea: React.FC = () => {
                   }}
                   className="tp-brands-slider align-items-center"
                 >
-                  {BRAND_IMAGES.map((brand) => (
-                    <SwiperSlide key={brand.id}>
+                  {[...BRAND_IMAGES, ...BRAND_IMAGES, ...BRAND_IMAGES].map((brand, idx) => (
+                    <SwiperSlide key={`${brand.id}-${idx}`}>
                       <div className="tp-brands-item text-center">
                         <a href="#" onClick={(e) => e.preventDefault()} className="d-inline-block">
                           <img

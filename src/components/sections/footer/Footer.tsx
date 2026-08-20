@@ -355,7 +355,7 @@ export default function Footer() {
               }}
               className="tp-instagram-slide"
             >
-              {INSTAGRAM_PEXELS_QUERIES.map((query, idx) => (
+              {[...INSTAGRAM_PEXELS_QUERIES, ...INSTAGRAM_PEXELS_QUERIES, ...INSTAGRAM_PEXELS_QUERIES].map((query, idx) => (
                 <SwiperSlide key={idx}>
                   <div className="tp-instagram-thumb p-relative rounded-4 overflow-hidden shadow-sm" style={{ height: "220px" }}>
                     <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="d-block w-100 h-100">

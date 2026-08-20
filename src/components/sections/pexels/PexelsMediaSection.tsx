@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from "react";
 
-const PEXELS_API_KEY = "y6WP5reQNH7abdL2uzdLTyV8pq0kMmF3CHf7ZNkiHo98DXIvORUOBSfi";
+const PEXELS_API_KEY =
+  (import.meta as any).env?.VITE_PEXELS_API_KEY ||
+  "y6WP5reQNH7abdL2uzdLTyV8pq0kMmF3CHf7ZNkiHo98DXIvORUOBSfi";
 const PEXELS_IMAGE_ENDPOINT = "https://api.pexels.com/v1/search";
 const PEXELS_VIDEO_ENDPOINT = "https://api.pexels.com/videos/search";
 

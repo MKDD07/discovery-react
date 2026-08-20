@@ -6,6 +6,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "serve": "vite preview",
+    "deploy": "npm run build && npx wrangler deploy",
     "test": "vitest"
   },
   "dependencies": {

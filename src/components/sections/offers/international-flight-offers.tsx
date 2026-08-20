@@ -36,7 +36,7 @@ export const InternationalFlightOffersSection: React.FC = () => {
             },
           }}
         >
-          {INTER_FLIGHT_OFFER_IMAGES.map((imgSrc, idx) => (
+          {[...INTER_FLIGHT_OFFER_IMAGES, ...INTER_FLIGHT_OFFER_IMAGES, ...INTER_FLIGHT_OFFER_IMAGES].map((imgSrc, idx) => (
             <SwiperSlide key={idx}>
               <div
                 className="rounded-4 overflow-hidden shadow-sm"

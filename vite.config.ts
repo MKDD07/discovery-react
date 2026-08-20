@@ -10,6 +10,15 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    proxy: {
+      "/api/serp": {
+        target: "https://serpapi.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/serp/, "/search.json"),
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(fileURLToPath(new URL(".", import.meta.url)), "./src"),
