@@ -121,7 +121,14 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                     <div className="postbox-details-social-wrap d-flex align-items-center justify-content-between flex-wrap gap-3">
                       <div className="d-flex align-items-center">
                         <div className="tp-testimonial-user d-flex align-items-center mr-15">
-                          <img src="assets/img/testimonial/avatar.png" alt="" />
+                          <img
+                            src="assets/img/testimonial/avatar.png"
+                            data-pexels="traveler photographer smiling portrait face"
+                            data-type="image"
+                            data-quality="small"
+                            alt={blogData.author || "Author"}
+                            style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover" }}
+                          />
                         </div>
                         <div className="tp-testimonial-avatar-info">
                           <h3 className="tp-testimonial-avatar-title">{blogData.author || "Michael Lewis"}</h3>
@@ -392,8 +399,15 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                     {/* Author Box */}
                     <div className="tp-postbox-details-author mb-60 mt-50">
                       <div className="postbox-details-author d-flex align-items-start">
-                        <div className="postbox-details-author-img mr-30">
-                          <img src="assets/img/blog/postbox/image.png" alt="" />
+                        <div className="postbox-details-author-img mr-30 overflow-hidden rounded-3">
+                          <img
+                            src="assets/img/blog/postbox/image.png"
+                            data-pexels="travel writer photographer man portrait outdoor smiling"
+                            data-type="image"
+                            data-quality="medium"
+                            alt={blogData.author || "Author"}
+                            style={{ width: "120px", height: "120px", objectFit: "cover" }}
+                          />
                         </div>
                         <div className="postbox-details-author-info">
                           <div className="postbox-details-author-content">
