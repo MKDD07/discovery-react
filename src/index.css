@@ -16487,3 +16487,15 @@ td.today.active.start-date.active.end-date.available {
   background: #edf2f7;
   margin: 6px 0;
 }
+
+/*----------------------------------------*/
+/*  Parallax Breadcrumb Effect (.tp-breadcrumb-parallax)
+/*----------------------------------------*/
+.tp-breadcrumb-parallax {
+  background-attachment: fixed !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-size: cover !important;
+  will-change: transform, background-position;
+  transition: background-position 0.1s ease-out;
+}

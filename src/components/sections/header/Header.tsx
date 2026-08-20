@@ -99,7 +99,6 @@ export default function Header() {
                               window.dispatchEvent(new PopStateEvent("popstate"));
                             }}
                           >
-                            <i className="fa-regular fa-compass" style={{ width: "16px", color: "#FD4621" }}></i>
                             <span>Member Dashboard</span>
                           </a>
 

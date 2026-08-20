@@ -106,9 +106,9 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
     <>
       <Header />
       <main ref={containerRef}>
-        {/* Breadcrumb Header */}
+        {/* Breadcrumb Header with Parallax Effect */}
         <div
-          className="tp-breadcrumb-area tp-breadcrumb-ptb tp-breadcrumb-overly bg-position"
+          className="tp-breadcrumb-area tp-breadcrumb-ptb tp-breadcrumb-overly bg-position tp-breadcrumb-parallax"
           data-background="assets/img/breadcrumb/bg-9.jpg"
           data-pexels="scenic mountain travel road journey 4k landscape"
           data-type="background"
