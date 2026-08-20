@@ -306,13 +306,51 @@ export function extractFlights(data: any, max = 8): SerpFlightResult[] {
 }
 
 
+/**
+ * Resize a Google hotel image (lh3.googleusercontent.com) to a card-safe
+ * intrinsic width by rewriting the `=s{N}` size suffix.
+ * Any other CDN URL is returned unchanged.
+ */
+function resizeGoogleImage(url: string, size = 600): string {
+  if (!url) return url;
+  // lh3.googleusercontent.com encodes size as `=s{N}` at the end
+  if (url.includes("googleusercontent.com") || url.includes("lh3.google")) {
+    return url.replace(/=s\d+$/, `=s${size}`);
+  }
+  return url;
+}
+
 export function extractHotels(data: any, max = 4): SerpHotelResult[] {
   const properties = data?.properties || [];
   if (properties.length > 0) {
     return properties.slice(0, max).map((h: any) => {
-      const allImages: string[] = (h.images || []).map(
-        (img: any) => img.original_image || img.thumbnail || ""
-      ).filter(Boolean);
+      // 1. SerpApi featured_image is the primary hotel photo
+      let primaryFeatured = "";
+      if (typeof h.featured_image === "string" && h.featured_image) {
+        primaryFeatured = resizeGoogleImage(h.featured_image);
+      } else if (h.featured_image?.original_image) {
+        primaryFeatured = resizeGoogleImage(h.featured_image.original_image);
+      } else if (h.featured_image?.thumbnail) {
+        primaryFeatured = resizeGoogleImage(h.featured_image.thumbnail);
+      }
+
+      // 2. Collect all available hotel images, resize each to 600px
+      const rawImageList: string[] = [];
+      if (primaryFeatured) rawImageList.push(primaryFeatured);
+
+      if (Array.isArray(h.images)) {
+        h.images.forEach((img: any) => {
+          const src = typeof img === "string" ? img : (img?.original_image || img?.thumbnail || "");
+          const resized = resizeGoogleImage(src);
+          if (resized && !rawImageList.includes(resized)) rawImageList.push(resized);
+        });
+      }
+
+      const thumbResized = resizeGoogleImage(h.thumbnail || "");
+      if (thumbResized && !rawImageList.includes(thumbResized)) rawImageList.push(thumbResized);
+
+      const allImages = rawImageList.filter(Boolean);
+      const thumbnailImg = primaryFeatured || allImages[0] || "";
 
       let rawPriceNum = 9999;
       if (h.rate_per_night?.extracted_lowest) {
@@ -326,7 +364,6 @@ export function extractHotels(data: any, max = 4): SerpHotelResult[] {
         if (!isNaN(parsed) && parsed > 0) rawPriceNum = parsed;
       }
 
-      // Calculate an MRP (original price ~20-25% higher)
       const originalPriceNum = Math.round(rawPriceNum * 1.25);
 
       return {
@@ -336,9 +373,9 @@ export function extractHotels(data: any, max = 4): SerpHotelResult[] {
         price: `₹${rawPriceNum.toLocaleString("en-IN")}`,
         rawPrice: rawPriceNum,
         originalPrice: originalPriceNum,
-        link: h.link || "#",
-        thumbnail: allImages[0] || h.featured_image || "",
-        images: allImages,
+        link: h.link || `https://www.google.com/travel/hotels?q=${encodeURIComponent(h.name || "hotel")}`,
+        thumbnail: thumbnailImg,
+        images: allImages.length > 0 ? allImages : (thumbnailImg ? [thumbnailImg] : []),
         gps_coordinates: h.gps_coordinates || undefined,
       };
     });
