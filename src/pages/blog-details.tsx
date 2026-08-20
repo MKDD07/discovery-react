@@ -267,15 +267,20 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                   <div className="postbox-wrapper">
                     {/* Main Cover Section (21:9 cinematic ratio, 1000x quality) */}
                     <div className="postbox-details-text mb-45">
-                      <div className="postbox-details-thumb mb-45 overflow-hidden rounded-4">
+                      <div className="postbox-details-thumb mb-45 p-relative overflow-hidden rounded-4">
+                        <div className="tp-postbox-thumb-skeleton"></div>
                         <img
-                          className="w-100"
+                          className="w-100 p-relative"
                           src="assets/img/blog/details/thumb.jpg"
                           data-pexels={blogData.cover_query || `${blogData.title} 4k travel landscape`}
                           data-type="image"
                           data-quality="1000x"
                           alt={blogData.title}
-                          style={{ aspectRatio: "21/9", objectFit: "cover", width: "100%", height: "auto" }}
+                          style={{ aspectRatio: "21/9", objectFit: "cover", width: "100%", height: "auto", zIndex: 2 }}
+                          onLoad={(e) => {
+                            const skeleton = (e.currentTarget.parentElement?.querySelector(".tp-postbox-thumb-skeleton") as HTMLElement);
+                            if (skeleton) skeleton.style.opacity = "0";
+                          }}
                         />
                       </div>
                       <h4 className="postbox-details-title mb-10">
@@ -294,16 +299,21 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                         <div key={idx} className="postbox-details-text mb-50">
                           {sec.pexelsQuery && (
                             <div className="postbox-details-thumb postbox-details-thumb-overly mb-45 p-relative overflow-hidden rounded-4">
+                              <div className="tp-postbox-thumb-skeleton"></div>
                               <img
-                                className="w-100"
+                                className="w-100 p-relative"
                                 src="assets/img/blog/details/thumb-2.jpg"
                                 data-pexels={sec.pexelsQuery}
                                 data-type="image"
                                 data-quality="1000x"
                                 alt={sec.heading}
-                                style={{ aspectRatio: "21/9", objectFit: "cover", width: "100%", height: "auto" }}
+                                style={{ aspectRatio: "21/9", objectFit: "cover", width: "100%", height: "auto", zIndex: 2 }}
+                                onLoad={(e) => {
+                                  const skeleton = (e.currentTarget.parentElement?.querySelector(".tp-postbox-thumb-skeleton") as HTMLElement);
+                                  if (skeleton) skeleton.style.opacity = "0";
+                                }}
                               />
-                              <div className="postbox-details-thumb-content d-flex flex-wrap gap-1 align-items-center justify-content-between">
+                              <div className="postbox-details-thumb-content d-flex flex-wrap gap-1 align-items-center justify-content-between" style={{ zIndex: 3 }}>
                                 <div className="postbox-details-thumb-info">
                                   <span>{blogData.location || "Explore"}</span>
                                   <p className="mb-0">Click to discover more!</p>
