@@ -139,7 +139,7 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
     <>
       <Header />
       <main ref={containerRef}>
-        {/* Breadcrumb Header with Parallax Effect */}
+        {/* Breadcrumb Header with Parallax Effect & Navigational Trail */}
         <div
           className="tp-breadcrumb-area tp-breadcrumb-ptb tp-breadcrumb-overly bg-position tp-breadcrumb-parallax"
           data-background="assets/img/breadcrumb/bg-9.jpg"
@@ -155,9 +155,42 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
             <div className="row">
               <div className="col-12">
                 <div className="tp-breadcrumb-wrap text-center">
-                  <h2 className="tp-breadcrumb-title fs-112 text-center mb-0 text-white line-clamp-2">
+                  <h2 className="tp-breadcrumb-title fs-112 text-center mb-15 text-white line-clamp-2">
                     {blogData.title || "Blog Details"}
                   </h2>
+                  <div className="tp-breadcrumb-list">
+                    <span className="text-white opacity-75">
+                      <a
+                        href="/"
+                        className="text-white text-decoration-none hover-primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.history.pushState({}, "", "/");
+                          window.dispatchEvent(new PopStateEvent("popstate"));
+                        }}
+                      >
+                        Home
+                      </a>
+                    </span>
+                    <span className="dvdr mx-2 text-white opacity-50">/</span>
+                    <span className="text-white opacity-75">
+                      <a
+                        href="/blog"
+                        className="text-white text-decoration-none hover-primary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.history.pushState({}, "", "/blog");
+                          window.dispatchEvent(new PopStateEvent("popstate"));
+                        }}
+                      >
+                        Blog
+                      </a>
+                    </span>
+                    <span className="dvdr mx-2 text-white opacity-50">/</span>
+                    <span className="text-white fw-semibold" style={{ color: "#FD4621" }}>
+                      {blogData.category || "Article"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
