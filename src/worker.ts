@@ -2,6 +2,8 @@ export interface Env {
   SERP_API_KEY_1?: string;
   SERP_API_KEY_2?: string;
   VITE_PEXELS_API_KEY?: string;
+  DB?: any; // Cloudflare D1 Database binding (or KV/Hyperdrive)
+  USERS_KV?: any; // Cloudflare KV binding
   ASSETS: {
     fetch: (request: Request) => Promise<Response>;
   };
@@ -11,7 +13,119 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    // 1. Intercept /api/serp requests
+    // ── 1. Intercept /api/register requests ─────────────────────────────
+    if (url.pathname === "/api/register") {
+      // CORS preflight
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        });
+      }
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
+
+      try {
+        const body = (await request.json()) as {
+          name?: string;
+          email?: string;
+          password?: string;
+        };
+
+        const { name, email, password } = body;
+
+        if (!name || !email || !password) {
+          return new Response(
+            JSON.stringify({ error: "Name, email, and password are required" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            }
+          );
+        }
+
+        const userRecord = {
+          id: `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          createdAt: new Date().toISOString(),
+        };
+
+        // A. If Cloudflare D1 Database is bound as env.DB
+        if (env?.DB) {
+          try {
+            await env.DB.prepare(
+              `CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                email TEXT UNIQUE,
+                password TEXT,
+                created_at TEXT
+              )`
+            ).run();
+
+            await env.DB.prepare(
+              `INSERT INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)`
+            )
+              .bind(userRecord.id, userRecord.name, userRecord.email, password, userRecord.createdAt)
+              .run();
+          } catch (dbErr: any) {
+            console.error("Cloudflare D1 Error:", dbErr);
+            if (dbErr?.message?.includes("UNIQUE constraint failed")) {
+              return new Response(
+                JSON.stringify({ error: "Email already registered. Please sign in." }),
+                {
+                  status: 409,
+                  headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                }
+              );
+            }
+          }
+        }
+
+        // B. If Cloudflare KV is bound as env.USERS_KV
+        if (env?.USERS_KV) {
+          await env.USERS_KV.put(`user:${userRecord.email}`, JSON.stringify({ ...userRecord, password }));
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Account registered successfully!",
+            user: { id: userRecord.id, name: userRecord.name, email: userRecord.email },
+          }),
+          {
+            status: 201,
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          }
+        );
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: err.message || "Failed to process registration" }),
+          {
+            status: 500,
+            headers: {
+              "Content-Type": "application/json",
+              "Access-Control-Allow-Origin": "*",
+            },
+          }
+        );
+      }
+    }
+
+    // ── 2. Intercept /api/serp requests ────────────────────────────────
     if (url.pathname.startsWith("/api/serp")) {
       const searchParams = new URLSearchParams(url.search);
 
@@ -97,7 +211,7 @@ export default {
       });
     }
 
-    // 2. Serve static React assets from /dist
+    // ── 3. Serve static React assets from /dist ────────────────────────
     return env.ASSETS.fetch(request);
   },
 };
