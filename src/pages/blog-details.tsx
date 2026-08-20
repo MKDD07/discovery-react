@@ -3,19 +3,6 @@ import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
 import { loadAllPexelsMedia } from "../components/sections/pexels/PexelsMediaSection";
 import DomesticLocation from "../components/sections/domestic-location/domestic-location";
-import {
-  Calendar,
-  User,
-  Share2,
-  Bookmark,
-  Heart,
-  HelpCircle,
-  MapPin,
-  Sparkles,
-  Quote,
-  ChevronDown,
-  ArrowRight,
-} from "lucide-react";
 
 interface BlogDetailsPageProps {
   slug?: string;
@@ -26,9 +13,8 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
   const containerRef = useRef<HTMLDivElement>(null);
   const [blogData, setBlogData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  // Fetch blog data from D1 Database (or use rich fallback if not created yet)
+  // Fetch blog data from D1 Database
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -50,80 +36,60 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
         console.warn("D1 blog fetch fallback:", err);
       }
 
-      // Default high quality dynamic template based on slug
       if (!isCancelled) {
         const readableTitle = slug
           ? decodeURIComponent(slug)
               .replace(/-/g, " ")
               .replace(/\b\w/g, (c) => c.toUpperCase())
-          : "Discovering Hidden Wonders & Majestic Trails";
+          : "Explore ancient pyramids and desert.";
 
         setBlogData({
           title: readableTitle,
-          category: "Adventure & Exploration",
+          category: "Adventure",
           location: "India",
-          date: "Aug 20, 2026",
-          author: "Michael Harris",
-          author_role: "Senior Travel Journalist",
-          summary: "From sunrise mountain summits to serene coastal lagoons, experience our comprehensive insider guide to unforgettable moments and cultural discoveries.",
-          cover_query: `${slug || "scenic landscape travel mountain sunset"} 4k landscape`,
+          date: "Dec 12, 2025",
+          author: "Michael Lewis",
+          author_role: "Product Designer",
+          cover_query: `${slug || "pyramids desert adventure safari travel"} 4k landscape`,
+          summary: "Experience breathtaking travel landscapes and cultural wonders. Plan your journey now and capture the magic of every destination.",
           sections: [
             {
-              heading: "1. The Call of the Wild & Scenic Landscapes",
+              heading: "The 2025 Autumn Foliage Forecast has just been released!",
               paragraphs: [
-                "There is an undeniable magic in setting out before dawn to catch the first golden rays illuminating ancient summits. As morning mist gently rolls across the valleys, every winding pathway reveals breathtaking panoramic vistas that leave even seasoned travelers speechless.",
-                "Whether you choose to trek through untouched evergreen woodlands or relax beside tranquil azure waters, taking time to immerse yourself in nature’s rhythm restores the mind and rejuvenates the spirit.",
+                "Experience breathtaking autumn scenery as vibrant hues of red and gold blanket the country. Tokyo’s parks and gardens transform into a sea of maple brilliance. Whether strolling through Shinjuku Gyoen or exploring Mount Takao, it’s the perfect time to witness nature’s masterpiece.",
+                "Plan your journey now and capture the magic of unforgettable seasonal foliage.",
               ],
-              pexelsQuery: `${slug || "mountain sunrise hiking trail scenic"} travel`,
-              highlights: [
-                "Best time to visit: October through April for optimal weather and clear skies.",
-                "Local eco-passes are required at primary nature reserves.",
-              ],
+              pexelsQuery: `${slug || "japan autumn red maple foliage"} travel`,
             },
             {
-              heading: "2. Cultural Heritage & Timeless Architecture",
+              heading: "1. Historic Garden and Mountain Paths",
               paragraphs: [
-                "Stepping into historical sanctuaries offers an intimate glimpse into centuries of artistic brilliance. Intricately carved stone facades, gilded domes, and tranquil courtyards reflect generations of master craftsmanship.",
-                "Engaging with local village elders and knowledgeable guides unlocks stories and folk legends that are seldom found in conventional guidebooks.",
+                "Rikugien Garden is a famous landscape garden well-known and loved especially during the autumn months, thanks to its numerous maple trees. We recommend taking an entire afternoon off to stroll the many trails around the park before enjoying tea at one of the many teahouses.",
+                "Colours usually peak around late November to early December with stunning reflections across peaceful waterways.",
               ],
-              pexelsQuery: `${slug || "heritage ancient temple golden architecture"} culture`,
-              highlights: [
-                "Respect local customs and modest dress codes at sacred heritage sites.",
-                "Early morning visits provide serene photographic lighting without crowds.",
-              ],
+              pexelsQuery: `${slug || "tokyo landscape traditional japanese garden teahouse"} travel`,
             },
             {
-              heading: "3. Authentic Flavors & Local Culinary Delights",
+              heading: "2. Scenic Railway & Valley Views",
               paragraphs: [
-                "No journey is complete without savoring regional gastronomy. From vibrant bustling evening bazaars serving piping-hot delicacies to peaceful countryside dining featuring organic farm-to-table harvests, each dish tells a vibrant story of tradition and spice.",
+                "Taking a scenic railway through mountain valleys offers an intimate connection to nature's untamed beauty. Relax and enjoy panoramic vistas stretching to the horizon.",
               ],
-              pexelsQuery: `${slug || "street food traditional cuisine spices dinner"} dining`,
-              highlights: [
-                "Do not miss the specialty signature brew unique to this province.",
-                "Evening food walks offer authentic tastings directly with generational chefs.",
-              ],
+              pexelsQuery: `${slug || "mountain railway train journey through nature"} travel`,
             },
           ],
           quote: {
-            text: "Travel isn't always about the destination, but the quiet moments of wonder that change how we see the world.",
-            author: "Eleanor Vance, Travel Enthusiast",
+            text: "We're committed to changing the way travelers experience the world with passion, curiosity, and wonder.",
+            author: "Phil Martinez",
+            destination: "New York",
           },
           faqs: [
             {
-              question: "What is the best time of year to visit this destination?",
+              question: "What is the best time to visit this destination?",
               answer: "The ideal travel season spans from autumn through early spring when temperatures are pleasant and outdoor sightseeing conditions are at their best.",
             },
             {
-              question: "Are these tours family-friendly and accessible for children?",
+              question: "Are these tours family-friendly?",
               answer: "Yes, most itineraries feature customizable pacing, comfortable boutique stays, and activities suited for all age groups.",
-            },
-            {
-              question: "How do I reach the main sights from the nearest airport?",
-              answer: "Pre-booked private chauffeurs, express rail connections, and reliable rental cabs are readily accessible from all major regional hubs.",
-            },
-            {
-              question: "What should I pack for this trip?",
-              answer: "Comfortable trekking shoes, breathable cotton layers, a lightweight windbreaker jacket, sunscreen, and a universal power adapter are highly recommended.",
             },
           ],
         });
@@ -151,239 +117,511 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
     <>
       <Header />
       <main ref={containerRef}>
-        <div className="tp-blog-area tp-tour-ptb-2 pt-60 pb-100">
-          <div className="container container-1350">
+        <div className="tp-blog-area tp-tour-ptb-2 pt-80 pb-100">
+          <div className="container">
             <div className="row">
-              {/* Main Article Content */}
-              <div className="col-xxl-8 col-xl-8 col-lg-8">
-                <div className="postbox-details-main-wrap mb-40">
-                  {/* Article Top Header & Meta */}
-                  <div className="postbox-details-info-wrap mb-40">
-                    <div className="tp-blog-meta-wrap d-flex flex-wrap align-items-center gap-3 mb-15">
-                      <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill font-monospace small">
-                        {blogData.category || "Adventure"}
-                      </span>
-                      <div className="tp-blog-meta text-muted small d-flex align-items-center gap-2">
-                        <Calendar size={14} />
-                        <span>{blogData.date || "Aug 2026"}</span>
-                        <span>•</span>
-                        <span>{blogData.author || "Admin"}</span>
+              <div className="col-xxl-9 col-xl-8">
+                <div className="postbox-details-main-wrap mb-40 pr-135">
+                  <div className="postbox-details-info-wrap mb-60">
+                    <div className="tp-blog-meta-wrap d-flex flex-wrap align-items-center mb-15">
+                      <span className="tp-blog-category">{blogData.category || "Adventure"}</span>
+                      <div className="tp-blog-meta">
+                        <span>{blogData.date || "Dec 12, 2025"}</span>
                       </div>
                     </div>
-
-                    <h1 className="fw-700 text-dark mb-25" style={{ fontSize: "32px", lineHeight: 1.25 }}>
+                    <h3 className="postbox-title mb-30">
                       {blogData.title}
-                    </h1>
-
-                    {/* Author Bar & Social Sharing */}
-                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 pb-25 border-bottom">
-                      <div className="d-flex align-items-center gap-3">
-                        <div
-                          className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
-                          style={{ width: "45px", height: "45px", fontSize: "16px" }}
-                        >
-                          {(blogData.author || "M").charAt(0).toUpperCase()}
+                    </h3>
+                    <div className="postbox-details-social-wrap d-flex align-items-center justify-content-between flex-wrap gap-3">
+                      <div className="d-flex align-items-center">
+                        <div className="tp-testimonial-user d-flex align-items-center mr-15">
+                          <img src="assets/img/testimonial/avatar.png" alt="" />
                         </div>
-                        <div>
-                          <h6 className="fw-700 text-dark mb-0" style={{ fontSize: "14px" }}>
-                            {blogData.author || "Travel Journalist"}
-                          </h6>
-                          <span className="text-muted small">
-                            {blogData.author_role || "Discovery Specialist"}
+                        <div className="tp-testimonial-avatar-info">
+                          <h3 className="tp-testimonial-avatar-title">{blogData.author || "Michael Lewis"}</h3>
+                          <span className="tp-testimonial-avatar-pos">
+                            {blogData.author_role || "Product Designer"}
                           </span>
                         </div>
                       </div>
-
-                      <div className="d-flex align-items-center gap-2">
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-light border rounded-pill px-3 py-2 text-dark small d-flex align-items-center gap-1"
-                          onClick={() => {
-                            if (navigator.share) {
-                              navigator.share({ title: blogData.title, url: window.location.href });
-                            } else {
-                              navigator.clipboard.writeText(window.location.href);
-                              alert("Article link copied to clipboard!");
-                            }
-                          }}
-                        >
-                          <Share2 size={14} /> Share
-                        </button>
+                      <div className="postbox-social tp-bounce d-flex align-items-center gap-1">
+                        <a href="#">
+                          <svg
+                            width={9}
+                            height={17}
+                            viewBox="0 0 9 17"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M9 0H6.54545C5.46048 0 4.41994 0.447767 3.65275 1.2448C2.88555 2.04183 2.45455 3.12283 2.45455 4.25V6.8H0V10.2H2.45455V17H5.72727V10.2H8.18182L9 6.8H5.72727V4.25C5.72727 4.02457 5.81347 3.80837 5.96691 3.64896C6.12035 3.48955 6.32846 3.4 6.54545 3.4H9V0Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                          <span />
+                        </a>
+                        <a href="#">
+                          <svg
+                            width={17}
+                            height={16}
+                            viewBox="0 0 17 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M13.3885 0H15.9953L10.3002 6.77744L17 16H11.7541L7.64539 10.4066L2.94405 16H0.335697L6.42711 8.75077L0 0H5.37904L9.09299 5.11262L13.3885 0ZM12.4736 14.3754H13.918L4.59417 1.53928H3.04413L12.4736 14.3754Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                          <span />
+                        </a>
+                        <a href="#">
+                          <svg
+                            width={17}
+                            height={16}
+                            viewBox="0 0 17 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M11.7875 5.05225C13.1277 5.05225 14.413 5.58459 15.3607 6.53218C16.3083 7.47977 16.8407 8.76497 16.8407 10.1051V16H13.4719V10.1051C13.4719 9.65836 13.2945 9.22996 12.9786 8.9141C12.6627 8.59824 12.2343 8.42079 11.7875 8.42079C11.3408 8.42079 10.9124 8.59824 10.5965 8.9141C10.2806 9.22996 10.1031 9.65836 10.1031 10.1051V16H6.73438V10.1051C6.73438 8.76497 7.26676 7.47977 8.21441 6.53218C9.16206 5.58459 10.4474 5.05225 11.7875 5.05225Z"
+                              fill="currentColor"
+                            />
+                            <path
+                              d="M3.36877 5.89188H0V15.9975H3.36877V5.89188Z"
+                              fill="currentColor"
+                            />
+                            <path
+                              d="M1.68439 3.36854C2.61465 3.36854 3.36877 2.61447 3.36877 1.68427C3.36877 0.754073 2.61465 0 1.68439 0C0.754126 0 0 0.754073 0 1.68427C0 2.61447 0.754126 3.36854 1.68439 3.36854Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                          <span />
+                        </a>
+                        <a href="#">
+                          <svg
+                            width={17}
+                            height={17}
+                            viewBox="0 0 17 17"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <ellipse
+                              cx="8.25"
+                              cy="8.24941"
+                              rx="7.5"
+                              ry="7.49941"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                            />
+                            <path
+                              d="M15.75 9.19825C15.0549 9.0679 14.34 8.99997 13.6104 8.99997C9.59614 8.99997 6.02576 11.0567 3.75 14.2496"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M13.5 2.99973C11.1529 5.75008 7.62592 7.49937 3.68221 7.49937C2.67327 7.49937 1.69161 7.38488 0.75 7.16842"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M10.2133 15.75C10.4013 14.8396 10.5 13.8967 10.5 12.9308C10.5 8.19407 8.12575 4.01074 4.5 1.5011"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                          <span />
+                        </a>
                       </div>
                     </div>
                   </div>
-
-                  {/* Main Cover Image with Pexels Auto-Resolution & Skeleton */}
-                  <div className="postbox-details-thumb mb-40 rounded-4 overflow-hidden shadow-sm p-relative" style={{ minHeight: "380px" }}>
-                    <img
-                      className="w-100"
-                      src=""
-                      data-pexels={blogData.cover_query || `${blogData.title} 4k travel landscape`}
-                      data-type="image"
-                      data-quality="large"
-                      alt={blogData.title}
-                      style={{ height: "420px", objectFit: "cover" }}
-                    />
-                  </div>
-
-                  {/* Summary Callout */}
-                  {blogData.summary && (
-                    <div className="p-4 bg-light rounded-4 border mb-40">
-                      <p className="lead mb-0 text-dark fw-500" style={{ fontSize: "15.5px", lineHeight: 1.7 }}>
-                        {blogData.summary}
-                      </p>
+                  <div className="postbox-wrapper">
+                    {/* Main Cover Section */}
+                    <div className="postbox-details-text mb-45">
+                      <div className="postbox-details-thumb mb-45">
+                        <img
+                          className="w-100"
+                          src="assets/img/blog/details/thumb.jpg"
+                          data-pexels={blogData.cover_query || `${blogData.title} 4k travel landscape`}
+                          data-type="image"
+                          data-quality="large"
+                          alt={blogData.title}
+                        />
+                      </div>
+                      <h4 className="postbox-details-title mb-10">
+                        {blogData.title}
+                      </h4>
+                      {blogData.summary && <p>{blogData.summary}</p>}
                     </div>
-                  )}
 
-                  {/* Dynamic Sections with Headings, Paragraphs & Pexels Visuals (up to 10 max) */}
-                  <div className="postbox-content-sections">
+                    {/* Dynamic Sections with Headings, Paragraphs & Pexels Visuals */}
                     {blogData.sections &&
                       blogData.sections.map((sec: any, idx: number) => (
-                        <div key={idx} className="mb-45">
-                          <h3 className="fw-700 text-dark mb-15" style={{ fontSize: "22px" }}>
-                            {sec.heading}
-                          </h3>
-
-                          {sec.paragraphs &&
-                            sec.paragraphs.map((p: string, pIdx: number) => (
-                              <p key={pIdx} className="text-secondary mb-20" style={{ fontSize: "14.5px", lineHeight: 1.8 }}>
-                                {p}
-                              </p>
-                            ))}
-
+                        <div key={idx} className="postbox-details-text mb-50">
                           {sec.pexelsQuery && (
-                            <div className="rounded-3 overflow-hidden my-30 shadow-sm" style={{ maxHeight: "340px" }}>
+                            <div className="postbox-details-thumb postbox-details-thumb-overly mb-45 p-relative">
                               <img
                                 className="w-100"
-                                src=""
+                                src="assets/img/blog/details/thumb-2.jpg"
                                 data-pexels={sec.pexelsQuery}
                                 data-type="image"
                                 data-quality="large"
                                 alt={sec.heading}
-                                style={{ height: "320px", objectFit: "cover" }}
                               />
+                              <div className="postbox-details-thumb-content d-flex flex-wrap gap-1 align-items-center justify-content-between">
+                                <div className="postbox-details-thumb-info">
+                                  <span>{blogData.location || "Explore"}</span>
+                                  <p className="mb-0">Click to discover more!</p>
+                                </div>
+                                <div className="tp-bounce">
+                                  <a href="#" className="postbox-details-thumb-btn">
+                                    <svg
+                                      width={9}
+                                      height={16}
+                                      viewBox="0 0 9 16"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <path
+                                        d="M0.75 14.75L7.75 7.75L0.75 0.75"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                    <span />
+                                  </a>
+                                </div>
+                              </div>
                             </div>
                           )}
-
-                          {sec.highlights && sec.highlights.length > 0 && (
-                            <div className="p-3 bg-white border-start border-4 border-primary rounded-3 shadow-sm my-20">
-                              <h6 className="fw-700 text-dark mb-2 small d-flex align-items-center gap-1">
-                                <Sparkles size={14} className="text-primary" /> Key Takeaways &amp; Tips:
-                              </h6>
-                              <ul className="mb-0 small text-muted ps-3">
-                                {sec.highlights.map((h: string, hIdx: number) => (
-                                  <li key={hIdx} className="mb-1">{h}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
+                          <h4 className="postbox-details-title mb-10">
+                            {sec.heading}
+                          </h4>
+                          {sec.paragraphs &&
+                            sec.paragraphs.map((p: string, pIdx: number) => (
+                              <p key={pIdx} className="mb-20">{p}</p>
+                            ))}
                         </div>
                       ))}
-                  </div>
 
-                  {/* Inspirational Quote Box */}
-                  {blogData.quote && (
-                    <div className="postbox-details-quote-box p-4 rounded-4 bg-light border mb-50 position-relative">
-                      <div className="d-flex align-items-start gap-3">
-                        <Quote size={32} className="text-primary flex-shrink-0" />
-                        <div>
-                          <p className="fst-italic text-dark fw-600 mb-2" style={{ fontSize: "16px", lineHeight: 1.6 }}>
-                            "{blogData.quote.text}"
-                          </p>
-                          <span className="text-muted small fw-bold">— {blogData.quote.author}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* FAQ Accordion Section (up to 10 FAQs) */}
-                  {blogData.faqs && blogData.faqs.length > 0 && (
-                    <div className="postbox-faqs mb-50">
-                      <h4 className="fw-700 text-dark mb-25 d-flex align-items-center gap-2" style={{ fontSize: "20px" }}>
-                        <HelpCircle size={20} className="text-primary" /> Frequently Asked Questions
-                      </h4>
-
-                      <div className="accordion d-flex flex-column gap-2" id="blogFaqAccordion">
-                        {blogData.faqs.map((faq: any, fIdx: number) => (
-                          <div key={fIdx} className="border rounded-3 bg-white overflow-hidden shadow-sm">
-                            <button
-                              type="button"
-                              className="btn w-100 text-start p-3 fw-600 text-dark d-flex align-items-center justify-content-between border-0 shadow-none"
-                              onClick={() => setOpenFaq(openFaq === fIdx ? null : fIdx)}
-                              style={{ fontSize: "14px" }}
-                            >
-                              <span>{faq.question}</span>
-                              <ChevronDown
-                                size={16}
-                                className={`text-muted transition-all ${openFaq === fIdx ? "rotate-180 text-primary" : ""}`}
-                                style={{ transform: openFaq === fIdx ? "rotate(180deg)" : "rotate(0deg)" }}
-                              />
-                            </button>
-                            {openFaq === fIdx && (
-                              <div className="p-3 pt-0 text-muted small border-top bg-light" style={{ lineHeight: 1.7 }}>
-                                {faq.answer}
+                    {/* Blockquote Quote */}
+                    {blogData.quote && (
+                      <div className="postbox-details-quote-boxs mb-50">
+                        <blockquote>
+                          <div className="postbox-details-quote-box d-flex align-items-start">
+                            <i>
+                              <svg
+                                width={44}
+                                height={40}
+                                viewBox="0 0 44 40"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  d="M44 1.05264L39.9691 0L25.2477 37.0175L28.0518 40L41.1959 36.8421L44 1.05264Z"
+                                  fill="#FD4621"
+                                />
+                                <path
+                                  d="M18.7523 1.05264L14.7214 0L0 37.0175L2.80408 40L15.9482 36.8421L18.7523 1.05264Z"
+                                  fill="#FD4621"
+                                />
+                              </svg>
+                            </i>
+                            <div className="postbox-details-quote">
+                              <p>{blogData.quote.text}</p>
+                              <div className="postbox-details-quote-author">
+                                <span>{blogData.quote.author}</span>
+                                <span className="destination">{blogData.quote.destination || "Discovery"}</span>
                               </div>
-                            )}
+                            </div>
+                          </div>
+                        </blockquote>
+                      </div>
+                    )}
+
+                    {/* FAQs as Section Headers & Paragraphs */}
+                    {blogData.faqs && blogData.faqs.length > 0 && (
+                      <div className="postbox-details-text mb-60">
+                        <h4 className="postbox-details-title mb-30">
+                          Frequently Asked Questions
+                        </h4>
+                        {blogData.faqs.map((faq: any, fIdx: number) => (
+                          <div key={fIdx} className="mb-25">
+                            <h5 className="postbox-details-title-sm mb-10">
+                              {fIdx + 1}. {faq.question}
+                            </h5>
+                            <p>{faq.answer}</p>
                           </div>
                         ))}
                       </div>
+                    )}
+
+                    {/* Tags */}
+                    <div className="postbox-details-tag-wrap d-flex align-items-center justify-content-between flex-wrap gap-3">
+                      <div className="tagcloud">
+                        <a href="/blog">Adventure</a>
+                        <a href="/blog">Travel Tips</a>
+                        <a href="/blog">City Tour</a>
+                        <a href="/blog">Nature Escape</a>
+                      </div>
+                      <div className="postbox-social tp-bounce d-flex align-items-center gap-1">
+                        <a href="#">
+                          <svg
+                            width={9}
+                            height={15}
+                            viewBox="0 0 9 15"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M8.0447 0H5.85069C4.88088 0 3.95079 0.383236 3.26503 1.0654C2.57927 1.74756 2.19401 2.67278 2.19401 3.6375V5.82H0V8.73H2.19401V14.55H5.11936V8.73H7.31337L8.0447 5.82H5.11936V3.6375C5.11936 3.44456 5.19641 3.25951 5.33356 3.12308C5.47071 2.98665 5.65673 2.91 5.85069 2.91H8.0447V0Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                          <span />
+                        </a>
+                        <a href="#">
+                          <svg
+                            width={17}
+                            height={16}
+                            viewBox="0 0 17 16"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M13.3885 0H15.9953L10.3002 6.77744L17 16H11.7541L7.64539 10.4066L2.94405 16H0.335697L6.42711 8.75077L0 0H5.37904L9.09299 5.11262L13.3885 0ZM12.4736 14.3754H13.918L4.59417 1.53928H3.04413L12.4736 14.3754Z"
+                              fill="currentColor"
+                            />
+                          </svg>
+                          <span />
+                        </a>
+                      </div>
                     </div>
-                  )}
+
+                    {/* Author Box */}
+                    <div className="tp-postbox-details-author mb-60 mt-50">
+                      <div className="postbox-details-author d-flex align-items-start">
+                        <div className="postbox-details-author-img mr-30">
+                          <img src="assets/img/blog/postbox/image.png" alt="" />
+                        </div>
+                        <div className="postbox-details-author-info">
+                          <div className="postbox-details-author-content">
+                            <span>About Author</span>
+                            <h4 className="postbox-details-author-name">
+                              {blogData.author || "Michael Harris"}
+                            </h4>
+                            <p>
+                              A passionate globe-trotter and adventure seeker, I love
+                              exploring new cultures, tasting local cuisines, and
+                              capturing unforgettable moments through photography.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Sidebar */}
-              <div className="col-xxl-4 col-xl-4 col-lg-4">
-                <div className="sidebar-wrapper mb-40 sticky-top" style={{ top: "100px" }}>
-                  {/* AI & Travel Assistant Badge */}
-                  <div className="bg-primary text-white p-4 rounded-4 shadow-sm mb-4">
-                    <span className="badge bg-white bg-opacity-25 text-white font-monospace small mb-2">
-                      ⭐ EXPERT GUIDE
-                    </span>
-                    <h5 className="text-white fw-bold mb-2">Planning a trip here?</h5>
-                    <p className="text-white-50 small mb-3">
-                      Get custom itineraries, private transport, and boutique hotel bookings tailored to your preferences.
-                    </p>
-                    <a
-                      href="/"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        window.history.pushState({}, "", "/");
-                        window.dispatchEvent(new PopStateEvent("popstate"));
-                      }}
-                      className="btn btn-sm btn-light text-primary fw-600 rounded-pill px-3 py-2 w-100"
-                    >
-                      Explore Hotel &amp; Tour Deals
-                    </a>
+              {/* Sidebar with exact original HTML markup */}
+              <div className="col-xxl-3 col-xl-4">
+                <div className="sidebar-wrapper mb-40">
+                  <div className="sidebar-widget mb-45">
+                    <div className="sidebar-search">
+                      <form action="#" onSubmit={(e) => e.preventDefault()}>
+                        <div className="sidebar-search-input p-relative">
+                          <input type="text" placeholder="Search..." />
+                          <button type="submit">
+                            <svg
+                              width={15}
+                              height={15}
+                              viewBox="0 0 15 15"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M6.50041 12.4999C9.81435 12.4999 12.5008 9.81363 12.5008 6.49995C12.5008 3.18627 9.81435 0.5 6.50041 0.5C3.18648 0.5 0.5 3.18627 0.5 6.49995C0.5 9.81363 3.18648 12.4999 6.50041 12.4999Z"
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                              <path
+                                d="M14.5002 14.5L11.5 11.5"
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
-
-                  {/* Categories Widget */}
-                  <div className="bg-white rounded-4 border p-4 shadow-sm mb-4">
-                    <h5 className="fw-700 text-dark mb-3" style={{ fontSize: "16px" }}>
-                      Popular Categories
-                    </h5>
-                    <div className="d-flex flex-column gap-2">
-                      {[
-                        { name: "Adventure Expeditions", count: 18 },
-                        { name: "Cultural & Heritage", count: 24 },
-                        { name: "Beach & Island Getaways", count: 12 },
-                        { name: "Luxury Mountain Resorts", count: 15 },
-                        { name: "Food & Culinary Walks", count: 9 },
-                      ].map((c, idx) => (
-                        <a
-                          key={idx}
-                          href="/blog"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.history.pushState({}, "", "/blog");
-                            window.dispatchEvent(new PopStateEvent("popstate"));
-                          }}
-                          className="d-flex align-items-center justify-content-between text-decoration-none text-dark small py-1 border-bottom"
-                        >
-                          <span>{c.name}</span>
-                          <span className="badge bg-light text-muted">{c.count}</span>
-                        </a>
-                      ))}
+                  <div className="sidebar-widget mb-45">
+                    <h3 className="sidebar-widget-title mb-30">Categories</h3>
+                    <div className="sidebar-widget-category">
+                      <ul>
+                        <li>
+                          <a
+                            className="d-flex align-items-center justify-content-between"
+                            href="/blog"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.history.pushState({}, "", "/blog");
+                              window.dispatchEvent(new PopStateEvent("popstate"));
+                            }}
+                          >
+                            Journey
+                            <span>08</span>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            className="d-flex align-items-center justify-content-between"
+                            href="/blog"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.history.pushState({}, "", "/blog");
+                              window.dispatchEvent(new PopStateEvent("popstate"));
+                            }}
+                          >
+                            Adventure
+                            <span>04</span>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            className="d-flex align-items-center justify-content-between"
+                            href="/blog"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.history.pushState({}, "", "/blog");
+                              window.dispatchEvent(new PopStateEvent("popstate"));
+                            }}
+                          >
+                            Ocean
+                            <span>12</span>
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            className="d-flex align-items-center justify-content-between"
+                            href="/blog"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.history.pushState({}, "", "/blog");
+                              window.dispatchEvent(new PopStateEvent("popstate"));
+                            }}
+                          >
+                            Family Adventure
+                            <span>16</span>
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="sidebar-widget mb-45">
+                    <h3 className="sidebar-widget-title mb-30">Latest Posts</h3>
+                    <div className="rc-post-wrap">
+                      <div className="rc-post d-flex align-items-center">
+                        <div className="rc-post-thumb">
+                          <a href="/blog">
+                            <img
+                              src="assets/img/blog/rc/thumb.jpg"
+                              data-pexels="travel luggage airport adventure"
+                              data-type="image"
+                              data-quality="small"
+                              alt=""
+                            />
+                          </a>
+                        </div>
+                        <div className="rc-post-content">
+                          <div className="rc-post-category">
+                            <a href="/blog">Travel</a>
+                          </div>
+                          <h3 className="rc-post-title">
+                            <a href="/blog">
+                              Fueling ambition &amp; Achieving your goals
+                            </a>
+                          </h3>
+                          <div className="rc-post-meta tp-blog-meta d-flex flex-wrap align-items-center ">
+                            <span>July 15, 2025</span>
+                            <span>12 Min</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rc-post d-flex align-items-center">
+                        <div className="rc-post-thumb">
+                          <a href="/blog">
+                            <img
+                              src="assets/img/blog/rc/thumb-2.jpg"
+                              data-pexels="creative design photography travel camera"
+                              data-type="image"
+                              data-quality="small"
+                              alt=""
+                            />
+                          </a>
+                        </div>
+                        <div className="rc-post-content">
+                          <div className="rc-post-category">
+                            <a href="/blog">Design</a>
+                          </div>
+                          <h3 className="rc-post-title">
+                            <a href="/blog">
+                              Behind the scenes of creative processes
+                            </a>
+                          </h3>
+                          <div className="rc-post-meta tp-blog-meta d-flex flex-wrap align-items-center ">
+                            <span>July 15, 2025</span>
+                            <span>1 Min</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rc-post d-flex align-items-center">
+                        <div className="rc-post-thumb">
+                          <a href="/blog">
+                            <img
+                              src="assets/img/blog/rc/thumb-3.jpg"
+                              data-pexels="digital nomad laptop coffee cafe travel"
+                              data-type="image"
+                              data-quality="small"
+                              alt=""
+                            />
+                          </a>
+                        </div>
+                        <div className="rc-post-content">
+                          <div className="rc-post-category">
+                            <a href="/blog">Design</a>
+                          </div>
+                          <h3 className="rc-post-title">
+                            <a href="/blog">
+                              Starting journey as your dream escape
+                            </a>
+                          </h3>
+                          <div className="rc-post-meta tp-blog-meta d-flex flex-wrap align-items-center ">
+                            <span>July 15, 2025</span>
+                            <span>16 Min</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="sidebar-widget">
+                    <h3 className="sidebar-widget-title mb-30">Popular Tag</h3>
+                    <div className="sidebar-widget-content">
+                      <div className="tagcloud">
+                        <a href="/blog">Adventure</a>
+                        <a href="/blog">Travel Tips</a>
+                        <a href="/blog">City Tour</a>
+                        <a href="/blog">Nature Escape</a>
+                        <a href="/blog">Beach Life</a>
+                        <a href="/blog">Mountain Hike</a>
+                      </div>
                     </div>
                   </div>
                 </div>
