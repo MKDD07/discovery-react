@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   MapPin,
   Star,
@@ -23,6 +23,12 @@ import {
   ExternalLink,
   ShieldCheck,
   Sparkles,
+  Calendar as CalendarIcon,
+  Plus,
+  Minus,
+  Receipt,
+  CreditCard,
+  Percent,
 } from "lucide-react";
 import SerpAPI, { SerpHotelDetail } from "../../../services/serpApi";
 
@@ -116,12 +122,27 @@ const TourDetails: React.FC<TourDetailsProps> = ({
   const [activeImg, setActiveImg] = useState(0);
   const [wishlist, setWishlist] = useState(false);
 
+  // Real-time booking configuration state
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const defaultCheckIn = tomorrow.toISOString().split("T")[0];
+
+  const threeDaysLater = new Date();
+  threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+  const defaultCheckOut = threeDaysLater.toISOString().split("T")[0];
+
+  const [checkInDate, setCheckInDate] = useState<string>(defaultCheckIn);
+  const [checkOutDate, setCheckOutDate] = useState<string>(defaultCheckOut);
+  const [adults, setAdults] = useState<number>(2);
+  const [children, setChildren] = useState<number>(0);
+  const [isUpdatingPrice, setIsUpdatingPrice] = useState<boolean>(false);
+
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setActiveImg(0);
 
-    // Initial instant seed from card
+    // Initial seed from card
     if (initialHotel) {
       setHotel({
         name: initialHotel.name || tourName,
@@ -231,7 +252,61 @@ const TourDetails: React.FC<TourDetailsProps> = ({
     };
   }, [tourName, location, cardPrice, cardOriginalPrice, initialHotel]);
 
-  const displayPrice = cardPrice || hotel?.price || "₹8,999";
+  // Extract base unit price from cardPrice or hotel data
+  const basePricePerPerson = useMemo(() => {
+    if (hotel?.rawPrice && hotel.rawPrice > 0) return hotel.rawPrice;
+    if (cardPrice) {
+      const parsed = parseInt(cardPrice.replace(/[^0-9]/g, ""), 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    return 3151;
+  }, [cardPrice, hotel?.rawPrice]);
+
+  // Calculate number of nights
+  const numberOfNights = useMemo(() => {
+    try {
+      const d1 = new Date(checkInDate);
+      const d2 = new Date(checkOutDate);
+      const diffTime = d2.getTime() - d1.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays > 0 ? diffDays : 1;
+    } catch {
+      return 2;
+    }
+  }, [checkInDate, checkOutDate]);
+
+  // Real-time calculation with breakdown & GST (18% GST standard in hospitality)
+  const calculation = useMemo(() => {
+    const adultRate = basePricePerPerson;
+    const childRate = Math.round(basePricePerPerson * 0.5); // Children at 50%
+    const perNightSubtotal = adults * adultRate + children * childRate;
+    const staySubtotal = perNightSubtotal * numberOfNights;
+    const discount = Math.round(staySubtotal * 0.1); // 10% instant promo discount
+    const discountedSubtotal = staySubtotal - discount;
+    const gstRate = 0.18; // 18% GST
+    const gstAmount = Math.round(discountedSubtotal * gstRate);
+    const finalTotal = discountedSubtotal + gstAmount;
+
+    return {
+      adultRate,
+      childRate,
+      staySubtotal,
+      discount,
+      discountedSubtotal,
+      gstAmount,
+      finalTotal,
+    };
+  }, [basePricePerPerson, adults, children, numberOfNights]);
+
+  // Simulate quick real-time ajax recalculation effect
+  const handleDateOrGuestChange = () => {
+    setIsUpdatingPrice(true);
+    setTimeout(() => {
+      setIsUpdatingPrice(false);
+    }, 200);
+  };
+
+  const displayPrice = cardPrice || hotel?.price || `₹${basePricePerPerson.toLocaleString("en-IN")}`;
   const displayOriginalPrice = cardOriginalPrice || hotel?.originalPrice;
   const images =
     hotel?.images && hotel.images.length > 0
@@ -260,8 +335,12 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                 <div className="row align-items-center">
                   <div className="col-lg-8">
                     <div className="d-flex align-items-center gap-2 flex-wrap mb-10">
-                      <span className="tp-section-subtitle mb-0 text-uppercase fw-600" style={{ fontSize: "12px", letterSpacing: "0.5px" }}>
-                        <i className="fa-solid fa-sparkles me-1 text-primary"></i> {hotel.type || "Curated Stay"}
+                      <span
+                        className="tp-section-subtitle mb-0 text-uppercase fw-600"
+                        style={{ fontSize: "12px", letterSpacing: "0.5px" }}
+                      >
+                        <i className="fa-solid fa-sparkles me-1 text-primary"></i>{" "}
+                        {hotel.type || "Curated Stay"}
                       </span>
                       <span className="text-muted small">•</span>
                       <span className="text-muted small d-inline-flex align-items-center gap-1">
@@ -269,7 +348,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                       </span>
                     </div>
 
-                    {/* Small sized clean title */}
+                    {/* Small clean title */}
                     <h2
                       className="tp-tour-title text-dark mb-10 fw-700"
                       style={{ fontSize: "clamp(19px, 2.2vw, 24px)", lineHeight: 1.3 }}
@@ -287,11 +366,11 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                       </span>
                       <span className="text-muted small">•</span>
                       <span className="text-muted small d-inline-flex align-items-center gap-1">
-                        <Clock size={13} /> {hotel.duration || "2N / 3D"}
+                        <Clock size={13} /> {numberOfNights} Nights / {numberOfNights + 1} Days
                       </span>
                       <span className="text-muted small">•</span>
                       <span className="text-muted small d-inline-flex align-items-center gap-1">
-                        <Users size={13} /> {hotel.groupSize || "1–8 Guests"}
+                        <Users size={13} /> {adults + children} Guests Selected
                       </span>
                     </div>
                   </div>
@@ -439,10 +518,10 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                 </div>
               )}
 
-              {/* ── Main Layout Content + Sticky Booking Box ──────────── */}
+              {/* ── Main Layout Content + Interactive Booking Sidebar ─── */}
               <div className="row g-4">
                 {/* Left: Tour Details Content */}
-                <div className="col-lg-8">
+                <div className="col-lg-7">
                   {/* Overview Card */}
                   <div className="bg-white p-4 rounded-3 border mb-25">
                     <h4
@@ -487,10 +566,10 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                         <div className="p-3 bg-light rounded-2 text-center">
                           <Users size={16} className="text-success mb-1" />
                           <div className="text-muted" style={{ fontSize: "11px" }}>
-                            Capacity
+                            Guests
                           </div>
                           <div className="fw-600 text-dark small">
-                            {hotel.groupSize || "1–8 Guests"}
+                            {adults} Ad, {children} Ch
                           </div>
                         </div>
                       </div>
@@ -636,8 +715,8 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                   </div>
                 </div>
 
-                {/* Right Sticky Booking Box */}
-                <div className="col-lg-4">
+                {/* Right: Real-time Interactive Booking & Price Calculation Sidebar */}
+                <div className="col-lg-5">
                   <div
                     className="sticky-top"
                     style={{ top: "90px", zIndex: 5 }}
@@ -664,50 +743,214 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                             </span>
                           )}
                           <span className="tp-tour-suffix text-muted small">
-                            / person
+                            / adult / night
                           </span>
                         </div>
                         <div
                           className="badge bg-success bg-opacity-10 text-success fw-600 mt-2 px-2 py-1"
                           style={{ fontSize: "11px" }}
                         >
-                          Best Price Guaranteed
+                          Best Price Guaranteed • 10% Off Applied
                         </div>
                       </div>
 
-                      {/* Info Summary */}
-                      <div
-                        className="d-flex flex-column gap-2 mb-20 text-muted"
-                        style={{ fontSize: "13px" }}
-                      >
-                        <div className="d-flex justify-content-between">
-                          <span>Location:</span>
-                          <strong className="text-dark">{location}</strong>
+                      {/* ── Real-Time Interactive Form ────────────────── */}
+                      <div className="mb-20">
+                        {/* Dates Selector */}
+                        <div className="row g-2 mb-15">
+                          <div className="col-6">
+                            <label
+                              className="form-label text-muted fw-600 mb-1"
+                              style={{ fontSize: "11.5px" }}
+                            >
+                              <CalendarIcon size={12} className="me-1 text-primary" /> Check-In
+                            </label>
+                            <input
+                              type="date"
+                              className="form-control form-control-sm rounded-2 bg-light border"
+                              value={checkInDate}
+                              min={new Date().toISOString().split("T")[0]}
+                              onChange={(e) => {
+                                setCheckInDate(e.target.value);
+                                handleDateOrGuestChange();
+                              }}
+                              style={{ fontSize: "12.5px" }}
+                            />
+                          </div>
+                          <div className="col-6">
+                            <label
+                              className="form-label text-muted fw-600 mb-1"
+                              style={{ fontSize: "11.5px" }}
+                            >
+                              <CalendarIcon size={12} className="me-1 text-danger" /> Check-Out
+                            </label>
+                            <input
+                              type="date"
+                              className="form-control form-control-sm rounded-2 bg-light border"
+                              value={checkOutDate}
+                              min={checkInDate}
+                              onChange={(e) => {
+                                setCheckOutDate(e.target.value);
+                                handleDateOrGuestChange();
+                              }}
+                              style={{ fontSize: "12.5px" }}
+                            />
+                          </div>
                         </div>
-                        <div className="d-flex justify-content-between">
-                          <span>Rating:</span>
-                          <strong className="text-dark">
-                            ★ {hotel.rating.toFixed(1)} / 5
-                          </strong>
+
+                        {/* Guests Counter Selector */}
+                        <div className="bg-light p-3 rounded-2 border mb-15">
+                          {/* Adults */}
+                          <div className="d-flex align-items-center justify-content-between mb-2">
+                            <div>
+                              <div className="fw-600 text-dark" style={{ fontSize: "13px" }}>
+                                Adults (12+ yrs)
+                              </div>
+                              <div className="text-muted" style={{ fontSize: "11px" }}>
+                                ₹{calculation.adultRate.toLocaleString("en-IN")} / night
+                              </div>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-white border rounded-circle d-flex align-items-center justify-content-center p-0"
+                                style={{ width: "26px", height: "26px" }}
+                                disabled={adults <= 1}
+                                onClick={() => {
+                                  setAdults((a) => Math.max(1, a - 1));
+                                  handleDateOrGuestChange();
+                                }}
+                              >
+                                <Minus size={13} />
+                              </button>
+                              <span className="fw-700 text-dark" style={{ minWidth: "18px", textAlign: "center", fontSize: "13px" }}>
+                                {adults}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-white border rounded-circle d-flex align-items-center justify-content-center p-0"
+                                style={{ width: "26px", height: "26px" }}
+                                disabled={adults >= 10}
+                                onClick={() => {
+                                  setAdults((a) => a + 1);
+                                  handleDateOrGuestChange();
+                                }}
+                              >
+                                <Plus size={13} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Children */}
+                          <div className="d-flex align-items-center justify-content-between pt-2 border-top">
+                            <div>
+                              <div className="fw-600 text-dark" style={{ fontSize: "13px" }}>
+                                Children (2-11 yrs)
+                              </div>
+                              <div className="text-muted" style={{ fontSize: "11px" }}>
+                                50% Off (₹{calculation.childRate.toLocaleString("en-IN")})
+                              </div>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-white border rounded-circle d-flex align-items-center justify-content-center p-0"
+                                style={{ width: "26px", height: "26px" }}
+                                disabled={children <= 0}
+                                onClick={() => {
+                                  setChildren((c) => Math.max(0, c - 1));
+                                  handleDateOrGuestChange();
+                                }}
+                              >
+                                <Minus size={13} />
+                              </button>
+                              <span className="fw-700 text-dark" style={{ minWidth: "18px", textAlign: "center", fontSize: "13px" }}>
+                                {children}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-white border rounded-circle d-flex align-items-center justify-content-center p-0"
+                                style={{ width: "26px", height: "26px" }}
+                                disabled={children >= 6}
+                                onClick={() => {
+                                  setChildren((c) => c + 1);
+                                  handleDateOrGuestChange();
+                                }}
+                              >
+                                <Plus size={13} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <div className="d-flex justify-content-between">
-                          <span>Stay Length:</span>
-                          <strong className="text-dark">
-                            {hotel.duration || "2 Nights / 3 Days"}
-                          </strong>
+
+                        {/* ── Real-Time Dynamic Price Breakdown Table ──── */}
+                        <div
+                          className="bg-light p-3 rounded-2 border mb-20"
+                          style={{
+                            opacity: isUpdatingPrice ? 0.6 : 1,
+                            transition: "opacity 0.2s ease",
+                          }}
+                        >
+                          <div
+                            className="fw-700 text-dark mb-2 pb-1 border-bottom d-flex align-items-center justify-content-between"
+                            style={{ fontSize: "12.5px" }}
+                          >
+                            <span className="d-flex align-items-center gap-1">
+                              <Receipt size={14} className="text-primary" /> Fare Breakdown
+                            </span>
+                            <span className="badge bg-primary text-white" style={{ fontSize: "10px" }}>
+                              {numberOfNights} {numberOfNights === 1 ? "Night" : "Nights"}
+                            </span>
+                          </div>
+
+                          <div className="d-flex flex-column gap-1 text-muted" style={{ fontSize: "12px" }}>
+                            <div className="d-flex justify-content-between">
+                              <span>
+                                Adults ({adults} × ₹{calculation.adultRate.toLocaleString("en-IN")}):
+                              </span>
+                              <span>₹{(adults * calculation.adultRate * numberOfNights).toLocaleString("en-IN")}</span>
+                            </div>
+
+                            {children > 0 && (
+                              <div className="d-flex justify-content-between">
+                                <span>
+                                  Children ({children} × ₹{calculation.childRate.toLocaleString("en-IN")}):
+                                </span>
+                                <span>₹{(children * calculation.childRate * numberOfNights).toLocaleString("en-IN")}</span>
+                              </div>
+                            )}
+
+                            <div className="d-flex justify-content-between text-success">
+                              <span className="d-flex align-items-center gap-1">
+                                <Percent size={12} /> Special Promo Discount (10%):
+                              </span>
+                              <span>-₹{calculation.discount.toLocaleString("en-IN")}</span>
+                            </div>
+
+                            <div className="d-flex justify-content-between">
+                              <span>Applicable GST (18%):</span>
+                              <span>₹{calculation.gstAmount.toLocaleString("en-IN")}</span>
+                            </div>
+
+                            {/* Total Payable */}
+                            <div className="d-flex justify-content-between pt-2 mt-1 border-top fw-700 text-dark" style={{ fontSize: "14px" }}>
+                              <span>Total Amount:</span>
+                              <span className="text-primary fs-6">₹{calculation.finalTotal.toLocaleString("en-IN")}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Theme Buttons */}
+                      {/* Theme Action Buttons */}
                       <div className="d-grid gap-2">
                         <a
                           href={hotel.link || mapsUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="tp-btn fw-600 tp-ff-inter w-100 text-center text-white"
+                          className="tp-btn fw-600 tp-ff-inter w-100 text-center text-white d-flex align-items-center justify-content-center gap-2"
                           style={{ padding: "12px 20px" }}
                         >
-                          Book For {displayPrice}
+                          <CreditCard size={15} /> Book Now for ₹{calculation.finalTotal.toLocaleString("en-IN")}
                         </a>
                         <a
                           href={mapsUrl}
@@ -716,8 +959,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                           className="tp-btn-sm fw-500 tp-ff-inter bg-light text-dark border w-100 text-center d-flex align-items-center justify-content-center gap-1"
                           style={{ padding: "10px 20px" }}
                         >
-                          <Navigation size={13} className="text-primary" /> View
-                          on Google Maps
+                          <Navigation size={13} className="text-primary" /> View on Google Maps
                         </a>
                       </div>
 
