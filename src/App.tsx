@@ -21,6 +21,8 @@ import ServiceArea from "./components/sections/service-area/service-area";
 import Footer from "./components/sections/footer/Footer";
 import CityDetailsPage from "./pages/city-details";
 import TourDetailsPage from "./pages/tour-details";
+import LoginPage from "./pages/login";
+import RegisterPage from "./pages/register";
 
 function App() {
   const [bookingTab, setBookingTab] = useState<BookingTab>("packages");
@@ -35,6 +37,7 @@ function App() {
     originalPrice?: number;
     initialHotel?: any;
   } | null>(null);
+  const [currentPage, setCurrentPage] = useState<string | null>(null);
 
   // Check URL pathname for initial load
   useEffect(() => {
@@ -61,6 +64,10 @@ function App() {
         originalPrice: mrp,
         initialHotel: historyState,
       });
+    } else if (path === "/login") {
+      setCurrentPage("login");
+    } else if (path === "/register") {
+      setCurrentPage("register");
     }
 
     const handlePopState = () => {
@@ -89,15 +96,47 @@ function App() {
           initialHotel: historyState,
         });
         setSelectedDestination(null);
+        setCurrentPage(null);
+      } else if (currentPath === "/login") {
+        setCurrentPage("login");
+        setSelectedDestination(null);
+        setSelectedTour(null);
+      } else if (currentPath === "/register") {
+        setCurrentPage("register");
+        setSelectedDestination(null);
+        setSelectedTour(null);
       } else {
         setSelectedDestination(null);
         setSelectedTour(null);
+        setCurrentPage(null);
       }
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  if (currentPage === "login") {
+    return (
+      <LoginPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+      />
+    );
+  }
+
+  if (currentPage === "register") {
+    return (
+      <RegisterPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+      />
+    );
+  }
 
   if (selectedTour) {
     return (
