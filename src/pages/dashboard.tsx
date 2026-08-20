@@ -86,7 +86,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                 >
                   {(user.name || user.email).charAt(0).toUpperCase()}
                 </div>
-                <h5 className="fw-700 text-dark mb-1">{user.name || "Traveler"}</h5>
+                <h5 className="fw-500 text-dark mb-1">{user.name || "Traveler"}</h5>
                 <p className="text-muted small mb-3">{user.email}</p>
                 <div className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill font-monospace small mb-3">
                   <ShieldCheck size={13} className="me-1" /> Verified Member
@@ -207,7 +207,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                             />
                           </div>
                           <div>
-                            <h6 className="fw-700 text-dark mb-1">Kashmir Snow Valley Resort</h6>
+                            <h6 className="fw-500 text-dark mb-1">Kashmir Snow Valley Resort</h6>
                             <span className="text-muted small d-inline-flex align-items-center gap-1">
                               <Calendar size={13} /> 25 Aug – 28 Aug 2026 • 2 Adults
                             </span>
@@ -232,7 +232,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                             />
                           </div>
                           <div>
-                            <h6 className="fw-700 text-dark mb-1">Goa Luxury Beachside Villa</h6>
+                            <h6 className="fw-500 text-dark mb-1">Goa Luxury Beachside Villa</h6>
                             <span className="text-muted small d-inline-flex align-items-center gap-1">
                               <Calendar size={13} /> 12 Sep – 15 Sep 2026 • 2 Adults
                             </span>
@@ -307,7 +307,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                         <div className="card rounded-3 border overflow-hidden shadow-sm h-100">
                           <img src={item.img} alt="" style={{ height: "140px", objectFit: "cover" }} />
                           <div className="p-3">
-                            <h6 className="fw-700 text-dark mb-1" style={{ fontSize: "13.5px" }}>{item.name}</h6>
+                            <h6 className="fw-500 text-dark mb-1" style={{ fontSize: "13.5px" }}>{item.name}</h6>
                             <span className="text-muted small d-block mb-2"><MapPin size={12} className="text-danger" /> {item.loc}</span>
                             <div className="d-flex justify-content-between align-items-center">
                               <strong className="text-primary">{item.price}</strong>

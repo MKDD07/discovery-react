@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import logo from "../../../logo.png";
 import { loadAllPexelsMedia } from "../pexels/PexelsMediaSection";
-import { getStoredUser, UserProfile } from "../../../services/auth";
+import { getStoredUser, logoutUser, UserProfile } from "../../../services/auth";
 
 export default function Header() {
   const headerRef = useRef<HTMLElement>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(getStoredUser());
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   useEffect(() => {
     if (headerRef.current) {
@@ -63,28 +64,72 @@ export default function Header() {
                   <i className="fa-solid fa-cart-shopping"></i>
                   <span>2</span>
                 </button>
-                <div className="tp-header-contact ml-20 d-none d-sm-flex align-items-center gap-2">
+                <div className="tp-header-contact ml-20 d-none d-sm-flex align-items-center gap-2 p-relative">
                   {currentUser ? (
-                    <div className="d-flex align-items-center gap-2">
-                      <a
-                        href="/dashboard"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          window.history.pushState({}, "", "/dashboard");
-                          window.dispatchEvent(new PopStateEvent("popstate"));
-                        }}
-                        className="d-flex align-items-center gap-2 text-decoration-none"
+                    <div className="p-relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowUserDropdown(!showUserDropdown)}
+                        className="btn p-0 d-flex align-items-center gap-2 text-decoration-none border-0 bg-transparent shadow-none"
                       >
                         <div
                           className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
-                          style={{ width: "28px", height: "28px", fontSize: "12px" }}
+                          style={{ width: "30px", height: "30px", fontSize: "12px" }}
                         >
                           {(currentUser.name || currentUser.email).charAt(0).toUpperCase()}
                         </div>
                         <span className="fw-600 text-dark" style={{ fontSize: "13px" }}>
-                          {currentUser.name || "Dashboard"}
+                          {currentUser.name || "My Account"}
                         </span>
-                      </a>
+                        <i className="fa-solid fa-chevron-down text-muted" style={{ fontSize: "10px" }}></i>
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {showUserDropdown && (
+                        <div
+                          className="position-absolute end-0 mt-2 bg-white rounded-3 border shadow-lg py-2"
+                          style={{ minWidth: "180px", zIndex: 9999 }}
+                        >
+                          <div className="px-3 py-1 border-bottom mb-1">
+                            <div className="fw-bold text-dark text-truncate" style={{ fontSize: "12.5px" }}>
+                              {currentUser.name || "Member"}
+                            </div>
+                            <div className="text-muted text-truncate" style={{ fontSize: "11px" }}>
+                              {currentUser.email}
+                            </div>
+                          </div>
+
+                          <a
+                            href="/dashboard"
+                            className="dropdown-item px-3 py-2 text-dark d-flex align-items-center gap-2"
+                            style={{ fontSize: "13px" }}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setShowUserDropdown(false);
+                              window.history.pushState({}, "", "/dashboard");
+                              window.dispatchEvent(new PopStateEvent("popstate"));
+                            }}
+                          >
+                            <i className="fa-regular fa-user text-primary" style={{ width: "16px" }}></i>
+                            Dashboard
+                          </a>
+
+                          <div className="dropdown-divider my-1"></div>
+
+                          <button
+                            type="button"
+                            className="dropdown-item px-3 py-2 text-danger d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-start"
+                            style={{ fontSize: "13px" }}
+                            onClick={() => {
+                              setShowUserDropdown(false);
+                              logoutUser();
+                            }}
+                          >
+                            <i className="fa-solid fa-arrow-right-from-bracket" style={{ width: "16px" }}></i>
+                            Logout
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
