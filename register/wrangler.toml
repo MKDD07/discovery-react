@@ -5,8 +5,4 @@ compatibility_date = "2026-08-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "discovery_convoy_auth"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
-
-# Set the real secret with:
-#   wrangler secret put SESSION_SECRET
-# Never commit the actual secret value.
+database_id = "85ee9b2f-ba0e-4146-8d8f-94c062cc6bf0"

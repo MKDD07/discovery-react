@@ -17,6 +17,18 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/serp/, "/search.json"),
       },
+      "/api/register": {
+        target: "https://discovery.mkmkataria07.workers.dev",
+        changeOrigin: true,
+      },
+      "/api/signup": {
+        target: "https://discovery.mkmkataria07.workers.dev",
+        changeOrigin: true,
+      },
+      "/api/login": {
+        target: "https://discovery.mkmkataria07.workers.dev",
+        changeOrigin: true,
+      },
     },
   },
   resolve: {
@@ -28,8 +40,6 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: "./vitest.setup.ts",
-    // you might want to disable it, if you don't have tests that rely on CSS
-    // since parsing CSS is slow
     css: true,
   },
 });

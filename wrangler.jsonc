@@ -8,6 +8,13 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "discovery_convoy_auth",
+      "database_id": "85ee9b2f-ba0e-4146-8d8f-94c062cc6bf0"
+    }
+  ],
   "observability": {
     "enabled": true
   }
