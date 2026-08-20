@@ -79,8 +79,15 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
     if (t.closest(".tp-tour-media-meta") || t.closest(".tp-tour-wishlist")) return;
     e.preventDefault();
     const slug = encodeURIComponent(hotel.name);
-    window.history.pushState({}, "", `/tour/${slug}`);
-    window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
+    const priceParam = encodeURIComponent(hotel.price || "");
+    const origParam = hotel.originalPrice ? `&mrp=${hotel.originalPrice}` : "";
+    const locParam = encodeURIComponent(location || "");
+    window.history.pushState(
+      { hotel, location },
+      "",
+      `/tour/${slug}?price=${priceParam}${origParam}&loc=${locParam}`
+    );
+    window.dispatchEvent(new PopStateEvent("popstate", { state: { hotel, location } }));
   };
 
   return (

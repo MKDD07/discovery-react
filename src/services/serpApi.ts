@@ -54,10 +54,21 @@ export interface SerpHotelDetail extends SerpHotelResult {
   cancellation?: string;
 }
 
+// Local fallback / dev key (can be supplied via VITE_SERP_API_KEY or default for local dev)
+const LOCAL_SERP_KEY =
+  (import.meta as any).env?.VITE_SERP_API_KEY ||
+  (import.meta as any).env?.VITE_SERP_API_KEY_1 ||
+  "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
+
 async function fetchSerp(params: Record<string, string>): Promise<any> {
   // Strip slot from params before building query; worker reads it but SerpApi doesn't need it
   const { slot, ...serpParams } = params as Record<string, string>;
   const query = new URLSearchParams(serpParams);
+
+  // If running locally (Vite proxy to serpapi.com), ensure api_key is attached if not already present
+  if (!query.has("api_key") && LOCAL_SERP_KEY) {
+    query.set("api_key", LOCAL_SERP_KEY);
+  }
 
   // Only include slot if present (worker uses it to pick key, then drops it)
   if (slot) query.set("slot", slot);

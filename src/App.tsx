@@ -31,6 +31,9 @@ function App() {
   const [selectedTour, setSelectedTour] = useState<{
     name: string;
     location: string;
+    price?: string;
+    originalPrice?: number;
+    initialHotel?: any;
   } | null>(null);
 
   // Check URL pathname for initial load
@@ -46,7 +49,18 @@ function App() {
     } else if (path.startsWith("/tour/")) {
       const tourSlug = path.replace("/tour/", "");
       const tourName = decodeURIComponent(tourSlug);
-      setSelectedTour({ name: tourName, location: tourName });
+      const searchParams = new URLSearchParams(window.location.search);
+      const price = searchParams.get("price") || undefined;
+      const mrp = searchParams.get("mrp") ? Number(searchParams.get("mrp")) : undefined;
+      const loc = searchParams.get("loc") || tourName;
+      const historyState = window.history.state?.hotel;
+      setSelectedTour({
+        name: tourName,
+        location: loc,
+        price,
+        originalPrice: mrp,
+        initialHotel: historyState,
+      });
     }
 
     const handlePopState = () => {
@@ -62,7 +76,18 @@ function App() {
       } else if (currentPath.startsWith("/tour/")) {
         const tourSlug = currentPath.replace("/tour/", "");
         const tourName = decodeURIComponent(tourSlug);
-        setSelectedTour({ name: tourName, location: tourName });
+        const searchParams = new URLSearchParams(window.location.search);
+        const price = searchParams.get("price") || undefined;
+        const mrp = searchParams.get("mrp") ? Number(searchParams.get("mrp")) : undefined;
+        const loc = searchParams.get("loc") || tourName;
+        const historyState = window.history.state?.hotel;
+        setSelectedTour({
+          name: tourName,
+          location: loc,
+          price,
+          originalPrice: mrp,
+          initialHotel: historyState,
+        });
         setSelectedDestination(null);
       } else {
         setSelectedDestination(null);
@@ -79,6 +104,9 @@ function App() {
       <TourDetailsPage
         tourName={selectedTour.name}
         location={selectedTour.location}
+        cardPrice={selectedTour.price}
+        cardOriginalPrice={selectedTour.originalPrice}
+        initialHotel={selectedTour.initialHotel}
         onBackHome={() => {
           window.history.pushState({}, "", "/");
           setSelectedTour(null);
