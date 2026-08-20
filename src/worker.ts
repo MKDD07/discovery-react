@@ -2,6 +2,7 @@ export interface Env {
   SERP_API_KEY_1?: string;
   SERP_API_KEY_2?: string;
   VITE_PEXELS_API_KEY?: string;
+  GROQ_API_KEY?: string;
   SESSION_SECRET?: string;
   DB?: any; // Cloudflare D1 Database binding
   USERS_KV?: any; // Cloudflare KV binding
@@ -43,24 +44,23 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    // Common CORS helper
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    };
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
     // ── 1. Intercept /api/register & /api/signup requests ────────────────
     if (url.pathname === "/api/register" || url.pathname === "/api/signup") {
-      // Handle CORS preflight
-      if (request.method === "OPTIONS") {
-        return new Response(null, {
-          status: 204,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-          },
-        });
-      }
-
       if (request.method !== "POST") {
         return new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405,
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
@@ -76,20 +76,14 @@ export default {
         if (!email || !password) {
           return new Response(
             JSON.stringify({ error: "Email and password are required" }),
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-            }
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }
 
         if (password.length < 6) {
           return new Response(
             JSON.stringify({ error: "Password must be at least 6 characters" }),
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-            }
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }
 
@@ -122,10 +116,7 @@ export default {
             if (existing) {
               return new Response(
                 JSON.stringify({ error: "Email already registered. Please sign in." }),
-                {
-                  status: 409,
-                  headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-                }
+                { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } }
               );
             }
 
@@ -143,10 +134,7 @@ export default {
             if (dbErr?.message?.includes("UNIQUE constraint failed")) {
               return new Response(
                 JSON.stringify({ error: "Email already registered. Please sign in." }),
-                {
-                  status: 409,
-                  headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-                }
+                { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } }
               );
             }
           }
@@ -166,45 +154,22 @@ export default {
             message: "Account registered successfully!",
             user: { id: createdUserId, name: userName, email: normalizedEmail },
           }),
-          {
-            status: 201,
-            headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-            },
-          }
+          { status: 201, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       } catch (err: any) {
         return new Response(
           JSON.stringify({ error: err.message || "Failed to process registration" }),
-          {
-            status: 500,
-            headers: {
-              "Content-Type": "application/json",
-              "Access-Control-Allow-Origin": "*",
-            },
-          }
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
     }
 
     // ── 2. Intercept /api/login requests ────────────────────────────────
     if (url.pathname === "/api/login") {
-      if (request.method === "OPTIONS") {
-        return new Response(null, {
-          status: 204,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-          },
-        });
-      }
-
       if (request.method !== "POST") {
         return new Response(JSON.stringify({ error: "Method not allowed" }), {
           status: 405,
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
 
@@ -215,10 +180,7 @@ export default {
         if (!email || !password) {
           return new Response(
             JSON.stringify({ error: "Email and password are required" }),
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-            }
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }
 
@@ -235,7 +197,7 @@ export default {
           if (!user) {
             return new Response(JSON.stringify({ error: "Invalid email or password" }), {
               status: 401,
-              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+              headers: { "Content-Type": "application/json", ...corsHeaders },
             });
           }
 
@@ -243,7 +205,7 @@ export default {
           if (!isValid) {
             return new Response(JSON.stringify({ error: "Invalid email or password" }), {
               status: 401,
-              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+              headers: { "Content-Type": "application/json", ...corsHeaders },
             });
           }
 
@@ -253,10 +215,7 @@ export default {
               message: "Login successful",
               user: { id: user.id, email: user.email, name: user.name },
             }),
-            {
-              status: 200,
-              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-            }
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }
 
@@ -267,37 +226,314 @@ export default {
             message: "Login successful",
             user: { email: normalizedEmail },
           }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-          }
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       } catch (err: any) {
         return new Response(
           JSON.stringify({ error: err.message || "Failed to process login" }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
-          }
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
     }
 
-    // ── 3. Intercept /api/serp requests ────────────────────────────────
-    if (url.pathname.startsWith("/api/serp")) {
-      const searchParams = new URLSearchParams(url.search);
+    // ── 3. Intercept /api/blogs (List & Query Specific Blog by Slug) ──
+    if (url.pathname.startsWith("/api/blogs")) {
+      const slug = url.searchParams.get("slug");
+      const category = url.searchParams.get("category");
+      const location = url.searchParams.get("location");
 
-      // Handle CORS preflight
-      if (request.method === "OPTIONS") {
-        return new Response(null, {
-          status: 204,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-          },
+      // Ensure blogs table exists
+      if (env?.DB) {
+        try {
+          await env.DB.prepare(
+            `CREATE TABLE IF NOT EXISTS blogs (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              slug TEXT UNIQUE NOT NULL,
+              title TEXT NOT NULL,
+              category TEXT NOT NULL,
+              location TEXT,
+              author TEXT DEFAULT 'Admin',
+              author_role TEXT DEFAULT 'Travel Specialist',
+              author_avatar TEXT,
+              cover_query TEXT,
+              summary TEXT,
+              content_json TEXT NOT NULL,
+              faqs_json TEXT,
+              tags TEXT,
+              created_at INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL
+            )`
+          ).run();
+        } catch (e) {
+          console.error("D1 blogs table init error:", e);
+        }
+      }
+
+      // GET Blog(s)
+      if (request.method === "GET") {
+        if (env?.DB) {
+          try {
+            if (slug) {
+              const blog = await env.DB.prepare(
+                `SELECT * FROM blogs WHERE slug = ?`
+              )
+                .bind(slug)
+                .first();
+
+              if (!blog) {
+                return new Response(JSON.stringify({ error: "Blog not found" }), {
+                  status: 404,
+                  headers: { "Content-Type": "application/json", ...corsHeaders },
+                });
+              }
+
+              return new Response(
+                JSON.stringify({
+                  success: true,
+                  blog: {
+                    ...blog,
+                    content: JSON.parse(blog.content_json || "[]"),
+                    faqs: JSON.parse(blog.faqs_json || "[]"),
+                  },
+                }),
+                { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+              );
+            }
+
+            // List all blogs with optional filtering
+            let query = `SELECT id, slug, title, category, location, author, author_role, cover_query, summary, tags, created_at FROM blogs`;
+            const params: any[] = [];
+
+            if (category) {
+              query += ` WHERE category = ?`;
+              params.push(category);
+            } else if (location) {
+              query += ` WHERE location LIKE ?`;
+              params.push(`%${location}%`);
+            }
+
+            query += ` ORDER BY created_at DESC LIMIT 50`;
+
+            const stmt = env.DB.prepare(query);
+            const res = params.length > 0 ? await stmt.bind(...params).all() : await stmt.all();
+
+            return new Response(
+              JSON.stringify({ success: true, blogs: res.results || [] }),
+              { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          } catch (dbErr: any) {
+            return new Response(
+              JSON.stringify({ error: dbErr.message || "Failed to fetch blogs from D1" }),
+              { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, blogs: [] }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      // POST create/save blog
+      if (request.method === "POST") {
+        try {
+          const body = (await request.json()) as any;
+          const {
+            slug: rawSlug,
+            title,
+            category,
+            location,
+            author,
+            author_role,
+            cover_query,
+            summary,
+            content,
+            faqs,
+            tags,
+          } = body;
+
+          if (!title) {
+            return new Response(
+              JSON.stringify({ error: "Blog title is required" }),
+              { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+
+          const blogSlug =
+            rawSlug ||
+            title
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-|-$/g, "");
+
+          const now = Date.now();
+          const contentJson = JSON.stringify(content || []);
+          const faqsJson = JSON.stringify(faqs || []);
+
+          if (env?.DB) {
+            await env.DB.prepare(
+              `INSERT INTO blogs (slug, title, category, location, author, author_role, cover_query, summary, content_json, faqs_json, tags, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT(slug) DO UPDATE SET
+                 title=excluded.title,
+                 category=excluded.category,
+                 location=excluded.location,
+                 cover_query=excluded.cover_query,
+                 summary=excluded.summary,
+                 content_json=excluded.content_json,
+                 faqs_json=excluded.faqs_json,
+                 tags=excluded.tags,
+                 updated_at=excluded.updated_at`
+            )
+              .bind(
+                blogSlug,
+                title,
+                category || "Adventure",
+                location || null,
+                author || "Admin",
+                author_role || "Travel Specialist",
+                cover_query || `${title} travel 4k landscape`,
+                summary || "",
+                contentJson,
+                faqsJson,
+                tags || "",
+                now,
+                now
+              )
+              .run();
+          }
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: "Blog post saved successfully!",
+              slug: blogSlug,
+            }),
+            { status: 201, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        } catch (err: any) {
+          return new Response(
+            JSON.stringify({ error: err.message || "Failed to save blog post" }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      }
+    }
+
+    // ── 4. Intercept /api/generate-blog (Groq AI Auto-Generation) ──────
+    if (url.pathname === "/api/generate-blog") {
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
+
+      try {
+        const body = (await request.json()) as {
+          topic?: string;
+          category?: string;
+          location?: string;
+          apiKey?: string;
+        };
+
+        const { topic, category, location, apiKey: clientApiKey } = body;
+
+        if (!topic) {
+          return new Response(
+            JSON.stringify({ error: "Topic / Subject is required for AI generation" }),
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        const groqKey = clientApiKey || env?.GROQ_API_KEY;
+        if (!groqKey) {
+          return new Response(
+            JSON.stringify({ error: "Groq API Key is missing. Please provide GROQ_API_KEY." }),
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        const systemPrompt = `You are a professional travel writer and SEO content creator for Discovery Convoy.
+Generate a comprehensive, engaging, highly structured travel blog post in valid JSON format only (no markdown quotes outside JSON).
+
+Return a JSON object with the following schema:
+{
+  "title": "Compelling, catchy headline",
+  "category": "${category || "Adventure"}",
+  "location": "${location || "India"}",
+  "cover_query": "Specific 3-5 word Pexels query for main cover image",
+  "summary": "2-sentence engaging summary",
+  "sections": [
+    {
+      "heading": "Section sub-heading",
+      "paragraphs": ["Paragraph 1 text...", "Paragraph 2 text..."],
+      "pexelsQuery": "3-5 word specific visual query for pexels image (e.g. 'goa beach sunset cocktail')",
+      "highlights": ["Key highlight or tip 1", "Key highlight or tip 2"]
+    }
+  ],
+  "quote": {
+    "text": "Inspirational traveler quote about this place",
+    "author": "Local Guide or Author Name"
+  },
+  "faqs": [
+    {
+      "question": "Clear common traveler question?",
+      "answer": "Concise, helpful answer with actionable advice."
+    }
+  ],
+  "tags": "tag1, tag2, tag3, tag4"
+}
+
+Constraints:
+- Include 4 to 8 detailed sections with up to 10 unique, descriptive pexels queries total.
+- Include 5 to 10 comprehensive FAQs.
+- Format all text engagingly with natural travel guidance.`;
+
+        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${groqKey}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: `Write a full travel article about: ${topic}. Location: ${location || "Global"}.` },
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+          }),
+        });
+
+        if (!groqResponse.ok) {
+          const errText = await groqResponse.text();
+          return new Response(
+            JSON.stringify({ error: `Groq API error: ${errText}` }),
+            { status: groqResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        const groqData = (await groqResponse.json()) as any;
+        const generatedContent = JSON.parse(groqData.choices[0].message.content);
+
+        return new Response(
+          JSON.stringify({ success: true, data: generatedContent }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: err.message || "Failed to generate blog with Groq" }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
+    // ── 5. Intercept /api/serp requests ────────────────────────────────
+    if (url.pathname.startsWith("/api/serp")) {
+      const searchParams = new URLSearchParams(url.search);
 
       const key1 = env?.SERP_API_KEY_1;
       const key2 = env?.SERP_API_KEY_2;
@@ -315,7 +551,6 @@ export default {
         if (key2) keysToTry.push(key2);
       }
 
-      // Fallback to client key or default key
       if (clientKey && !keysToTry.includes(clientKey)) {
         keysToTry.push(clientKey);
       }
@@ -354,7 +589,6 @@ export default {
 
           lastStatus = response.status;
           lastErrorText = await response.text();
-          console.warn(`Worker SerpApi key failed with status ${response.status}`);
         } catch (err: any) {
           lastErrorText = err.message || "Failed to fetch from SerpApi";
         }
@@ -362,14 +596,11 @@ export default {
 
       return new Response(lastErrorText, {
         status: lastStatus,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       });
     }
 
-    // ── 4. Serve static React assets from /dist ────────────────────────
+    // ── 6. Serve static React assets from /dist ────────────────────────
     return env.ASSETS.fetch(request);
   },
 };

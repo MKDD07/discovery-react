@@ -11,11 +11,17 @@ import {
   LogOut,
   MapPin,
   Settings,
-  Bell,
-  CreditCard,
+  Sparkles,
   Compass,
   ArrowRight,
   ShieldCheck,
+  PlusCircle,
+  FileText,
+  HelpCircle,
+  Eye,
+  Key,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 
 interface DashboardPageProps {
@@ -24,18 +30,109 @@ interface DashboardPageProps {
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "bookings" | "saved" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "bookings" | "saved" | "createBlog" | "settings">("overview");
+
+  // Groq AI Blog Generator State
+  const [groqKey, setGroqKey] = useState<string>(
+    localStorage.getItem("discovery_groq_key") || ""
+  );
+  const [topic, setTopic] = useState("");
+  const [category, setCategory] = useState("Adventure");
+  const [location, setLocation] = useState("Goa, India");
+  const [generating, setGenerating] = useState(false);
+  const [generatedBlog, setGeneratedBlog] = useState<any>(null);
+  const [publishStatus, setPublishStatus] = useState<string | null>(null);
 
   useEffect(() => {
     const authUser = getStoredUser();
     if (!authUser) {
-      // If not logged in, redirect to login page
       window.history.pushState({}, "", "/login");
       window.dispatchEvent(new PopStateEvent("popstate"));
       return;
     }
     setUser(authUser);
   }, []);
+
+  const handleGenerateBlog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!topic.trim()) {
+      alert("Please enter a blog topic / subject.");
+      return;
+    }
+
+    setGenerating(true);
+    setGeneratedBlog(null);
+    setPublishStatus(null);
+
+    try {
+      if (groqKey) {
+        localStorage.setItem("discovery_groq_key", groqKey.trim());
+      }
+
+      const res = await fetch("/api/generate-blog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          category,
+          location,
+          apiKey: groqKey.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.data) {
+        setGeneratedBlog(data.data);
+      } else {
+        alert(data.error || "Failed to generate blog. Please check your Groq API key.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to communicate with AI generation endpoint.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handlePublishToD1 = async () => {
+    if (!generatedBlog) return;
+    setPublishStatus("saving");
+
+    try {
+      const slug = generatedBlog.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      const res = await fetch("/api/blogs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          slug,
+          title: generatedBlog.title,
+          category: generatedBlog.category || category,
+          location: generatedBlog.location || location,
+          author: user?.name || "Admin",
+          author_role: "Discovery Travel Editor",
+          cover_query: generatedBlog.cover_query,
+          summary: generatedBlog.summary,
+          content: generatedBlog.sections,
+          faqs: generatedBlog.faqs,
+          tags: generatedBlog.tags,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPublishStatus("published");
+      } else {
+        alert(data.error || "Failed to save blog to D1 database.");
+        setPublishStatus(null);
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to connect to database.");
+      setPublishStatus(null);
+    }
+  };
 
   if (!user) return null;
 
@@ -122,6 +219,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                   </button>
                   <button
                     className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
+                      activeTab === "createBlog" ? "bg-primary text-white fw-600" : "text-dark bg-transparent"
+                    }`}
+                    style={{ fontSize: "14px" }}
+                    onClick={() => setActiveTab("createBlog")}
+                  >
+                    <Sparkles size={16} /> Groq AI Blog Creator
+                  </button>
+                  <button
+                    className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
                       activeTab === "bookings" ? "bg-primary text-white fw-600" : "text-dark bg-transparent"
                     }`}
                     style={{ fontSize: "14px" }}
@@ -153,6 +259,192 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
 
             {/* Main Content Area */}
             <div className="col-lg-9 col-md-8">
+              {/* Groq AI Blog Generator Tab */}
+              {activeTab === "createBlog" && (
+                <div className="bg-white rounded-4 border p-4 shadow-sm mb-4">
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                      <span className="badge bg-primary bg-opacity-10 text-primary font-monospace small mb-1">
+                        AI Content Engine
+                      </span>
+                      <h4 className="fw-700 text-dark mb-0 d-flex align-items-center gap-2">
+                        <Sparkles size={20} className="text-primary" /> Groq AI Blog Generator
+                      </h4>
+                    </div>
+                  </div>
+                  <p className="text-muted small mb-4">
+                    Enter any travel subject or destination. Groq AI generates full articles with structured headings, paragraphs, up to 10 Pexels image queries, and up to 10 FAQs — instantly connected with D1 Database and live location offer cards.
+                  </p>
+
+                  <form onSubmit={handleGenerateBlog} className="mb-4">
+                    <div className="row g-3">
+                      <div className="col-12">
+                        <label className="form-label small text-muted fw-semibold">
+                          Groq API Key (Stored securely in your browser or Worker env)
+                        </label>
+                        <div className="input-group">
+                          <span className="input-group-text bg-light border-end-0">
+                            <Key size={14} className="text-muted" />
+                          </span>
+                          <input
+                            type="password"
+                            className="form-control form-control-sm border-start-0"
+                            placeholder="gsk_..."
+                            value={groqKey}
+                            onChange={(e) => setGroqKey(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="col-md-6">
+                        <label className="form-label small text-muted fw-semibold">
+                          Article Topic / Subject *
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="e.g. 5 Secret Beaches in Goa or Kashmir Snow Trek Guide"
+                          value={topic}
+                          onChange={(e) => setTopic(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="col-md-3">
+                        <label className="form-label small text-muted fw-semibold">
+                          Category
+                        </label>
+                        <select
+                          className="form-select form-select-sm"
+                          value={category}
+                          onChange={(e) => setCategory(e.target.value)}
+                        >
+                          <option value="Adventure">Adventure</option>
+                          <option value="Art and culture">Art and culture</option>
+                          <option value="Nature">Nature</option>
+                          <option value="Beach Trips">Beach Trips</option>
+                          <option value="Food & Travel">Food & Travel</option>
+                          <option value="Travel Tips">Travel Tips</option>
+                        </select>
+                      </div>
+
+                      <div className="col-md-3">
+                        <label className="form-label small text-muted fw-semibold">
+                          Target Location (For offer cards)
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="e.g. Goa, Kashmir, Dubai"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="col-12 pt-2">
+                        <button
+                          type="submit"
+                          className="tp-btn text-white px-4 py-2 d-inline-flex align-items-center gap-2"
+                          disabled={generating}
+                          style={{ fontSize: "13px" }}
+                        >
+                          {generating ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" /> Generating with Groq AI...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={16} /> Generate Travel Article
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+
+                  {/* Generated Preview & Publish Action */}
+                  {generatedBlog && (
+                    <div className="border-top pt-4 mt-4">
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                        <h5 className="fw-700 text-dark mb-0">Generated Article Preview</h5>
+                        <div className="d-flex gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-success text-white px-3 d-inline-flex align-items-center gap-1"
+                            onClick={handlePublishToD1}
+                            disabled={publishStatus === "published"}
+                          >
+                            <CheckCircle2 size={15} />
+                            {publishStatus === "published"
+                              ? "Published to D1 Database!"
+                              : publishStatus === "saving"
+                              ? "Saving to D1..."
+                              : "Publish Article to D1"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-light rounded-4 border">
+                        <span className="badge bg-primary mb-2">{generatedBlog.category}</span>
+                        <h4 className="fw-bold text-dark mb-2">{generatedBlog.title}</h4>
+                        <p className="text-muted small mb-3">{generatedBlog.summary}</p>
+
+                        <div className="small text-muted mb-3 font-monospace">
+                          <strong>Cover Image Query:</strong> "{generatedBlog.cover_query}"
+                        </div>
+
+                        <div className="border-top pt-3">
+                          <h6 className="fw-bold text-dark small mb-2">
+                            Content Sections ({generatedBlog.sections?.length || 0} sections with Pexels queries):
+                          </h6>
+                          <div className="d-flex flex-column gap-2 mb-3">
+                            {generatedBlog.sections?.map((sec: any, sIdx: number) => (
+                              <div key={sIdx} className="bg-white p-3 rounded-3 border">
+                                <strong className="d-block text-dark small">{sec.heading}</strong>
+                                <span className="text-muted font-monospace" style={{ fontSize: "11.5px" }}>
+                                  Pexels query: "{sec.pexelsQuery}"
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <h6 className="fw-bold text-dark small mb-2">
+                            FAQs ({generatedBlog.faqs?.length || 0} Questions):
+                          </h6>
+                          <div className="d-flex flex-column gap-2">
+                            {generatedBlog.faqs?.map((f: any, fIdx: number) => (
+                              <div key={fIdx} className="bg-white p-2 rounded-3 border small">
+                                <strong>Q: {f.question}</strong>
+                                <p className="mb-0 text-muted mt-1">{f.answer}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {publishStatus === "published" && (
+                          <div className="mt-3 text-end">
+                            <a
+                              href={`/blog/${encodeURIComponent(
+                                generatedBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+                              )}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const slug = generatedBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+                                window.history.pushState({}, "", `/blog/${slug}`);
+                                window.dispatchEvent(new PopStateEvent("popstate"));
+                              }}
+                              className="btn btn-sm btn-primary rounded-pill px-3"
+                            >
+                              <Eye size={14} className="me-1" /> View Live Blog Article
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {activeTab === "overview" && (
                 <div>
                   {/* Quick Stat Cards */}
@@ -173,9 +465,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                     </div>
                     <div className="col-sm-4">
                       <div className="bg-white rounded-4 border p-4 shadow-sm">
-                        <div className="text-muted small fw-semibold text-uppercase mb-1">Saved Tours</div>
-                        <div className="fs-3 fw-bold text-danger">5 Places</div>
-                        <div className="text-muted small mt-1">In your travel wishlist</div>
+                        <div className="text-muted small fw-semibold text-uppercase mb-1">AI Articles</div>
+                        <div className="fs-3 fw-bold text-danger">Active</div>
+                        <div className="text-muted small mt-1">Groq Engine ready</div>
                       </div>
                     </div>
                   </div>

@@ -29,6 +29,14 @@ export default defineConfig({
         target: "https://discovery.mkmkataria07.workers.dev",
         changeOrigin: true,
       },
+      "/api/blogs": {
+        target: "https://discovery.mkmkataria07.workers.dev",
+        changeOrigin: true,
+      },
+      "/api/generate-blog": {
+        target: "https://discovery.mkmkataria07.workers.dev",
+        changeOrigin: true,
+      },
     },
   },
   resolve: {
