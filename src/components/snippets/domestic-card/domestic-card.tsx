@@ -73,10 +73,24 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
     }
   };
 
+  const navigateToTour = (e: React.MouseEvent) => {
+    // Let map link and wishlist button bubble normally
+    const t = e.target as HTMLElement;
+    if (t.closest(".tp-tour-media-meta") || t.closest(".tp-tour-wishlist")) return;
+    e.preventDefault();
+    const slug = encodeURIComponent(hotel.name);
+    window.history.pushState({}, "", `/tour/${slug}`);
+    window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
+  };
+
   return (
     <>
       <div className="col-xxl-3 col-xl-4 col-lg-6 col-md-6">
-        <div className="tp-tour-item mb-30">
+        <div
+          className="tp-tour-item mb-30"
+          onClick={navigateToTour}
+          style={{ cursor: "pointer" }}
+        >
           <div className="tp-tour-thumb p-relative fix">
             <a href={hotel.link} className="image">
               {!mainImgLoaded && (

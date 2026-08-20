@@ -20,12 +20,17 @@ import InternationalLocation from "./components/sections/international-location/
 import ServiceArea from "./components/sections/service-area/service-area";
 import Footer from "./components/sections/footer/Footer";
 import CityDetailsPage from "./pages/city-details";
+import TourDetailsPage from "./pages/tour-details";
 
 function App() {
   const [bookingTab, setBookingTab] = useState<BookingTab>("packages");
   const [selectedDestination, setSelectedDestination] = useState<{
     name: string;
     query: string;
+  } | null>(null);
+  const [selectedTour, setSelectedTour] = useState<{
+    name: string;
+    location: string;
   } | null>(null);
 
   // Check URL pathname for initial load
@@ -38,6 +43,10 @@ function App() {
         name: cityName,
         query: `${cityName} landscape travel scenery`,
       });
+    } else if (path.startsWith("/tour/")) {
+      const tourSlug = path.replace("/tour/", "");
+      const tourName = decodeURIComponent(tourSlug);
+      setSelectedTour({ name: tourName, location: tourName });
     }
 
     const handlePopState = () => {
@@ -49,14 +58,34 @@ function App() {
           name: cityName,
           query: `${cityName} landscape travel scenery`,
         });
+        setSelectedTour(null);
+      } else if (currentPath.startsWith("/tour/")) {
+        const tourSlug = currentPath.replace("/tour/", "");
+        const tourName = decodeURIComponent(tourSlug);
+        setSelectedTour({ name: tourName, location: tourName });
+        setSelectedDestination(null);
       } else {
         setSelectedDestination(null);
+        setSelectedTour(null);
       }
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  if (selectedTour) {
+    return (
+      <TourDetailsPage
+        tourName={selectedTour.name}
+        location={selectedTour.location}
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setSelectedTour(null);
+        }}
+      />
+    );
+  }
 
   if (selectedDestination) {
     return (
