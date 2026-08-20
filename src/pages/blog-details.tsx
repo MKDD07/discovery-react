@@ -30,70 +30,15 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
               setLoading(false);
               return;
             }
+          } else {
+            setBlogData(null);
           }
         }
       } catch (err) {
-        console.warn("D1 blog fetch fallback:", err);
-      }
-
-      if (!isCancelled) {
-        const readableTitle = slug
-          ? decodeURIComponent(slug)
-              .replace(/-/g, " ")
-              .replace(/\b\w/g, (c) => c.toUpperCase())
-          : "Explore ancient pyramids and desert.";
-
-        setBlogData({
-          title: readableTitle,
-          category: "Adventure",
-          location: "India",
-          date: "Dec 12, 2025",
-          author: "Michael Lewis",
-          author_role: "Product Designer",
-          cover_query: `${slug || "pyramids desert adventure safari travel"} 4k landscape`,
-          summary: "Experience breathtaking travel landscapes and cultural wonders. Plan your journey now and capture the magic of every destination.",
-          sections: [
-            {
-              heading: "The 2025 Autumn Foliage Forecast has just been released!",
-              paragraphs: [
-                "Experience breathtaking autumn scenery as vibrant hues of red and gold blanket the country. Tokyo’s parks and gardens transform into a sea of maple brilliance. Whether strolling through Shinjuku Gyoen or exploring Mount Takao, it’s the perfect time to witness nature’s masterpiece.",
-                "Plan your journey now and capture the magic of unforgettable seasonal foliage.",
-              ],
-              pexelsQuery: `${slug || "japan autumn red maple foliage"} travel`,
-            },
-            {
-              heading: "1. Historic Garden and Mountain Paths",
-              paragraphs: [
-                "Rikugien Garden is a famous landscape garden well-known and loved especially during the autumn months, thanks to its numerous maple trees. We recommend taking an entire afternoon off to stroll the many trails around the park before enjoying tea at one of the many teahouses.",
-                "Colours usually peak around late November to early December with stunning reflections across peaceful waterways.",
-              ],
-              pexelsQuery: `${slug || "tokyo landscape traditional japanese garden teahouse"} travel`,
-            },
-            {
-              heading: "2. Scenic Railway & Valley Views",
-              paragraphs: [
-                "Taking a scenic railway through mountain valleys offers an intimate connection to nature's untamed beauty. Relax and enjoy panoramic vistas stretching to the horizon.",
-              ],
-              pexelsQuery: `${slug || "mountain railway train journey through nature"} travel`,
-            },
-          ],
-          quote: {
-            text: "We're committed to changing the way travelers experience the world with passion, curiosity, and wonder.",
-            author: "Phil Martinez",
-            destination: "New York",
-          },
-          faqs: [
-            {
-              question: "What is the best time to visit this destination?",
-              answer: "The ideal travel season spans from autumn through early spring when temperatures are pleasant and outdoor sightseeing conditions are at their best.",
-            },
-            {
-              question: "Are these tours family-friendly?",
-              answer: "Yes, most itineraries feature customizable pacing, comfortable boutique stays, and activities suited for all age groups.",
-            },
-          ],
-        });
-        setLoading(false);
+        console.warn("D1 blog fetch error:", err);
+        setBlogData(null);
+      } finally {
+        if (!isCancelled) setLoading(false);
       }
     }
 
@@ -106,12 +51,53 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
 
   // Trigger Pexels loader once content is rendered
   useEffect(() => {
-    if (!loading && containerRef.current) {
+    if (!loading && blogData && containerRef.current) {
       loadAllPexelsMedia(containerRef.current);
     }
   }, [loading, blogData]);
 
-  if (!blogData) return null;
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <main className="py-5 text-center">
+          <div className="container py-5">
+            <div className="spinner-border text-primary mb-3" role="status"></div>
+            <p className="text-muted">Loading article from Cloudflare D1...</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (!blogData) {
+    return (
+      <>
+        <Header />
+        <main className="py-5 text-center">
+          <div className="container py-5">
+            <h3 className="fw-bold text-dark mb-2">Article Not Found</h3>
+            <p className="text-muted small mb-4">
+              This blog has not been published to Cloudflare D1 yet.
+            </p>
+            <a
+              href="/blog"
+              onClick={(e) => {
+                e.preventDefault();
+                window.history.pushState({}, "", "/blog");
+                window.dispatchEvent(new PopStateEvent("popstate"));
+              }}
+              className="tp-btn text-white px-4 py-2"
+            >
+              Browse Published Blogs
+            </a>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>

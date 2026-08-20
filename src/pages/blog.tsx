@@ -4,134 +4,12 @@ import Footer from "../components/sections/footer/Footer";
 import { loadAllPexelsMedia } from "../components/sections/pexels/PexelsMediaSection";
 import BlogCard, { BlogItem } from "../components/snippets/blog-card/blog-card";
 import Pagination from "../components/snippets/pagination/pagination";
-
-const BLOG_POSTS: BlogItem[] = [
-  {
-    id: 1,
-    title: "Exploring Sacred Temples and Cultural Heritage Across Asia",
-    category: "Art and culture",
-    date: "Aug 15, 2026",
-    author: "Admin",
-    slug: "exploring-sacred-temples-heritage",
-    pexelsQuery: "ancient sacred temple asian architecture culture travel",
-    excerpt: "Delve into centuries-old traditions, spiritual sanctuaries, and timeless artistic architecture.",
-  },
-  {
-    id: 2,
-    title: "Colorful City Life Surrounded by Green Mountain Hills",
-    category: "Adventure",
-    date: "Aug 18, 2026",
-    author: "Admin",
-    slug: "city-life-green-hills",
-    pexelsQuery: "vibrant city mountains valley landscape sunset travel",
-    excerpt: "Where urban lifestyle meets untouched natural grandeur in the valley.",
-  },
-  {
-    id: 3,
-    title: "Historic Architecture with Golden Artistic Details & Domes",
-    category: "Art and culture",
-    date: "Aug 20, 2026",
-    author: "Admin",
-    slug: "historic-architecture-golden-details",
-    pexelsQuery: "historic european architecture cathedral golden dome travel",
-    excerpt: "A visual walking tour through royal palaces and ornate historical landmarks.",
-  },
-  {
-    id: 4,
-    title: "Mountain View Journeys Filled with Natural Beauty & Trails",
-    category: "Nature",
-    date: "Aug 22, 2026",
-    author: "Admin",
-    slug: "mountain-view-journeys",
-    pexelsQuery: "himalayan mountain hiking trekking scenic alpine travel",
-    excerpt: "Breathe in the freshest crisp air along high-altitude trekking trails.",
-  },
-  {
-    id: 5,
-    title: "Peaceful Railway Routes Through Scenic Urban Landscapes",
-    category: "Travel Tips",
-    date: "Aug 24, 2026",
-    author: "Admin",
-    slug: "peaceful-railway-routes",
-    pexelsQuery: "scenic train railway journey through nature mountains",
-    excerpt: "Slow travel tips: why riding cross-country scenic trains is the ultimate peaceful getaway.",
-  },
-  {
-    id: 6,
-    title: "Vibrant Street Temples & Night Markets Full of Local Traditions",
-    category: "Food & Travel",
-    date: "Aug 26, 2026",
-    author: "Admin",
-    slug: "street-temples-night-markets",
-    pexelsQuery: "night market street food asian lanterns travel",
-    excerpt: "Taste the best authentic street delicacies while soaking in local evening festivities.",
-  },
-  {
-    id: 7,
-    title: "Ancient Churches Showcasing Timeless European Coastal Design",
-    category: "Art and culture",
-    date: "Aug 27, 2026",
-    author: "Admin",
-    slug: "ancient-churches-european-design",
-    pexelsQuery: "mediterranean coastal church stone architecture ocean",
-    excerpt: "Centuries of maritime history and cobblestone coastal villages waiting to be explored.",
-  },
-  {
-    id: 8,
-    title: "Tropical Island Escapes & Crystal Lagoon Adventures",
-    category: "Beach Trips",
-    date: "Aug 28, 2026",
-    author: "Admin",
-    slug: "tropical-island-escapes",
-    pexelsQuery: "tropical turquoise lagoon island beach resort palms",
-    excerpt: "Unwind on powdery white sand beaches and snorkel alongside vibrant marine reefs.",
-  },
-  {
-    id: 9,
-    title: "Riverside Cities Blending Living History and Modern Skyline",
-    category: "Adventure",
-    date: "Aug 29, 2026",
-    author: "Admin",
-    slug: "riverside-cities-history-modern",
-    pexelsQuery: "riverside city river bridge sunset cityscape travel",
-    excerpt: "Discover waterfront promenades, sunset river cruises, and vibrant nightlife.",
-  },
-  {
-    id: 10,
-    title: "The Ultimate Guide to Desert Glamping & Stargazing",
-    category: "Adventure",
-    date: "Aug 30, 2026",
-    author: "Admin",
-    slug: "desert-glamping-stargazing",
-    pexelsQuery: "desert luxury camp tents sand dunes starry night sky",
-    excerpt: "Luxury bedouin camps, camel treks across glowing dunes, and pristine stargazing.",
-  },
-  {
-    id: 11,
-    title: "Hidden Culinary Gems of Southern Coastal India",
-    category: "Food & Travel",
-    date: "Sep 01, 2026",
-    author: "Admin",
-    slug: "culinary-gems-coastal-india",
-    pexelsQuery: "indian traditional food spices seafood coastal dining",
-    excerpt: "From spice plantations to fresh coastal catches served on banana leaves.",
-  },
-  {
-    id: 12,
-    title: "Essential Packing Tips for High-Altitude Himalayan Expeditions",
-    category: "Travel Tips",
-    date: "Sep 02, 2026",
-    author: "Admin",
-    slug: "packing-tips-himalayan-expedition",
-    pexelsQuery: "hiking backpack gear camping snowy mountain landscape",
-    excerpt: "Master your backpack with lightweight layers, safety essentials, and weatherproofing.",
-  },
-];
+import { Sparkles, Compass } from "lucide-react";
 
 const CATEGORIES = [
   "All",
-  "Art and culture",
   "Adventure",
+  "Art and culture",
   "Nature",
   "Beach Trips",
   "Food & Travel",
@@ -146,14 +24,62 @@ interface BlogPageProps {
 
 export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [blogs, setBlogs] = useState<BlogItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Fetch blogs ONLY from Cloudflare D1 Database
+  useEffect(() => {
+    let isCancelled = false;
+    setLoading(true);
+
+    async function fetchD1Blogs() {
+      try {
+        const url = selectedCategory === "All"
+          ? "/api/blogs"
+          : `/api/blogs?category=${encodeURIComponent(selectedCategory)}`;
+
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (!isCancelled && data.success) {
+            const mapped: BlogItem[] = (data.blogs || []).map((b: any) => ({
+              id: b.id || b.slug,
+              title: b.title,
+              category: b.category || "Adventure",
+              date: new Date(b.created_at || Date.now()).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }),
+              author: b.author || "Admin",
+              slug: b.slug,
+              pexelsQuery: b.cover_query || `${b.title} travel landscape`,
+              excerpt: b.summary || "",
+            }));
+            setBlogs(mapped);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load blogs from D1:", err);
+      } finally {
+        if (!isCancelled) setLoading(false);
+      }
+    }
+
+    fetchD1Blogs();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedCategory]);
 
   // Filter posts by category
   const filteredPosts =
     selectedCategory === "All"
-      ? BLOG_POSTS
-      : BLOG_POSTS.filter((post) => post.category.toLowerCase() === selectedCategory.toLowerCase());
+      ? blogs
+      : blogs.filter((post) => post.category.toLowerCase() === selectedCategory.toLowerCase());
 
   const totalPages = Math.ceil(filteredPosts.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -161,10 +87,10 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
 
   // Trigger Pexels loader on page/category change
   useEffect(() => {
-    if (containerRef.current) {
+    if (!loading && containerRef.current) {
       loadAllPexelsMedia(containerRef.current);
     }
-  }, [selectedCategory, currentPage]);
+  }, [loading, selectedCategory, currentPage, blogs]);
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
@@ -187,7 +113,10 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
           data-pexels="scenic mountain travel road journey 4k landscape"
           data-type="background"
           data-quality="large"
-          style={{ backgroundImage: 'url("https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=1920")' }}
+          style={{
+            backgroundImage:
+              'url("https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=1920")',
+          }}
         >
           <div className="container">
             <div className="row">
@@ -210,22 +139,27 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
                 <div className="tp-blog-grid-tab mb-50 text-center">
                   <div className="tp-about-section-title p-relative pb-25">
                     <h2 className="tp-section-title fs-32 fw-600 mb-2">
-                      Travel Articles &amp; Insights
+                      Published Travel Articles
                     </h2>
                     <p className="text-muted">
-                      Handcrafted destination guides, insider tips, and unforgettable travel stories.
+                      Directly connected with Cloudflare D1 SQLite Database.
                     </p>
                   </div>
 
                   {/* Category Filter Tabs */}
                   <div className="tp-tour-tab">
-                    <ul role="tablist" className="d-flex align-items-center justify-content-center flex-wrap gap-2 list-unstyled">
+                    <ul
+                      role="tablist"
+                      className="d-flex align-items-center justify-content-center flex-wrap gap-2 list-unstyled"
+                    >
                       {CATEGORIES.map((cat) => (
                         <li key={cat} className="nav-tab-item">
                           <button
                             type="button"
                             className={`btn btn-sm px-4 py-2 rounded-pill fw-600 border-0 ${
-                              selectedCategory === cat ? "tp-btn text-white shadow-sm" : "btn-light text-dark"
+                              selectedCategory === cat
+                                ? "tp-btn text-white shadow-sm"
+                                : "btn-light text-dark"
                             }`}
                             onClick={() => handleCategoryChange(cat)}
                             style={{ fontSize: "13px" }}
@@ -242,25 +176,51 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
 
             {/* Dynamic Blog Grid */}
             <div className="row g-4">
-              {currentPosts.length > 0 ? (
+              {loading ? (
+                <>
+                  {[1, 2, 3].map((n) => (
+                    <BlogCard key={n} loading={true} />
+                  ))}
+                </>
+              ) : currentPosts.length > 0 ? (
                 currentPosts.map((post) => (
                   <BlogCard key={post.id} item={post} onNavigate={handleNavigate} />
                 ))
               ) : (
-                <div className="col-12 text-center py-5 text-muted">
-                  <p>No articles found for "{selectedCategory}".</p>
+                <div className="col-12 text-center py-5">
+                  <div className="p-5 bg-white border rounded-4 shadow-sm mx-auto" style={{ maxWidth: "550px" }}>
+                    <Compass size={40} className="text-primary mb-3 mx-auto d-block" />
+                    <h4 className="fw-700 text-dark mb-2">No Published Blogs Found</h4>
+                    <p className="text-muted small mb-4">
+                      There are no published articles in this D1 category yet. Go to your Member Dashboard to generate and publish instant AI articles directly to Cloudflare D1.
+                    </p>
+                    <a
+                      href="/dashboard"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        window.history.pushState({}, "", "/dashboard");
+                        window.dispatchEvent(new PopStateEvent("popstate"));
+                      }}
+                      className="tp-btn text-white px-4 py-2 d-inline-flex align-items-center gap-2"
+                      style={{ fontSize: "13px" }}
+                    >
+                      <Sparkles size={15} /> Create &amp; Publish with AI
+                    </a>
+                  </div>
                 </div>
               )}
 
               {/* Reusable Pagination Snippet */}
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={(page) => {
-                  setCurrentPage(page);
-                  window.scrollTo({ top: 400, behavior: "smooth" });
-                }}
-              />
+              {!loading && totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => {
+                    setCurrentPage(page);
+                    window.scrollTo({ top: 400, behavior: "smooth" });
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>
