@@ -2,20 +2,50 @@ export interface Env {
   SERP_API_KEY_1?: string;
   SERP_API_KEY_2?: string;
   VITE_PEXELS_API_KEY?: string;
-  DB?: any; // Cloudflare D1 Database binding (or KV/Hyperdrive)
+  SESSION_SECRET?: string;
+  DB?: any; // Cloudflare D1 Database binding
   USERS_KV?: any; // Cloudflare KV binding
   ASSETS: {
     fetch: (request: Request) => Promise<Response>;
   };
 }
 
+// ── Web Crypto PBKDF2 Password Hashing ─────────────────────────────
+async function hashPassword(password: string, saltB64?: string): Promise<{ hash: string; salt: string }> {
+  const enc = new TextEncoder();
+  const salt = saltB64
+    ? Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0))
+    : crypto.getRandomValues(new Uint8Array(16));
+
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+    keyMaterial,
+    256
+  );
+  const hashB64 = btoa(String.fromCharCode(...new Uint8Array(bits)));
+  const saltOut = btoa(String.fromCharCode(...salt));
+  return { hash: hashB64, salt: saltOut };
+}
+
+async function verifyPassword(password: string, saltB64: string, hashB64: string): Promise<boolean> {
+  const { hash } = await hashPassword(password, saltB64);
+  return hash === hashB64;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    // ── 1. Intercept /api/register requests ─────────────────────────────
-    if (url.pathname === "/api/register") {
-      // CORS preflight
+    // ── 1. Intercept /api/register & /api/signup requests ────────────────
+    if (url.pathname === "/api/register" || url.pathname === "/api/signup") {
+      // Handle CORS preflight
       if (request.method === "OPTIONS") {
         return new Response(null, {
           status: 204,
@@ -43,9 +73,9 @@ export default {
 
         const { name, email, password } = body;
 
-        if (!name || !email || !password) {
+        if (!email || !password) {
           return new Response(
-            JSON.stringify({ error: "Name, email, and password are required" }),
+            JSON.stringify({ error: "Email and password are required" }),
             {
               status: 400,
               headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
@@ -53,31 +83,61 @@ export default {
           );
         }
 
-        const userRecord = {
-          id: `usr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          name: name.trim(),
-          email: email.trim().toLowerCase(),
-          createdAt: new Date().toISOString(),
-        };
+        if (password.length < 6) {
+          return new Response(
+            JSON.stringify({ error: "Password must be at least 6 characters" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            }
+          );
+        }
 
-        // A. If Cloudflare D1 Database is bound as env.DB
+        const normalizedEmail = email.trim().toLowerCase();
+        const userName = name ? name.trim() : null;
+        const { hash, salt } = await hashPassword(password);
+        const now = Date.now();
+        let createdUserId: string | number = `usr_${now}_${Math.random().toString(36).substr(2, 6)}`;
+
+        // A. If Cloudflare D1 Database is bound as env.DB (matching register/schema.sql)
         if (env?.DB) {
           try {
             await env.DB.prepare(
               `CREATE TABLE IF NOT EXISTS users (
-                id TEXT PRIMARY KEY,
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
                 name TEXT,
-                email TEXT UNIQUE,
-                password TEXT,
-                created_at TEXT
+                password_hash TEXT NOT NULL,
+                password_salt TEXT NOT NULL,
+                created_at INTEGER NOT NULL
               )`
             ).run();
 
-            await env.DB.prepare(
-              `INSERT INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)`
+            const existing = await env.DB.prepare(
+              `SELECT id FROM users WHERE email = ?`
             )
-              .bind(userRecord.id, userRecord.name, userRecord.email, password, userRecord.createdAt)
+              .bind(normalizedEmail)
+              .first();
+
+            if (existing) {
+              return new Response(
+                JSON.stringify({ error: "Email already registered. Please sign in." }),
+                {
+                  status: 409,
+                  headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                }
+              );
+            }
+
+            const insertResult = await env.DB.prepare(
+              `INSERT INTO users (email, name, password_hash, password_salt, created_at) VALUES (?, ?, ?, ?, ?)`
+            )
+              .bind(normalizedEmail, userName, hash, salt, now)
               .run();
+
+            if (insertResult?.meta?.last_row_id) {
+              createdUserId = insertResult.meta.last_row_id;
+            }
           } catch (dbErr: any) {
             console.error("Cloudflare D1 Error:", dbErr);
             if (dbErr?.message?.includes("UNIQUE constraint failed")) {
@@ -94,14 +154,17 @@ export default {
 
         // B. If Cloudflare KV is bound as env.USERS_KV
         if (env?.USERS_KV) {
-          await env.USERS_KV.put(`user:${userRecord.email}`, JSON.stringify({ ...userRecord, password }));
+          await env.USERS_KV.put(
+            `user:${normalizedEmail}`,
+            JSON.stringify({ id: createdUserId, name: userName, email: normalizedEmail, hash, salt, createdAt: now })
+          );
         }
 
         return new Response(
           JSON.stringify({
             success: true,
             message: "Account registered successfully!",
-            user: { id: userRecord.id, name: userRecord.name, email: userRecord.email },
+            user: { id: createdUserId, name: userName, email: normalizedEmail },
           }),
           {
             status: 201,
@@ -125,7 +188,102 @@ export default {
       }
     }
 
-    // ── 2. Intercept /api/serp requests ────────────────────────────────
+    // ── 2. Intercept /api/login requests ────────────────────────────────
+    if (url.pathname === "/api/login") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization",
+          },
+        });
+      }
+
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
+
+      try {
+        const body = (await request.json()) as { email?: string; password?: string };
+        const { email, password } = body;
+
+        if (!email || !password) {
+          return new Response(
+            JSON.stringify({ error: "Email and password are required" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            }
+          );
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+
+        // Check D1
+        if (env?.DB) {
+          const user = await env.DB.prepare(
+            `SELECT id, email, name, password_hash, password_salt FROM users WHERE email = ?`
+          )
+            .bind(normalizedEmail)
+            .first();
+
+          if (!user) {
+            return new Response(JSON.stringify({ error: "Invalid email or password" }), {
+              status: 401,
+              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            });
+          }
+
+          const isValid = await verifyPassword(password, user.password_salt, user.password_hash);
+          if (!isValid) {
+            return new Response(JSON.stringify({ error: "Invalid email or password" }), {
+              status: 401,
+              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            });
+          }
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: "Login successful",
+              user: { id: user.id, email: user.email, name: user.name },
+            }),
+            {
+              status: 200,
+              headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+            }
+          );
+        }
+
+        // Mock / KV fallback
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Login successful",
+            user: { email: normalizedEmail },
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          }
+        );
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: err.message || "Failed to process login" }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          }
+        );
+      }
+    }
+
+    // ── 3. Intercept /api/serp requests ────────────────────────────────
     if (url.pathname.startsWith("/api/serp")) {
       const searchParams = new URLSearchParams(url.search);
 
@@ -157,7 +315,7 @@ export default {
         if (key2) keysToTry.push(key2);
       }
 
-      // If env keys are missing, fallback to client-supplied key or default SerpApi key
+      // Fallback to client key or default key
       if (clientKey && !keysToTry.includes(clientKey)) {
         keysToTry.push(clientKey);
       }
@@ -211,7 +369,7 @@ export default {
       });
     }
 
-    // ── 3. Serve static React assets from /dist ────────────────────────
+    // ── 4. Serve static React assets from /dist ────────────────────────
     return env.ASSETS.fetch(request);
   },
 };

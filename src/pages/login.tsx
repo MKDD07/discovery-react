@@ -72,13 +72,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBackHome }) => {
                   <div className="d-flex align-items-center justify-content-center gap-2 mb-30">
                     <button
                       type="button"
-                      className="tp-btn-sm tp-btn text-white px-4 py-2"
+                      className="tp-btn text-white px-4 py-2"
                     >
                       Sign In
                     </button>
                     <button
                       type="button"
-                      className="tp-btn-sm bg-light text-muted border px-4 py-2"
+                      className="tp-btn bg-light text-muted border px-4 py-2"
                       onClick={() => navigateTo("/register")}
                     >
                       Sign Up

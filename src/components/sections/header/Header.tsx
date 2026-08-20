@@ -74,7 +74,7 @@ export default function Header() {
                       window.history.pushState({}, "", "/register");
                       window.dispatchEvent(new PopStateEvent("popstate"));
                     }}
-                    className="fw-600 text-primary"
+                    className="fw-600"
                   >
                     Sign Up
                   </a>
