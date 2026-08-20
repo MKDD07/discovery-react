@@ -87,17 +87,24 @@ export async function processElement(el: HTMLElement) {
   const type = (el.getAttribute("data-type") || "image").toLowerCase();
   const quality = el.getAttribute("data-quality") || (type === "video" ? "hd" : "large");
   const orientation = el.getAttribute("data-orientation") || null;
-  const index = parseInt(el.getAttribute("data-index") || "0", 10);
+  const rawIndex = el.getAttribute("data-index");
 
   try {
     if (type === "video") {
       const videos = await fetchPexelsVideo(query, orientation);
-      const video = videos[index] || videos[0];
-      if (video) applyMedia(el as HTMLVideoElement, "video", pickVideoUrl(video, quality));
+      if (videos && videos.length > 0) {
+        const index = rawIndex !== null ? parseInt(rawIndex, 10) : Math.floor(Math.random() * videos.length);
+        const video = videos[index] || videos[0];
+        if (video) applyMedia(el as HTMLVideoElement, "video", pickVideoUrl(video, quality));
+      }
     } else {
       const photos = await fetchPexelsImage(query, orientation);
-      const photo = photos[index] || photos[0];
-      if (photo) applyMedia(el as HTMLImageElement, "image", pickImageUrl(photo, quality));
+      if (photos && photos.length > 0) {
+        // Pick random photo or specific index if data-index provided to prevent duplicates
+        const index = rawIndex !== null ? parseInt(rawIndex, 10) : Math.floor(Math.random() * photos.length);
+        const photo = photos[index] || photos[0];
+        if (photo) applyMedia(el as HTMLImageElement, "image", pickImageUrl(photo, quality));
+      }
     }
   } catch (err) {
     console.error(`Pexels load failed for query "${query}":`, err);
