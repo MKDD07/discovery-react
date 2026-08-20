@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 export interface BlogItem {
   id: string | number;
@@ -13,11 +13,46 @@ export interface BlogItem {
 }
 
 interface BlogCardProps {
-  item: BlogItem;
+  item?: BlogItem;
+  loading?: boolean;
   onNavigate?: (slug: string) => void;
 }
 
-export const BlogCard: React.FC<BlogCardProps> = ({ item, onNavigate }) => {
+export const BlogCard: React.FC<BlogCardProps> = ({ item, loading = false, onNavigate }) => {
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  if (loading || !item) {
+    return (
+      <div className="col-xl-4 col-lg-6 col-md-6">
+        <div className="tp-blog-item tp-blog-3-item mb-30 h-100 d-flex flex-column justify-content-between">
+          <div>
+            {/* Image Skeleton */}
+            <div className="tp-blog-thumb fix mb-30 p-relative" style={{ height: "240px" }}>
+              <div className="tp-skeleton-thumb position-absolute top-0 start-0 w-100 h-100 rounded-3"></div>
+            </div>
+
+            {/* Content Skeletons */}
+            <div className="tp-blog-content">
+              {/* Category & Date Skeleton */}
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <div className="tp-skeleton" style={{ width: "70px", height: "18px" }}></div>
+                <div className="tp-skeleton" style={{ width: "90px", height: "14px" }}></div>
+              </div>
+
+              {/* Title Skeleton */}
+              <div className="tp-skeleton mb-2" style={{ width: "95%", height: "22px" }}></div>
+              <div className="tp-skeleton mb-3" style={{ width: "65%", height: "22px" }}></div>
+
+              {/* Excerpt Skeleton */}
+              <div className="tp-skeleton mb-1" style={{ width: "100%", height: "14px" }}></div>
+              <div className="tp-skeleton" style={{ width: "80%", height: "14px" }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (onNavigate) {
@@ -32,8 +67,14 @@ export const BlogCard: React.FC<BlogCardProps> = ({ item, onNavigate }) => {
     <div className="col-xl-4 col-lg-6 col-md-6">
       <div className="tp-blog-item tp-blog-3-item mb-30 h-100 d-flex flex-column justify-content-between">
         <div>
-          <div className="tp-blog-thumb fix mb-30">
-            <a href={`/blog/${item.slug}`} onClick={handleClick} className="d-block">
+          <div className="tp-blog-thumb fix mb-30 p-relative" style={{ minHeight: "240px" }}>
+            <a href={`/blog/${item.slug}`} onClick={handleClick} className="d-block h-100">
+              {!imgLoaded && (
+                <div
+                  className="tp-skeleton-thumb position-absolute top-0 start-0 w-100 h-100"
+                  style={{ zIndex: 1 }}
+                ></div>
+              )}
               <img
                 className="w-100"
                 src={item.fallbackImage || "assets/img/blog/three/thumb.jpg"}
@@ -41,7 +82,15 @@ export const BlogCard: React.FC<BlogCardProps> = ({ item, onNavigate }) => {
                 data-type="image"
                 data-quality="medium"
                 alt={item.title}
-                style={{ height: "240px", objectFit: "cover" }}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setImgLoaded(true)}
+                style={{
+                  height: "240px",
+                  objectFit: "cover",
+                  opacity: imgLoaded ? 1 : 0,
+                  transition: "opacity 0.35s ease-in-out",
+                }}
               />
             </a>
           </div>
