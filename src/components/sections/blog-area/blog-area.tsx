@@ -34,7 +34,7 @@ export const BlogArea: React.FC = () => {
                 </h2>
               </div>
             </div>
-            <div className="col-xl-7">
+            <div className="col-xl-7 col-12">
               <div
                 className="tp-blog-item tp-blog-col-1 mb-30 wow fadeInUp"
                 data-wow-duration=".9s"
@@ -72,7 +72,7 @@ export const BlogArea: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="col-xl-5">
+            <div className="col-xl-5 col-12">
               <div
                 className="tp-blog-item tp-blog-col-2 mb-30 wow fadeInUp"
                 data-wow-duration=".9s"
