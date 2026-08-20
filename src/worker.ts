@@ -3,6 +3,7 @@ export interface Env {
   SERP_API_KEY_2?: string;
   VITE_PEXELS_API_KEY?: string;
   GROQ_API_KEY?: string;
+  OPENAI_API_KEY?: string;
   SESSION_SECRET?: string;
   DB?: any; // Cloudflare D1 Database binding (Users)
   BLOGS_DB?: any; // Cloudflare D1 Database binding (Blogs: b15e9273-0279-42e7-b909-5cee71b871c0)
@@ -450,13 +451,19 @@ export default {
           );
         }
 
-        const groqKey = clientApiKey || env?.GROQ_API_KEY;
-        if (!groqKey) {
+        // Check API key (OpenAI key starting with sk- or Groq key starting with gsk_)
+        const apiKey = clientApiKey || env?.OPENAI_API_KEY || env?.GROQ_API_KEY;
+        if (!apiKey) {
           return new Response(
-            JSON.stringify({ error: "Groq API Key is missing. Please provide GROQ_API_KEY." }),
+            JSON.stringify({ error: "API Key is missing. Please provide your OpenAI or Groq API key in the dashboard." }),
             { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }
+
+        const isGroq = apiKey.startsWith("gsk_");
+        const endpoint = isGroq
+          ? "https://api.groq.com/openai/v1/chat/completions"
+          : "https://api.openai.com/v1/chat/completions";
 
         const systemPrompt = `You are a professional travel writer and SEO content creator for Discovery Convoy.
 Generate a comprehensive, engaging, highly structured travel blog post in valid JSON format only (no markdown quotes outside JSON).
@@ -494,14 +501,14 @@ Constraints:
 - Include 5 to 10 comprehensive FAQs.
 - Format all text engagingly with natural travel guidance.`;
 
-        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        const aiResponse = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${groqKey}`,
+            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: "llama-3.3-70b-versatile",
+            model: isGroq ? "llama-3.3-70b-versatile" : "gpt-4o",
             messages: [
               { role: "system", content: systemPrompt },
               { role: "user", content: `Write a full travel article about: ${topic}. Location: ${location || "Global"}.` },
@@ -511,16 +518,44 @@ Constraints:
           }),
         });
 
-        if (!groqResponse.ok) {
-          const errText = await groqResponse.text();
+        if (!aiResponse.ok) {
+          // If fallback needed on model, try standard gpt-4o-mini or fallback
+          const fallbackModel = isGroq ? "llama-3.1-8b-instant" : "gpt-4o-mini";
+          const retryRes = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: fallbackModel,
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `Write a full travel article about: ${topic}. Location: ${location || "Global"}.` },
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.7,
+            }),
+          });
+
+          if (!retryRes.ok) {
+            const errText = await retryRes.text();
+            return new Response(
+              JSON.stringify({ error: `AI API error: ${errText}` }),
+              { status: retryRes.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+
+          const retryData = (await retryRes.json()) as any;
+          const generatedContent = JSON.parse(retryData.choices[0].message.content);
           return new Response(
-            JSON.stringify({ error: `Groq API error: ${errText}` }),
-            { status: groqResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            JSON.stringify({ success: true, data: generatedContent }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }
 
-        const groqData = (await groqResponse.json()) as any;
-        const generatedContent = JSON.parse(groqData.choices[0].message.content);
+        const aiData = (await aiResponse.json()) as any;
+        const generatedContent = JSON.parse(aiData.choices[0].message.content);
 
         return new Response(
           JSON.stringify({ success: true, data: generatedContent }),

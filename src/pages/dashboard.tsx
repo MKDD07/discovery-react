@@ -230,7 +230,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                     style={{ fontSize: "14px" }}
                     onClick={() => setActiveTab("createBlog")}
                   >
-                    <Sparkles size={16} /> Groq AI Blog Creator
+                    <Sparkles size={16} /> ChatGPT AI Blog Creator
                   </button>
                   <button
                     className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
@@ -265,28 +265,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
 
             {/* Main Content Area */}
             <div className="col-lg-9 col-md-8">
-              {/* Groq AI Blog Generator Tab */}
+              {/* ChatGPT AI Blog Generator Tab */}
               {activeTab === "createBlog" && (
                 <div className="bg-white rounded-4 border p-4 shadow-sm mb-4">
                   <div className="d-flex align-items-center justify-content-between mb-3">
                     <div>
                       <span className="badge bg-primary bg-opacity-10 text-primary font-monospace small mb-1">
-                        AI Content Engine
+                        ChatGPT Engine (120B / GPT-4o)
                       </span>
                       <h4 className="fw-700 text-dark mb-0 d-flex align-items-center gap-2">
-                        <Sparkles size={20} className="text-primary" /> Groq AI Blog Generator
+                        <Sparkles size={20} className="text-primary" /> ChatGPT AI Blog Creator
                       </h4>
                     </div>
                   </div>
                   <p className="text-muted small mb-4">
-                    Enter any travel subject or destination. Groq AI generates full articles with structured headings, paragraphs, up to 10 Pexels image queries, and up to 10 FAQs — instantly connected with D1 Database and live location offer cards.
+                    Enter any travel topic or destination. ChatGPT generates full articles with structured headings, paragraphs, up to 10 Pexels image queries, and up to 10 FAQs — saving directly into your Cloudflare D1 Database with location offer cards.
                   </p>
 
                   <form onSubmit={handleGenerateBlog} className="mb-4">
                     <div className="row g-3">
                       <div className="col-12">
                         <label className="form-label small text-muted fw-semibold">
-                          Groq API Key (Stored securely in your browser or Worker env)
+                          OpenAI / Groq API Key (Stored securely in your browser or Worker env)
                         </label>
                         <div className="input-group">
                           <span className="input-group-text bg-light border-end-0">
@@ -295,7 +295,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                           <input
                             type="password"
                             className="form-control form-control-sm border-start-0"
-                            placeholder="gsk_..."
+                            placeholder="sk-... or gsk_..."
                             value={groqKey}
                             onChange={(e) => setGroqKey(e.target.value)}
                           />
