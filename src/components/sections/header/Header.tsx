@@ -57,13 +57,6 @@ export default function Header() {
             </div>
             <div className="col-lg-5 col-6">
               <div className="tp-header-option d-flex align-items-center justify-content-end">
-                <button
-                  className="tp-header-cart cartmini-open-btn p-relative d-none d-md-block"
-                  aria-label="Shopping Cart"
-                >
-                  <i className="fa-solid fa-cart-shopping"></i>
-                  <span>2</span>
-                </button>
                 <div className="tp-header-contact ml-20 d-none d-sm-flex align-items-center gap-2 p-relative">
                   {currentUser ? (
                     <div className="p-relative">
