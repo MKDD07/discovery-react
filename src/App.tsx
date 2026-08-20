@@ -24,6 +24,8 @@ import TourDetailsPage from "./pages/tour-details";
 import LoginPage from "./pages/login";
 import RegisterPage from "./pages/register";
 import DashboardPage from "./pages/dashboard";
+import BlogPage from "./pages/blog";
+import BlogDetailsPage from "./pages/blog-details";
 
 function App() {
   const [bookingTab, setBookingTab] = useState<BookingTab>("packages");
@@ -69,8 +71,10 @@ function App() {
       setCurrentPage("login");
     } else if (path === "/register") {
       setCurrentPage("register");
-    } else if (path === "/dashboard") {
-      setCurrentPage("dashboard");
+    } else if (path === "/blog") {
+      setCurrentPage("blog");
+    } else if (path.startsWith("/blog/")) {
+      setCurrentPage(path);
     }
 
     const handlePopState = () => {
@@ -112,6 +116,14 @@ function App() {
         setCurrentPage("dashboard");
         setSelectedDestination(null);
         setSelectedTour(null);
+      } else if (currentPath === "/blog") {
+        setCurrentPage("blog");
+        setSelectedDestination(null);
+        setSelectedTour(null);
+      } else if (currentPath.startsWith("/blog/")) {
+        setCurrentPage(currentPath);
+        setSelectedDestination(null);
+        setSelectedTour(null);
       } else {
         setSelectedDestination(null);
         setSelectedTour(null);
@@ -122,6 +134,30 @@ function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  if (currentPage === "blog") {
+    return (
+      <BlogPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+      />
+    );
+  }
+
+  if (currentPage && currentPage.startsWith("/blog/")) {
+    const blogSlug = currentPage.replace("/blog/", "");
+    return (
+      <BlogDetailsPage
+        slug={blogSlug}
+        onBackHome={() => {
+          window.history.pushState({}, "", "/blog");
+          setCurrentPage("blog");
+        }}
+      />
+    );
+  }
 
   if (currentPage === "login") {
     return (
