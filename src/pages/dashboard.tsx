@@ -368,15 +368,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                     </div>
                   </form>
 
-                  {/* Generated Preview & Publish Action */}
+                  {/* Generated Preview & Publish Action (Structured Table by Table) */}
                   {generatedBlog && (
                     <div className="border-top pt-4 mt-4">
                       <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                        <h5 className="fw-700 text-dark mb-0">Generated Article Preview</h5>
+                        <div>
+                          <span className="badge bg-success bg-opacity-10 text-success font-monospace small mb-1">
+                            ✓ Generation Complete
+                          </span>
+                          <h5 className="fw-700 text-dark mb-0">Structured Blog Breakdown</h5>
+                        </div>
                         <div className="d-flex gap-2">
                           <button
                             type="button"
-                            className="btn btn-sm btn-success text-white px-3 d-inline-flex align-items-center gap-1"
+                            className="btn btn-sm btn-success text-white px-3 d-inline-flex align-items-center gap-1 shadow-sm"
                             onClick={handlePublishToD1}
                             disabled={publishStatus === "published"}
                           >
@@ -385,67 +390,142 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                               ? "Published to D1 Database!"
                               : publishStatus === "saving"
                               ? "Saving to D1..."
-                              : "Publish Article to D1"}
+                              : "Publish Article to Cloudflare D1"}
                           </button>
                         </div>
                       </div>
 
-                      <div className="p-4 bg-light rounded-4 border">
-                        <span className="badge bg-primary mb-2">{generatedBlog.category}</span>
-                        <h4 className="fw-bold text-dark mb-2">{generatedBlog.title}</h4>
-                        <p className="text-muted small mb-3">{generatedBlog.summary}</p>
-
-                        <div className="small text-muted mb-3 font-monospace">
-                          <strong>Cover Image Query:</strong> "{generatedBlog.cover_query}"
+                      {/* 1. Meta & Header Table */}
+                      <div className="card rounded-3 border mb-4 shadow-sm overflow-hidden">
+                        <div className="card-header bg-light fw-bold text-dark small py-2 d-flex align-items-center justify-content-between">
+                          <span>📋 Main Blog Overview &amp; Cover</span>
+                          <span className="badge bg-primary">{generatedBlog.category}</span>
                         </div>
-
-                        <div className="border-top pt-3">
-                          <h6 className="fw-bold text-dark small mb-2">
-                            Content Sections ({generatedBlog.sections?.length || 0} sections with Pexels queries):
-                          </h6>
-                          <div className="d-flex flex-column gap-2 mb-3">
-                            {generatedBlog.sections?.map((sec: any, sIdx: number) => (
-                              <div key={sIdx} className="bg-white p-3 rounded-3 border">
-                                <strong className="d-block text-dark small">{sec.heading}</strong>
-                                <span className="text-muted font-monospace" style={{ fontSize: "11.5px" }}>
-                                  Pexels query: "{sec.pexelsQuery}"
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-
-                          <h6 className="fw-bold text-dark small mb-2">
-                            FAQs ({generatedBlog.faqs?.length || 0} Questions):
-                          </h6>
-                          <div className="d-flex flex-column gap-2">
-                            {generatedBlog.faqs?.map((f: any, fIdx: number) => (
-                              <div key={fIdx} className="bg-white p-2 rounded-3 border small">
-                                <strong>Q: {f.question}</strong>
-                                <p className="mb-0 text-muted mt-1">{f.answer}</p>
-                              </div>
-                            ))}
-                          </div>
+                        <div className="table-responsive mb-0">
+                          <table className="table table-bordered mb-0 align-middle small">
+                            <tbody>
+                              <tr>
+                                <th style={{ width: "160px", background: "#fbfbfb" }}>Article Title</th>
+                                <td><strong className="text-dark fs-6">{generatedBlog.title}</strong></td>
+                              </tr>
+                              <tr>
+                                <th style={{ background: "#fbfbfb" }}>Pexels Cover Query</th>
+                                <td><code className="text-primary font-monospace">{generatedBlog.cover_query}</code></td>
+                              </tr>
+                              <tr>
+                                <th style={{ background: "#fbfbfb" }}>Summary</th>
+                                <td className="text-muted">{generatedBlog.summary}</td>
+                              </tr>
+                              <tr>
+                                <th style={{ background: "#fbfbfb" }}>Location &amp; Tags</th>
+                                <td>
+                                  <span className="badge bg-light text-dark me-2">{generatedBlog.location || location}</span>
+                                  <span className="text-muted">{generatedBlog.tags || "travel, guide"}</span>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
-
-                        {publishStatus === "published" && (
-                          <div className="mt-3 text-end">
-                            <a
-                              href={`/blog/${encodeURIComponent(
-                                generatedBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
-                              )}`}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                const slug = generatedBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-                                window.history.pushState({}, "", `/blog/${slug}`);
-                                window.dispatchEvent(new PopStateEvent("popstate"));
-                              }}
-                              className="btn btn-sm btn-primary rounded-pill px-3"
-                            >
-                              <Eye size={14} className="me-1" /> View Live Blog Article
-                            </a>
-                          </div>
-                        )}
                       </div>
+
+                      {/* 2. Sections Table (Subheadings, Image Queries & Paragraphs) */}
+                      <div className="card rounded-3 border mb-4 shadow-sm overflow-hidden">
+                        <div className="card-header bg-light fw-bold text-dark small py-2">
+                          📑 Content Sections ({generatedBlog.sections?.length || 0} Subheadings &amp; Paragraphs)
+                        </div>
+                        <div className="table-responsive mb-0">
+                          <table className="table table-bordered mb-0 align-top small">
+                            <thead className="table-light">
+                              <tr>
+                                <th style={{ width: "40px" }}>#</th>
+                                <th style={{ width: "220px" }}>Subheading</th>
+                                <th style={{ width: "200px" }}>Pexels Visual Query</th>
+                                <th>Paragraphs &amp; Highlights</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {generatedBlog.sections?.map((sec: any, sIdx: number) => (
+                                <tr key={sIdx}>
+                                  <td className="fw-bold text-center">{sIdx + 1}</td>
+                                  <td><strong className="text-dark">{sec.heading}</strong></td>
+                                  <td>
+                                    <code className="text-primary font-monospace d-block mb-1">
+                                      {sec.pexelsQuery}
+                                    </code>
+                                    <span className="badge bg-light text-muted" style={{ fontSize: "10px" }}>Pexels Image Slot</span>
+                                  </td>
+                                  <td>
+                                    {sec.paragraphs?.map((p: string, pIdx: number) => (
+                                      <p key={pIdx} className="text-secondary mb-2" style={{ lineHeight: 1.6 }}>
+                                        {p}
+                                      </p>
+                                    ))}
+                                    {sec.highlights && sec.highlights.length > 0 && (
+                                      <div className="mt-2 pt-2 border-top">
+                                        <strong className="d-block text-dark small mb-1">💡 Highlights:</strong>
+                                        <ul className="mb-0 ps-3 text-muted">
+                                          {sec.highlights.map((h: string, hIdx: number) => (
+                                            <li key={hIdx}>{h}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* 3. FAQs Table */}
+                      {generatedBlog.faqs && generatedBlog.faqs.length > 0 && (
+                        <div className="card rounded-3 border mb-4 shadow-sm overflow-hidden">
+                          <div className="card-header bg-light fw-bold text-dark small py-2">
+                            ❓ Frequently Asked Questions ({generatedBlog.faqs.length} FAQs)
+                          </div>
+                          <div className="table-responsive mb-0">
+                            <table className="table table-bordered mb-0 align-middle small">
+                              <thead className="table-light">
+                                <tr>
+                                  <th style={{ width: "40px" }}>#</th>
+                                  <th style={{ width: "300px" }}>Question</th>
+                                  <th>Answer</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {generatedBlog.faqs.map((f: any, fIdx: number) => (
+                                  <tr key={fIdx}>
+                                    <td className="fw-bold text-center">{fIdx + 1}</td>
+                                    <td className="fw-bold text-dark">{f.question}</td>
+                                    <td className="text-secondary">{f.answer}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+
+                      {publishStatus === "published" && (
+                        <div className="p-3 bg-success bg-opacity-10 border border-success rounded-3 text-center">
+                          <span className="text-success fw-bold me-2">✓ Successfully saved to Cloudflare D1!</span>
+                          <a
+                            href={`/blog/${encodeURIComponent(
+                              generatedBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+                            )}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const slug = generatedBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+                              window.history.pushState({}, "", `/blog/${slug}`);
+                              window.dispatchEvent(new PopStateEvent("popstate"));
+                            }}
+                            className="btn btn-sm btn-primary rounded-pill px-3 ms-2"
+                          >
+                            <Eye size={14} className="me-1" /> View Live Blog Article
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

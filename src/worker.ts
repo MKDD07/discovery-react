@@ -465,41 +465,47 @@ export default {
           ? "https://api.groq.com/openai/v1/chat/completions"
           : "https://api.openai.com/v1/chat/completions";
 
-        const systemPrompt = `You are a professional travel writer and SEO content creator for Discovery Convoy.
-Generate a comprehensive, engaging, highly structured travel blog post in valid JSON format only (no markdown quotes outside JSON).
+        const systemPrompt = `You are a professional travel journalist and SEO copywriter for Discovery Convoy.
+Generate a high quality, well-structured travel blog article in clean JSON format.
 
-Return a JSON object with the following schema:
+RULES FOR HEADINGS & CONTENT:
+- Main title MUST be concise, catchy and professional (4 to 8 words maximum, e.g., "The Ultimate Explorer's Guide to Bali"). DO NOT write long run-on sentence titles.
+- Section headings MUST be short, clean, and punchy (3 to 6 words maximum, e.g., "1. Sunrise Over Mount Batur", "2. Hidden Waterfalls & Valleys").
+- Each section must have 2 clear, rich paragraphs.
+- Provide a clean 3-5 word Pexels visual query per section (e.g. "bali mountain sunrise hiking").
+- Include 4 to 6 total sections (maximum 8 unique Pexels image queries total).
+- Include 4 to 8 crisp FAQ question & answers.
+
+Return ONLY valid JSON with this exact schema:
 {
-  "title": "Compelling, catchy headline",
+  "title": "Clean 4-8 Word Headline",
   "category": "${category || "Adventure"}",
   "location": "${location || "India"}",
-  "cover_query": "Specific 3-5 word Pexels query for main cover image",
-  "summary": "2-sentence engaging summary",
+  "cover_query": "3-5 word pexels cover query",
+  "summary": "Engaging 2-sentence summary overview of the destination.",
   "sections": [
     {
-      "heading": "Section sub-heading",
-      "paragraphs": ["Paragraph 1 text...", "Paragraph 2 text..."],
-      "pexelsQuery": "3-5 word specific visual query for pexels image (e.g. 'goa beach sunset cocktail')",
-      "highlights": ["Key highlight or tip 1", "Key highlight or tip 2"]
+      "heading": "Short 3-6 Word Subheading",
+      "paragraphs": [
+        "First detailed travel paragraph...",
+        "Second paragraph with insights..."
+      ],
+      "pexelsQuery": "3-5 word image search query",
+      "highlights": ["Key tip 1", "Key tip 2"]
     }
   ],
   "quote": {
-    "text": "Inspirational traveler quote about this place",
-    "author": "Local Guide or Author Name"
+    "text": "Inspiring one-line travel quote",
+    "author": "Explorer or Guide Name"
   },
   "faqs": [
     {
       "question": "Clear common traveler question?",
-      "answer": "Concise, helpful answer with actionable advice."
+      "answer": "Concise, helpful answer."
     }
   ],
   "tags": "tag1, tag2, tag3, tag4"
-}
-
-Constraints:
-- Include 4 to 8 detailed sections with up to 10 unique, descriptive pexels queries total.
-- Include 5 to 10 comprehensive FAQs.
-- Format all text engagingly with natural travel guidance.`;
+}`;
 
         const aiResponse = await fetch(endpoint, {
           method: "POST",
