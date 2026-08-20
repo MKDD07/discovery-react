@@ -61,6 +61,11 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onBackHome }) => {
     }
   };
 
+  const navigateTo = (path: string) => {
+    window.history.pushState({}, "", path);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+
   return (
     <>
       <Header />
@@ -70,8 +75,25 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onBackHome }) => {
             <div className="row justify-content-center">
               <div className="col-xl-6 col-lg-8">
                 <div className="tp-login-wrapper">
+                  {/* Tab Navigation for Sign In / Sign Up */}
+                  <div className="d-flex align-items-center justify-content-center gap-2 mb-30">
+                    <button
+                      type="button"
+                      className="tp-btn-sm bg-light text-muted border px-4 py-2"
+                      onClick={() => navigateTo("/login")}
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      className="tp-btn-sm tp-btn text-white px-4 py-2"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
+
                   <div className="tp-login-top text-center mb-30">
-                    <h3 className="tp-login-title">Sign up Turie.</h3>
+                    <h3 className="tp-login-title">Create an Account</h3>
                     <p>
                       Already have an account?{" "}
                       <span>
@@ -79,11 +101,10 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onBackHome }) => {
                           href="/login"
                           onClick={(e) => {
                             e.preventDefault();
-                            window.history.pushState({}, "", "/login");
-                            window.dispatchEvent(new PopStateEvent("popstate"));
+                            navigateTo("/login");
                           }}
                         >
-                          Sign In
+                          Sign In here
                         </a>
                       </span>
                     </p>
@@ -102,43 +123,16 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onBackHome }) => {
 
                   <div className="tp-login-option">
                     <form onSubmit={handleSubmit}>
-                      <div className="tp-login-social mb-10 d-flex flex-wrap align-items-center justify-content-center">
-                        <div className="tp-login-option-item has-google">
-                          <a href="#" onClick={(e) => e.preventDefault()}>
-                            <img src="assets/img/login/google.svg" alt="" />
-                            Sign in with google
-                          </a>
-                        </div>
-                        <div className="tp-login-option-item">
-                          <a href="#" onClick={(e) => e.preventDefault()}>
-                            <img src="assets/img/login/facebook.svg" alt="" />
-                          </a>
-                        </div>
-                        <div className="tp-login-option-item">
-                          <a href="#" onClick={(e) => e.preventDefault()}>
-                            <img
-                              className="apple"
-                              src="assets/img/login/apple.svg"
-                              alt=""
-                            />
-                          </a>
-                        </div>
-                      </div>
-                      <div className="tp-login-mail text-center mb-40">
-                        <p>
-                          or Sign up with <a href="#" onClick={(e) => e.preventDefault()}>Email</a>
-                        </p>
-                      </div>
                       <div className="tp-login-input-wrapper tp-contact-form">
                         <div className="tp-review-input mb-20">
                           <label className="tp-label mb-5" htmlFor="name">
-                            Name
+                            Your Name
                           </label>
                           <input
                             className="tp-input"
                             type="text"
                             id="name"
-                            placeholder="Your Name..."
+                            placeholder="Enter full name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
@@ -152,7 +146,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onBackHome }) => {
                             className="tp-input"
                             type="email"
                             id="email"
-                            placeholder="turie@mail.com"
+                            placeholder="name@example.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -167,7 +161,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onBackHome }) => {
                               className="tp-input"
                               type={showPassword ? "text" : "password"}
                               id="password"
-                              placeholder="Min. 6 character"
+                              placeholder="Min. 6 characters"
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
                               required

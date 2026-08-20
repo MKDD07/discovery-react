@@ -54,8 +54,30 @@ export default function Header() {
                   <i className="fa-solid fa-cart-shopping"></i>
                   <span>2</span>
                 </button>
-                <div className="tp-header-contact ml-20 d-none d-sm-block">
-                  <a href="/login">Sign In</a>
+                <div className="tp-header-contact ml-20 d-none d-sm-flex align-items-center gap-2">
+                  <a
+                    href="/login"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.history.pushState({}, "", "/login");
+                      window.dispatchEvent(new PopStateEvent("popstate"));
+                    }}
+                    className="fw-600"
+                  >
+                    Sign In
+                  </a>
+                  <span className="text-muted">/</span>
+                  <a
+                    href="/register"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.history.pushState({}, "", "/register");
+                      window.dispatchEvent(new PopStateEvent("popstate"));
+                    }}
+                    className="fw-600 text-primary"
+                  >
+                    Sign Up
+                  </a>
                 </div>
                 <div className="tp-header-toogle-wrapper ml-10">
                   <button className="tp-header-toogle" aria-label="Toggle Menu">
