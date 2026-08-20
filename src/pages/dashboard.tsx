@@ -22,6 +22,14 @@ import {
   Key,
   CheckCircle2,
   Loader2,
+  RefreshCw,
+  Edit3,
+  Trash2,
+  Bold,
+  Italic,
+  List,
+  Heading,
+  Image,
 } from "lucide-react";
 
 interface DashboardPageProps {
@@ -30,9 +38,9 @@ interface DashboardPageProps {
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "bookings" | "saved" | "createBlog" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "bookings" | "saved" | "createBlog" | "settings">("createBlog");
 
-  // Groq AI Blog Generator State
+  // AI Blog Generator State
   const [groqKey, setGroqKey] = useState<string>(
     localStorage.getItem("discovery_groq_key") || ""
   );
@@ -43,12 +51,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
   const [generatedBlog, setGeneratedBlog] = useState<any>(null);
   const [publishStatus, setPublishStatus] = useState<string | null>(null);
 
+  // Field-level rewriting loading state
+  const [rewritingField, setRewritingField] = useState<string | null>(null);
+
   useEffect(() => {
     const authUser = getStoredUser();
     if (authUser) {
       setUser(authUser);
     } else {
-      // Default traveler preview state so dashboard always opens and works immediately
       setUser({
         name: "Discovery Traveler",
         email: "traveler@discovery.com",
@@ -90,13 +100,107 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
       if (res.ok && data.success && data.data) {
         setGeneratedBlog(data.data);
       } else {
-        alert(data.error || "Failed to generate blog. Please check your Groq API key.");
+        alert(data.error || "Failed to generate blog. Please check your API key.");
       }
     } catch (err: any) {
       alert(err.message || "Failed to communicate with AI generation endpoint.");
     } finally {
       setGenerating(false);
     }
+  };
+
+  // Real-time AI field rewrite
+  const handleAiRewriteField = async (
+    fieldKey: string,
+    type: "heading" | "subheading" | "paragraphs" | "pexelsQuery" | "faq",
+    promptContext: string,
+    currentVal?: string,
+    sectionIndex?: number,
+    faqIndex?: number
+  ) => {
+    setRewritingField(fieldKey);
+    try {
+      const res = await fetch("/api/ai-rewrite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          prompt: promptContext,
+          current: currentVal,
+          apiKey: groqKey.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.result) {
+        const updated = { ...generatedBlog };
+
+        if (type === "heading") {
+          updated.title = data.result.replace(/^"|"$/g, "");
+        } else if (type === "subheading" && sectionIndex !== undefined) {
+          updated.sections[sectionIndex].heading = data.result.replace(/^"|"$/g, "");
+        } else if (type === "pexelsQuery" && sectionIndex !== undefined) {
+          updated.sections[sectionIndex].pexelsQuery = data.result.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+        } else if (type === "paragraphs" && sectionIndex !== undefined) {
+          updated.sections[sectionIndex].paragraphs = data.result.split("\n\n").filter((p: string) => p.trim());
+        } else if (type === "faq" && faqIndex !== undefined) {
+          try {
+            const parsed = JSON.parse(data.result);
+            updated.faqs[faqIndex] = parsed;
+          } catch {
+            updated.faqs[faqIndex].answer = data.result;
+          }
+        }
+
+        setGeneratedBlog(updated);
+      } else {
+        alert(data.error || "Failed to rewrite element.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Rewrite failed.");
+    } finally {
+      setRewritingField(null);
+    }
+  };
+
+  // Add new section (up to 10)
+  const handleAddSection = () => {
+    if (!generatedBlog) return;
+    if ((generatedBlog.sections?.length || 0) >= 10) {
+      alert("Maximum 10 sections allowed.");
+      return;
+    }
+    const updated = { ...generatedBlog };
+    updated.sections = [
+      ...(updated.sections || []),
+      {
+        heading: `New Highlight ${updated.sections.length + 1}`,
+        paragraphs: [
+          "Add your travel descriptions, insider suggestions, and highlights here directly in the editor.",
+        ],
+        pexelsQuery: `${location} travel scenery landscape`,
+        highlights: ["Tip: Best visited during morning hours."],
+      },
+    ];
+    setGeneratedBlog(updated);
+  };
+
+  // Add new FAQ (up to 10)
+  const handleAddFaq = () => {
+    if (!generatedBlog) return;
+    if ((generatedBlog.faqs?.length || 0) >= 10) {
+      alert("Maximum 10 FAQs allowed.");
+      return;
+    }
+    const updated = { ...generatedBlog };
+    updated.faqs = [
+      ...(updated.faqs || []),
+      {
+        question: "How do I reach the main sights easily?",
+        answer: "Local taxis, shared cabs, and private rental cars are readily available throughout the day.",
+      },
+    ];
+    setGeneratedBlog(updated);
   };
 
   const handlePublishToD1 = async () => {
@@ -216,21 +320,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                 <nav className="nav flex-column gap-1">
                   <button
                     className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
+                      activeTab === "createBlog" ? "bg-primary text-white fw-600" : "text-dark bg-transparent"
+                    }`}
+                    style={{ fontSize: "14px" }}
+                    onClick={() => setActiveTab("createBlog")}
+                  >
+                    <Sparkles size={16} /> AI Blog Creator &amp; Editor
+                  </button>
+                  <button
+                    className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
                       activeTab === "overview" ? "bg-primary text-white fw-600" : "text-dark bg-transparent"
                     }`}
                     style={{ fontSize: "14px" }}
                     onClick={() => setActiveTab("overview")}
                   >
                     <User size={16} /> Account Overview
-                  </button>
-                  <button
-                    className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
-                      activeTab === "createBlog" ? "bg-primary text-white fw-600" : "text-dark bg-transparent"
-                    }`}
-                    style={{ fontSize: "14px" }}
-                    onClick={() => setActiveTab("createBlog")}
-                  >
-                    <Sparkles size={16} /> ChatGPT AI Blog Creator
                   </button>
                   <button
                     className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
@@ -265,23 +369,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
 
             {/* Main Content Area */}
             <div className="col-lg-9 col-md-8">
-              {/* ChatGPT AI Blog Generator Tab */}
+              {/* AI Blog Generator & Rich Interactive Editor */}
               {activeTab === "createBlog" && (
                 <div className="bg-white rounded-4 border p-4 shadow-sm mb-4">
                   <div className="d-flex align-items-center justify-content-between mb-3">
                     <div>
                       <span className="badge bg-primary bg-opacity-10 text-primary font-monospace small mb-1">
-                        ChatGPT Engine (120B / GPT-4o)
+                        120B / GPT-4o Real-Time Engine
                       </span>
                       <h4 className="fw-700 text-dark mb-0 d-flex align-items-center gap-2">
-                        <Sparkles size={20} className="text-primary" /> ChatGPT AI Blog Creator
+                        <Sparkles size={20} className="text-primary" /> AI Blog Generator &amp; Rich Editor
                       </h4>
                     </div>
                   </div>
                   <p className="text-muted small mb-4">
-                    Enter any travel topic or destination. ChatGPT generates full articles with structured headings, paragraphs, up to 10 Pexels image queries, and up to 10 FAQs — saving directly into your Cloudflare D1 Database with location offer cards.
+                    Strict max 5–6 words for headings &amp; subheadings. Generates complete articles, loads query-based Pexels visuals, structured paragraphs, and FAQs with live AI rewrite buttons for each block.
                   </p>
 
+                  {/* Input Form */}
                   <form onSubmit={handleGenerateBlog} className="mb-4">
                     <div className="row g-3">
                       <div className="col-12">
@@ -295,7 +400,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                           <input
                             type="password"
                             className="form-control form-control-sm border-start-0"
-                            placeholder="sk-... or gsk_..."
+                            placeholder="gsk_... or sk-..."
                             value={groqKey}
                             onChange={(e) => setGroqKey(e.target.value)}
                           />
@@ -309,7 +414,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                         <input
                           type="text"
                           className="form-control form-control-sm"
-                          placeholder="e.g. 5 Secret Beaches in Goa or Kashmir Snow Trek Guide"
+                          placeholder="e.g. 5 Secret Beaches in Goa"
                           value={topic}
                           onChange={(e) => setTopic(e.target.value)}
                           required
@@ -336,7 +441,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
 
                       <div className="col-md-3">
                         <label className="form-label small text-muted fw-semibold">
-                          Target Location (For offer cards)
+                          Target Location
                         </label>
                         <input
                           type="text"
@@ -356,11 +461,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                         >
                           {generating ? (
                             <>
-                              <Loader2 size={16} className="animate-spin" /> Generating with Groq AI...
+                              <Loader2 size={16} className="animate-spin" /> Generating Full Article with AI...
                             </>
                           ) : (
                             <>
-                              <Sparkles size={16} /> Generate Travel Article
+                              <Sparkles size={16} /> Generate Travel Article (120B)
                             </>
                           )}
                         </button>
@@ -368,17 +473,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                     </div>
                   </form>
 
-                  {/* Generated Preview & Publish Action (Structured Table by Table) */}
+                  {/* Rich Text Interactive Breakdown */}
                   {generatedBlog && (
                     <div className="border-top pt-4 mt-4">
-                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                      {/* Top Action Bar */}
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 p-3 bg-light rounded-3 border">
                         <div>
-                          <span className="badge bg-success bg-opacity-10 text-success font-monospace small mb-1">
-                            ✓ Generation Complete
+                          <span className="badge bg-success text-white font-monospace small mb-1">
+                            ✓ Ready For Direct D1 Publish
                           </span>
-                          <h5 className="fw-700 text-dark mb-0">Structured Blog Breakdown</h5>
+                          <h6 className="fw-700 text-dark mb-0">Interactive Rich Text Editor</h6>
                         </div>
                         <div className="d-flex gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+                            onClick={handleAddSection}
+                          >
+                            <PlusCircle size={14} /> Add Section (up to 10)
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+                            onClick={handleAddFaq}
+                          >
+                            <PlusCircle size={14} /> Add FAQ (up to 10)
+                          </button>
                           <button
                             type="button"
                             className="btn btn-sm btn-success text-white px-3 d-inline-flex align-items-center gap-1 shadow-sm"
@@ -387,129 +507,336 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                           >
                             <CheckCircle2 size={15} />
                             {publishStatus === "published"
-                              ? "Published to D1 Database!"
+                              ? "Published to Cloudflare D1!"
                               : publishStatus === "saving"
                               ? "Saving to D1..."
-                              : "Publish Article to Cloudflare D1"}
+                              : "Publish to D1 Database"}
                           </button>
                         </div>
                       </div>
 
-                      {/* 1. Meta & Header Table */}
-                      <div className="card rounded-3 border mb-4 shadow-sm overflow-hidden">
-                        <div className="card-header bg-light fw-bold text-dark small py-2 d-flex align-items-center justify-content-between">
-                          <span>📋 Main Blog Overview &amp; Cover</span>
-                          <span className="badge bg-primary">{generatedBlog.category}</span>
+                      {/* 1. Main Heading & Summary Block */}
+                      <div className="card rounded-3 border mb-4 shadow-sm">
+                        <div className="card-header bg-white py-3 d-flex align-items-center justify-content-between border-bottom">
+                          <div className="d-flex align-items-center gap-2">
+                            <Heading size={18} className="text-primary" />
+                            <strong className="text-dark">Main Title &amp; Cover Query</strong>
+                            <span className="badge bg-light text-muted small">(Max 5–6 words)</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-light border d-inline-flex align-items-center gap-1 text-primary small"
+                            onClick={() =>
+                              handleAiRewriteField(
+                                "title",
+                                "heading",
+                                `Travel article about ${topic} in ${location}`,
+                                generatedBlog.title
+                              )
+                            }
+                            disabled={rewritingField === "title"}
+                          >
+                            {rewritingField === "title" ? (
+                              <Loader2 size={13} className="animate-spin" />
+                            ) : (
+                              <RefreshCw size={13} />
+                            )}
+                            AI Rewrite Title
+                          </button>
                         </div>
-                        <div className="table-responsive mb-0">
-                          <table className="table table-bordered mb-0 align-middle small">
-                            <tbody>
-                              <tr>
-                                <th style={{ width: "160px", background: "#fbfbfb" }}>Article Title</th>
-                                <td><strong className="text-dark fs-6">{generatedBlog.title}</strong></td>
-                              </tr>
-                              <tr>
-                                <th style={{ background: "#fbfbfb" }}>Pexels Cover Query</th>
-                                <td><code className="text-primary font-monospace">{generatedBlog.cover_query}</code></td>
-                              </tr>
-                              <tr>
-                                <th style={{ background: "#fbfbfb" }}>Summary</th>
-                                <td className="text-muted">{generatedBlog.summary}</td>
-                              </tr>
-                              <tr>
-                                <th style={{ background: "#fbfbfb" }}>Location &amp; Tags</th>
-                                <td>
-                                  <span className="badge bg-light text-dark me-2">{generatedBlog.location || location}</span>
-                                  <span className="text-muted">{generatedBlog.tags || "travel, guide"}</span>
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                        <div className="card-body">
+                          <div className="row g-3">
+                            <div className="col-md-7">
+                              <label className="form-label small text-muted fw-semibold">
+                                Article Title <span className="text-danger">*</span>
+                              </label>
+                              <input
+                                type="text"
+                                className="form-control fw-bold fs-6"
+                                value={generatedBlog.title}
+                                onChange={(e) =>
+                                  setGeneratedBlog({ ...generatedBlog, title: e.target.value })
+                                }
+                              />
+                            </div>
+                            <div className="col-md-5">
+                              <label className="form-label small text-muted fw-semibold">
+                                Main Cover [Pexels Query]
+                              </label>
+                              <div className="input-group input-group-sm">
+                                <span className="input-group-text bg-light text-muted">
+                                  <Image size={13} />
+                                </span>
+                                <input
+                                  type="text"
+                                  className="form-control font-monospace text-primary"
+                                  value={generatedBlog.cover_query}
+                                  onChange={(e) =>
+                                    setGeneratedBlog({ ...generatedBlog, cover_query: e.target.value })
+                                  }
+                                />
+                              </div>
+                            </div>
+                            <div className="col-12">
+                              <label className="form-label small text-muted fw-semibold">
+                                2-Sentence Engaging Summary
+                              </label>
+                              <textarea
+                                className="form-control form-control-sm"
+                                rows={2}
+                                value={generatedBlog.summary}
+                                onChange={(e) =>
+                                  setGeneratedBlog({ ...generatedBlog, summary: e.target.value })
+                                }
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
 
-                      {/* 2. Sections Table (Subheadings, Image Queries & Paragraphs) */}
-                      <div className="card rounded-3 border mb-4 shadow-sm overflow-hidden">
-                        <div className="card-header bg-light fw-bold text-dark small py-2">
-                          📑 Content Sections ({generatedBlog.sections?.length || 0} Subheadings &amp; Paragraphs)
-                        </div>
-                        <div className="table-responsive mb-0">
-                          <table className="table table-bordered mb-0 align-top small">
-                            <thead className="table-light">
-                              <tr>
-                                <th style={{ width: "40px" }}>#</th>
-                                <th style={{ width: "220px" }}>Subheading</th>
-                                <th style={{ width: "200px" }}>Pexels Visual Query</th>
-                                <th>Paragraphs &amp; Highlights</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {generatedBlog.sections?.map((sec: any, sIdx: number) => (
-                                <tr key={sIdx}>
-                                  <td className="fw-bold text-center">{sIdx + 1}</td>
-                                  <td><strong className="text-dark">{sec.heading}</strong></td>
-                                  <td>
-                                    <code className="text-primary font-monospace d-block mb-1">
-                                      {sec.pexelsQuery}
-                                    </code>
-                                    <span className="badge bg-light text-muted" style={{ fontSize: "10px" }}>Pexels Image Slot</span>
-                                  </td>
-                                  <td>
-                                    {sec.paragraphs?.map((p: string, pIdx: number) => (
-                                      <p key={pIdx} className="text-secondary mb-2" style={{ lineHeight: 1.6 }}>
-                                        {p}
-                                      </p>
-                                    ))}
-                                    {sec.highlights && sec.highlights.length > 0 && (
-                                      <div className="mt-2 pt-2 border-top">
-                                        <strong className="d-block text-dark small mb-1">💡 Highlights:</strong>
-                                        <ul className="mb-0 ps-3 text-muted">
-                                          {sec.highlights.map((h: string, hIdx: number) => (
-                                            <li key={hIdx}>{h}</li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
+                      {/* 2. Structured Sections (Heading, Paragraphs, Pexels-Query upto 10) */}
+                      <h5 className="fw-700 text-dark mb-3 d-flex align-items-center justify-content-between">
+                        <span>Content Sections ({generatedBlog.sections?.length || 0}/10)</span>
+                        <span className="badge bg-light text-muted small">Max 5-6 words per subheading</span>
+                      </h5>
+
+                      <div className="d-flex flex-column gap-3 mb-4">
+                        {generatedBlog.sections?.map((sec: any, sIdx: number) => (
+                          <div key={sIdx} className="card rounded-3 border shadow-sm">
+                            {/* Section Header with Actions */}
+                            <div className="card-header bg-light py-2 px-3 d-flex align-items-center justify-content-between">
+                              <span className="fw-bold text-dark small">
+                                Section #{sIdx + 1}
+                              </span>
+                              <div className="d-flex align-items-center gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-white bg-white border text-primary small d-inline-flex align-items-center gap-1 py-1 px-2"
+                                  style={{ fontSize: "11px" }}
+                                  onClick={() =>
+                                    handleAiRewriteField(
+                                      `sec_heading_${sIdx}`,
+                                      "subheading",
+                                      `Subheading for ${sec.heading} about ${topic}`,
+                                      sec.heading,
+                                      sIdx
+                                    )
+                                  }
+                                  disabled={rewritingField === `sec_heading_${sIdx}`}
+                                >
+                                  {rewritingField === `sec_heading_${sIdx}` ? (
+                                    <Loader2 size={11} className="animate-spin" />
+                                  ) : (
+                                    <RefreshCw size={11} />
+                                  )}
+                                  AI Rewrite Heading
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-white bg-white border text-primary small d-inline-flex align-items-center gap-1 py-1 px-2"
+                                  style={{ fontSize: "11px" }}
+                                  onClick={() =>
+                                    handleAiRewriteField(
+                                      `sec_para_${sIdx}`,
+                                      "paragraphs",
+                                      `Write 2 paragraphs about ${sec.heading} in ${location}`,
+                                      sec.paragraphs?.join(" "),
+                                      sIdx
+                                    )
+                                  }
+                                  disabled={rewritingField === `sec_para_${sIdx}`}
+                                >
+                                  {rewritingField === `sec_para_${sIdx}` ? (
+                                    <Loader2 size={11} className="animate-spin" />
+                                  ) : (
+                                    <RefreshCw size={11} />
+                                  )}
+                                  AI Rewrite Paragraphs
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-white bg-white border text-danger small py-1 px-2"
+                                  style={{ fontSize: "11px" }}
+                                  onClick={() => {
+                                    const updated = { ...generatedBlog };
+                                    updated.sections.splice(sIdx, 1);
+                                    setGeneratedBlog(updated);
+                                  }}
+                                  title="Delete Section"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="card-body p-3">
+                              <div className="row g-2 mb-2">
+                                <div className="col-md-7">
+                                  <label className="form-label small text-muted mb-1 fw-semibold">
+                                    Subheading (Max 5-6 Words)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    className="form-control form-control-sm fw-bold text-dark"
+                                    value={sec.heading}
+                                    onChange={(e) => {
+                                      const updated = { ...generatedBlog };
+                                      updated.sections[sIdx].heading = e.target.value;
+                                      setGeneratedBlog(updated);
+                                    }}
+                                  />
+                                </div>
+                                <div className="col-md-5">
+                                  <label className="form-label small text-muted mb-1 fw-semibold">
+                                    [Pexels Visual Query]
+                                  </label>
+                                  <div className="input-group input-group-sm">
+                                    <input
+                                      type="text"
+                                      className="form-control font-monospace text-primary"
+                                      value={sec.pexelsQuery}
+                                      onChange={(e) => {
+                                        const updated = { ...generatedBlog };
+                                        updated.sections[sIdx].pexelsQuery = e.target.value;
+                                        setGeneratedBlog(updated);
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="btn btn-outline-secondary"
+                                      onClick={() =>
+                                        handleAiRewriteField(
+                                          `sec_pex_${sIdx}`,
+                                          "pexelsQuery",
+                                          `Photo of ${sec.heading} ${location}`,
+                                          sec.pexelsQuery,
+                                          sIdx
+                                        )
+                                      }
+                                      disabled={rewritingField === `sec_pex_${sIdx}`}
+                                    >
+                                      {rewritingField === `sec_pex_${sIdx}` ? (
+                                        <Loader2 size={11} className="animate-spin" />
+                                      ) : (
+                                        <Sparkles size={11} />
+                                      )}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mb-2">
+                                <label className="form-label small text-muted mb-1 fw-semibold">
+                                  Section Paragraphs
+                                </label>
+                                <textarea
+                                  className="form-control form-control-sm"
+                                  rows={3}
+                                  value={sec.paragraphs?.join("\n\n") || ""}
+                                  onChange={(e) => {
+                                    const updated = { ...generatedBlog };
+                                    updated.sections[sIdx].paragraphs = e.target.value
+                                      .split("\n\n")
+                                      .filter((p) => p.trim());
+                                    setGeneratedBlog(updated);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
-                      {/* 3. FAQs Table */}
-                      {generatedBlog.faqs && generatedBlog.faqs.length > 0 && (
-                        <div className="card rounded-3 border mb-4 shadow-sm overflow-hidden">
-                          <div className="card-header bg-light fw-bold text-dark small py-2">
-                            ❓ Frequently Asked Questions ({generatedBlog.faqs.length} FAQs)
-                          </div>
-                          <div className="table-responsive mb-0">
-                            <table className="table table-bordered mb-0 align-middle small">
-                              <thead className="table-light">
-                                <tr>
-                                  <th style={{ width: "40px" }}>#</th>
-                                  <th style={{ width: "300px" }}>Question</th>
-                                  <th>Answer</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {generatedBlog.faqs.map((f: any, fIdx: number) => (
-                                  <tr key={fIdx}>
-                                    <td className="fw-bold text-center">{fIdx + 1}</td>
-                                    <td className="fw-bold text-dark">{f.question}</td>
-                                    <td className="text-secondary">{f.answer}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
+                      {/* 3. Frequently Asked Questions (upto 10) */}
+                      <h5 className="fw-700 text-dark mb-3 d-flex align-items-center justify-content-between">
+                        <span>Frequently Asked Questions ({generatedBlog.faqs?.length || 0}/10)</span>
+                      </h5>
 
+                      <div className="d-flex flex-column gap-3 mb-4">
+                        {generatedBlog.faqs?.map((f: any, fIdx: number) => (
+                          <div key={fIdx} className="card rounded-3 border shadow-sm">
+                            <div className="card-header bg-light py-2 px-3 d-flex align-items-center justify-content-between">
+                              <span className="fw-bold text-dark small">FAQ #{fIdx + 1}</span>
+                              <div className="d-flex align-items-center gap-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-white bg-white border text-primary small d-inline-flex align-items-center gap-1 py-1 px-2"
+                                  style={{ fontSize: "11px" }}
+                                  onClick={() =>
+                                    handleAiRewriteField(
+                                      `faq_${fIdx}`,
+                                      "faq",
+                                      `Travel question and answer for ${topic} in ${location}`,
+                                      f.question,
+                                      undefined,
+                                      fIdx
+                                    )
+                                  }
+                                  disabled={rewritingField === `faq_${fIdx}`}
+                                >
+                                  {rewritingField === `faq_${fIdx}` ? (
+                                    <Loader2 size={11} className="animate-spin" />
+                                  ) : (
+                                    <RefreshCw size={11} />
+                                  )}
+                                  AI Rewrite FAQ
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-white bg-white border text-danger small py-1 px-2"
+                                  style={{ fontSize: "11px" }}
+                                  onClick={() => {
+                                    const updated = { ...generatedBlog };
+                                    updated.faqs.splice(fIdx, 1);
+                                    setGeneratedBlog(updated);
+                                  }}
+                                  title="Delete FAQ"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="card-body p-3">
+                              <div className="mb-2">
+                                <label className="form-label small text-muted mb-1 fw-semibold">
+                                  Question
+                                </label>
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm fw-bold text-dark"
+                                  value={f.question}
+                                  onChange={(e) => {
+                                    const updated = { ...generatedBlog };
+                                    updated.faqs[fIdx].question = e.target.value;
+                                    setGeneratedBlog(updated);
+                                  }}
+                                />
+                              </div>
+                              <div>
+                                <label className="form-label small text-muted mb-1 fw-semibold">
+                                  Answer
+                                </label>
+                                <textarea
+                                  className="form-control form-control-sm"
+                                  rows={2}
+                                  value={f.answer}
+                                  onChange={(e) => {
+                                    const updated = { ...generatedBlog };
+                                    updated.faqs[fIdx].answer = e.target.value;
+                                    setGeneratedBlog(updated);
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Publish Result Banner */}
                       {publishStatus === "published" && (
-                        <div className="p-3 bg-success bg-opacity-10 border border-success rounded-3 text-center">
-                          <span className="text-success fw-bold me-2">✓ Successfully saved to Cloudflare D1!</span>
+                        <div className="p-3 bg-success bg-opacity-10 border border-success rounded-3 text-center my-3">
+                          <span className="text-success fw-bold me-2">✓ Published directly to Cloudflare D1!</span>
                           <a
                             href={`/blog/${encodeURIComponent(
                               generatedBlog.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
@@ -553,7 +880,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                       <div className="bg-white rounded-4 border p-4 shadow-sm">
                         <div className="text-muted small fw-semibold text-uppercase mb-1">AI Articles</div>
                         <div className="fs-3 fw-bold text-danger">Active</div>
-                        <div className="text-muted small mt-1">Groq Engine ready</div>
+                        <div className="text-muted small mt-1">Groq 120B Engine ready</div>
                       </div>
                     </div>
                   </div>

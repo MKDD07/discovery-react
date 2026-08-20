@@ -468,35 +468,35 @@ export default {
         const systemPrompt = `You are a professional travel journalist and SEO copywriter for Discovery Convoy.
 Generate a high quality, well-structured travel blog article in clean JSON format.
 
-RULES FOR HEADINGS & CONTENT:
-- Main title MUST be concise, catchy and professional (4 to 8 words maximum, e.g., "The Ultimate Explorer's Guide to Bali"). DO NOT write long run-on sentence titles.
-- Section headings MUST be short, clean, and punchy (3 to 6 words maximum, e.g., "1. Sunrise Over Mount Batur", "2. Hidden Waterfalls & Valleys").
-- Each section must have 2 clear, rich paragraphs.
-- Provide a clean 3-5 word Pexels visual query per section (e.g. "bali mountain sunrise hiking").
-- Include 4 to 6 total sections (maximum 8 unique Pexels image queries total).
-- Include 4 to 8 crisp FAQ question & answers.
+CRITICAL RULES FOR HEADINGS & CONTENT:
+- Main title MUST be strictly 4 to 6 words maximum (e.g., "Complete Insider Guide To Bali"). NEVER exceed 6 words.
+- Each section subheading MUST be strictly 3 to 6 words maximum (e.g., "1. Sunrise Over Mount Batur", "2. Hidden Tropical Waterfalls"). NEVER exceed 6 words.
+- Each section has 2 engaging, high-quality paragraphs.
+- Provide a clean 3-5 word Pexels visual query per section (e.g. "bali sunrise mountain trekking").
+- Provide 4 to 10 structured sections (each with: subheading, 2 paragraphs, pexelsQuery, highlights).
+- Provide 5 to 10 clear FAQ items (question & answer).
 
 Return ONLY valid JSON with this exact schema:
 {
-  "title": "Clean 4-8 Word Headline",
+  "title": "Strictly 4-6 Words Title",
   "category": "${category || "Adventure"}",
   "location": "${location || "India"}",
-  "cover_query": "3-5 word pexels cover query",
+  "cover_query": "3-5 word pexels query",
   "summary": "Engaging 2-sentence summary overview of the destination.",
   "sections": [
     {
-      "heading": "Short 3-6 Word Subheading",
+      "heading": "Strictly 3-6 Words Subheading",
       "paragraphs": [
         "First detailed travel paragraph...",
-        "Second paragraph with insights..."
+        "Second detailed travel paragraph..."
       ],
-      "pexelsQuery": "3-5 word image search query",
-      "highlights": ["Key tip 1", "Key tip 2"]
+      "pexelsQuery": "3-5 word image query",
+      "highlights": ["Key highlight or tip 1", "Key highlight or tip 2"]
     }
   ],
   "quote": {
     "text": "Inspiring one-line travel quote",
-    "author": "Explorer or Guide Name"
+    "author": "Guide or Author Name"
   },
   "faqs": [
     {
@@ -520,7 +520,7 @@ Return ONLY valid JSON with this exact schema:
                   messages: [
                     {
                       role: "user",
-                      content: `${systemPrompt}\n\nTask: Write a full, detailed travel blog article about "${topic}". Target Location: "${location || "Global"}". Output valid JSON only.`,
+                      content: `${systemPrompt}\n\nTask: Write a full travel article about "${topic}". Target Location: "${location || "Global"}". Output valid JSON only.`,
                     },
                   ],
                   temperature: 1,
@@ -551,7 +551,6 @@ Return ONLY valid JSON with this exact schema:
         const aiData = (await aiResponse.json()) as any;
         const rawContent = aiData.choices?.[0]?.message?.content || "";
 
-        // Safely extract and parse JSON object from response
         let generatedContent: any;
         try {
           const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
@@ -559,15 +558,15 @@ Return ONLY valid JSON with this exact schema:
         } catch (parseErr) {
           console.warn("JSON parse fallback for rawContent:", rawContent);
           generatedContent = {
-            title: topic,
+            title: topic.split(" ").slice(0, 6).join(" "),
             category: category || "Adventure",
             location: location || "Global",
             summary: rawContent.slice(0, 200),
             sections: [
               {
-                heading: `Exploring ${topic}`,
+                heading: `Exploring ${topic}`.split(" ").slice(0, 6).join(" "),
                 paragraphs: [rawContent],
-                pexelsQuery: `${topic} travel scenery landscape`,
+                pexelsQuery: `${topic} travel landscape`,
               },
             ],
             faqs: [],
@@ -580,13 +579,97 @@ Return ONLY valid JSON with this exact schema:
         );
       } catch (err: any) {
         return new Response(
-          JSON.stringify({ error: err.message || "Failed to generate blog with Groq" }),
+          JSON.stringify({ error: err.message || "Failed to generate blog" }),
           { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       }
     }
 
-    // ── 5. Intercept /api/serp requests ────────────────────────────────
+    // ── 5. Intercept /api/ai-rewrite (Single Element AI Regeneration) ──
+    if (url.pathname === "/api/ai-rewrite") {
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      try {
+        const body = (await request.json()) as {
+          type: "heading" | "subheading" | "paragraphs" | "pexelsQuery" | "faq";
+          prompt: string;
+          current?: string;
+          apiKey?: string;
+        };
+
+        const { type, prompt, current, apiKey: clientApiKey } = body;
+        const apiKey = clientApiKey || env?.OPENAI_API_KEY || env?.GROQ_API_KEY;
+
+        if (!apiKey) {
+          return new Response(
+            JSON.stringify({ error: "API Key is missing." }),
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        const isGroq = apiKey.startsWith("gsk_");
+        const endpoint = isGroq
+          ? "https://api.groq.com/openai/v1/chat/completions"
+          : "https://api.openai.com/v1/chat/completions";
+
+        let instruction = "";
+        if (type === "heading") {
+          instruction = "Generate a catchy travel blog title strictly 4 to 6 words maximum. Return ONLY the plain text title, no quotes or explanations.";
+        } else if (type === "subheading") {
+          instruction = "Generate a punchy section subheading strictly 3 to 6 words maximum. Return ONLY the plain text subheading, no quotes or explanations.";
+        } else if (type === "pexelsQuery") {
+          instruction = "Generate a specific 3 to 5 word photography visual query for Pexels search. Return ONLY 3-5 lowercase words.";
+        } else if (type === "paragraphs") {
+          instruction = "Generate 2 rich, engaging travel paragraphs with practical details and vivid descriptions. Return as plain text paragraphs separated by a double newline.";
+        } else if (type === "faq") {
+          instruction = "Generate a single travel FAQ in JSON format: {\"question\": \"...\", \"answer\": \"...\"}. Return ONLY valid JSON.";
+        }
+
+        const rewriteRes = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: isGroq ? "openai/gpt-oss-120b" : "gpt-4o",
+            messages: [
+              { role: "system", content: instruction },
+              { role: "user", content: `Context: ${prompt}. Current version: ${current || "None"}. Rewrite with maximum creativity and adherence to rules.` },
+            ],
+            temperature: 0.9,
+          }),
+        });
+
+        if (!rewriteRes.ok) {
+          const err = await rewriteRes.text();
+          return new Response(
+            JSON.stringify({ error: `Rewrite failed: ${err}` }),
+            { status: rewriteRes.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        const data = (await rewriteRes.json()) as any;
+        const resultText = data.choices?.[0]?.message?.content?.trim() || "";
+
+        return new Response(
+          JSON.stringify({ success: true, result: resultText }),
+          { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: err.message || "Failed to rewrite element" }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
+    // ── 6. Intercept /api/serp requests ────────────────────────────────
     if (url.pathname.startsWith("/api/serp")) {
       const searchParams = new URLSearchParams(url.search);
 
