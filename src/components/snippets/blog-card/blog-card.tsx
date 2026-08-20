@@ -63,11 +63,20 @@ export const BlogCard: React.FC<BlogCardProps> = ({ item, loading = false, onNav
     }
   };
 
+  const getCategoryClass = (cat?: string) => {
+    if (!cat) return "badge-adventure";
+    const clean = cat.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    return `badge-${clean}`;
+  };
+
   return (
     <div className="col-xl-4 col-lg-6 col-md-6">
       <div className="tp-blog-item tp-blog-3-item mb-30 h-100 d-flex flex-column justify-content-between">
         <div>
           <div className="tp-blog-thumb fix mb-30 p-relative" style={{ minHeight: "240px" }}>
+            <span className={`tp-blog-thumb-badge ${getCategoryClass(item.category)}`}>
+              {item.category || "Adventure"}
+            </span>
             <a href={`/blog/${item.slug}`} onClick={handleClick} className="d-block h-100">
               {!imgLoaded && (
                 <div
@@ -95,11 +104,11 @@ export const BlogCard: React.FC<BlogCardProps> = ({ item, loading = false, onNav
             </a>
           </div>
           <div className="tp-blog-content">
-            <div className="tp-blog-meta-wrap d-flex flex-wrap align-items-center mb-15">
-              <span className="tp-blog-category">{item.category}</span>
-              <div className="tp-blog-meta">
+            <div className="tp-custom-blog-meta-bar">
+              <div className="tp-custom-meta-info">
                 <span>{item.date}</span>
-                <span>{item.author}</span>
+                <span className="tp-custom-meta-dot"></span>
+                <span className="tp-custom-meta-author">{item.author}</span>
               </div>
             </div>
             <h3 className="tp-blog-title fw-600">

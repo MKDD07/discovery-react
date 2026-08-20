@@ -17,8 +17,9 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
   const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch blog data and sidebar items from D1 Database
+  // Fetch blog data and sidebar items from D1 Database & Scroll to top
   useEffect(() => {
+    window.scrollTo(0, 0);
     let isCancelled = false;
     setLoading(true);
 
@@ -138,16 +139,43 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
     <>
       <Header />
       <main ref={containerRef}>
+        {/* Breadcrumb Header with Parallax Effect */}
+        <div
+          className="tp-breadcrumb-area tp-breadcrumb-ptb tp-breadcrumb-overly bg-position tp-breadcrumb-parallax"
+          data-background="assets/img/breadcrumb/bg-9.jpg"
+          data-pexels={blogData.cover_query || `${blogData.title} landscape nature`}
+          data-type="background"
+          data-quality="large"
+          style={{
+            backgroundImage:
+              'url("https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=1920")',
+          }}
+        >
+          <div className="container">
+            <div className="row">
+              <div className="col-12">
+                <div className="tp-breadcrumb-wrap text-center">
+                  <h2 className="tp-breadcrumb-title fs-112 text-center mb-0 text-white line-clamp-2">
+                    {blogData.title || "Blog Details"}
+                  </h2>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="tp-blog-area tp-tour-ptb-2 pt-80 pb-100">
           <div className="container">
             <div className="row">
               <div className="col-xxl-9 col-xl-8">
                 <div className="postbox-details-main-wrap mb-40 pr-135">
                   <div className="postbox-details-info-wrap mb-60">
-                    <div className="tp-blog-meta-wrap d-flex flex-wrap align-items-center mb-15">
-                      <span className="tp-blog-category">{blogData.category || "Adventure"}</span>
-                      <div className="tp-blog-meta">
+                    <div className="tp-custom-blog-meta-bar">
+                      <span className="tp-custom-meta-category">{blogData.category || "Adventure"}</span>
+                      <div className="tp-custom-meta-info">
                         <span>{blogData.date || "Dec 12, 2025"}</span>
+                        <span className="tp-custom-meta-dot"></span>
+                        <span className="tp-custom-meta-author">{blogData.author || "Travel Specialist"}</span>
                       </div>
                     </div>
                     <h3 className="postbox-title mb-30">
