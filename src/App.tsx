@@ -23,6 +23,7 @@ import CityDetailsPage from "./pages/city-details";
 import TourDetailsPage from "./pages/tour-details";
 import LoginPage from "./pages/login";
 import RegisterPage from "./pages/register";
+import DashboardPage from "./pages/dashboard";
 
 function App() {
   const [bookingTab, setBookingTab] = useState<BookingTab>("packages");
@@ -68,6 +69,8 @@ function App() {
       setCurrentPage("login");
     } else if (path === "/register") {
       setCurrentPage("register");
+    } else if (path === "/dashboard") {
+      setCurrentPage("dashboard");
     }
 
     const handlePopState = () => {
@@ -105,6 +108,10 @@ function App() {
         setCurrentPage("register");
         setSelectedDestination(null);
         setSelectedTour(null);
+      } else if (currentPath === "/dashboard") {
+        setCurrentPage("dashboard");
+        setSelectedDestination(null);
+        setSelectedTour(null);
       } else {
         setSelectedDestination(null);
         setSelectedTour(null);
@@ -130,6 +137,17 @@ function App() {
   if (currentPage === "register") {
     return (
       <RegisterPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+      />
+    );
+  }
+
+  if (currentPage === "dashboard") {
+    return (
+      <DashboardPage
         onBackHome={() => {
           window.history.pushState({}, "", "/");
           setCurrentPage(null);

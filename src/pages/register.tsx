@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
+import { setStoredUser } from "../services/auth";
 
 interface RegisterPageProps {
   onBackHome?: () => void;
@@ -46,11 +47,22 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onBackHome }) => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setMessage({ type: "success", text: data.message || "Account created successfully!" });
-        setName("");
-        setEmail("");
-        setPassword("");
-        setAgree(false);
+        // Auto sign-in and save to user profile
+        const registeredUser = data.user || { name, email };
+        setStoredUser({
+          id: registeredUser.id,
+          name: registeredUser.name || name,
+          email: registeredUser.email || email,
+          joinedAt: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+          bookingsCount: 0,
+          savedToursCount: 0,
+        });
+
+        setMessage({ type: "success", text: "Account created successfully! Redirecting to dashboard..." });
+        setTimeout(() => {
+          window.history.pushState({}, "", "/dashboard");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        }, 800);
       } else {
         setMessage({ type: "error", text: data.error || "Registration failed. Please try again." });
       }

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
+import { setStoredUser } from "../services/auth";
 
 interface LoginPageProps {
   onBackHome?: () => void;
@@ -36,11 +37,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onBackHome }) => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        setMessage({ type: "success", text: "Logged in successfully! Redirecting..." });
+        // Save user in auth state and redirect to dashboard
+        const loggedUser = data.user || { email, name: email.split("@")[0] };
+        setStoredUser({
+          id: loggedUser.id,
+          email: loggedUser.email || email,
+          name: loggedUser.name || email.split("@")[0],
+          joinedAt: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+          bookingsCount: 2,
+          savedToursCount: 5,
+        });
+
+        setMessage({ type: "success", text: "Logged in successfully! Redirecting to dashboard..." });
         setTimeout(() => {
-          window.history.pushState({}, "", "/");
+          window.history.pushState({}, "", "/dashboard");
           window.dispatchEvent(new PopStateEvent("popstate"));
-        }, 1000);
+        }, 800);
       } else {
         setMessage({
           type: "error",

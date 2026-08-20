@@ -1,14 +1,23 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import logo from "../../../logo.png";
 import { loadAllPexelsMedia } from "../pexels/PexelsMediaSection";
+import { getStoredUser, UserProfile } from "../../../services/auth";
 
 export default function Header() {
   const headerRef = useRef<HTMLElement>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(getStoredUser());
 
   useEffect(() => {
     if (headerRef.current) {
       loadAllPexelsMedia(headerRef.current);
     }
+
+    const onAuthChange = () => {
+      setCurrentUser(getStoredUser());
+    };
+
+    window.addEventListener("auth_state_changed", onAuthChange);
+    return () => window.removeEventListener("auth_state_changed", onAuthChange);
   }, []);
 
   return (
@@ -55,29 +64,55 @@ export default function Header() {
                   <span>2</span>
                 </button>
                 <div className="tp-header-contact ml-20 d-none d-sm-flex align-items-center gap-2">
-                  <a
-                    href="/login"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.history.pushState({}, "", "/login");
-                      window.dispatchEvent(new PopStateEvent("popstate"));
-                    }}
-                    className="fw-600"
-                  >
-                    Sign In
-                  </a>
-                  <span className="text-muted">/</span>
-                  <a
-                    href="/register"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.history.pushState({}, "", "/register");
-                      window.dispatchEvent(new PopStateEvent("popstate"));
-                    }}
-                    className="fw-600"
-                  >
-                    Sign Up
-                  </a>
+                  {currentUser ? (
+                    <div className="d-flex align-items-center gap-2">
+                      <a
+                        href="/dashboard"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.history.pushState({}, "", "/dashboard");
+                          window.dispatchEvent(new PopStateEvent("popstate"));
+                        }}
+                        className="d-flex align-items-center gap-2 text-decoration-none"
+                      >
+                        <div
+                          className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold"
+                          style={{ width: "28px", height: "28px", fontSize: "12px" }}
+                        >
+                          {(currentUser.name || currentUser.email).charAt(0).toUpperCase()}
+                        </div>
+                        <span className="fw-600 text-dark" style={{ fontSize: "13px" }}>
+                          {currentUser.name || "Dashboard"}
+                        </span>
+                      </a>
+                    </div>
+                  ) : (
+                    <>
+                      <a
+                        href="/login"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.history.pushState({}, "", "/login");
+                          window.dispatchEvent(new PopStateEvent("popstate"));
+                        }}
+                        className="fw-600"
+                      >
+                        Sign In
+                      </a>
+                      <span className="text-muted">/</span>
+                      <a
+                        href="/register"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          window.history.pushState({}, "", "/register");
+                          window.dispatchEvent(new PopStateEvent("popstate"));
+                        }}
+                        className="fw-600"
+                      >
+                        Sign Up
+                      </a>
+                    </>
+                  )}
                 </div>
                 <div className="tp-header-toogle-wrapper ml-10">
                   <button className="tp-header-toogle" aria-label="Toggle Menu">
