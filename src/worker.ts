@@ -291,13 +291,38 @@ export default {
                 });
               }
 
+              let parsedSections: any[] = [];
+              try {
+                if (typeof blog.content_json === "string") {
+                  parsedSections = JSON.parse(blog.content_json || "[]");
+                } else if (Array.isArray(blog.content_json)) {
+                  parsedSections = blog.content_json;
+                }
+              } catch (e) {
+                console.warn("Failed to parse content_json:", e);
+                parsedSections = [];
+              }
+
+              let parsedFaqs: any[] = [];
+              try {
+                if (typeof blog.faqs_json === "string") {
+                  parsedFaqs = JSON.parse(blog.faqs_json || "[]");
+                } else if (Array.isArray(blog.faqs_json)) {
+                  parsedFaqs = blog.faqs_json;
+                }
+              } catch (e) {
+                console.warn("Failed to parse faqs_json:", e);
+                parsedFaqs = [];
+              }
+
               return new Response(
                 JSON.stringify({
                   success: true,
                   blog: {
                     ...blog,
-                    content: JSON.parse(blog.content_json || "[]"),
-                    faqs: JSON.parse(blog.faqs_json || "[]"),
+                    sections: parsedSections,
+                    content: parsedSections,
+                    faqs: parsedFaqs,
                   },
                 }),
                 { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }

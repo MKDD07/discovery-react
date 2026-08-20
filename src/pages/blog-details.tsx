@@ -252,8 +252,12 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                     </div>
 
                     {/* Dynamic Sections with Headings, Paragraphs & Pexels Visuals (21:9, 1000x) */}
-                    {blogData.sections &&
-                      blogData.sections.map((sec: any, idx: number) => (
+                    {(
+                      blogData.sections ||
+                      (typeof blogData.content === "string" ? JSON.parse(blogData.content || "[]") : blogData.content) ||
+                      (typeof blogData.content_json === "string" ? JSON.parse(blogData.content_json || "[]") : blogData.content_json) ||
+                      []
+                    ).map((sec: any, idx: number) => (
                         <div key={idx} className="postbox-details-text mb-50">
                           {sec.pexelsQuery && (
                             <div className="postbox-details-thumb postbox-details-thumb-overly mb-45 p-relative overflow-hidden rounded-4">
@@ -340,62 +344,70 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                     )}
 
                     {/* FAQs as Dropdown Accordion Cards with Small Text */}
-                    {blogData.faqs && blogData.faqs.length > 0 && (
-                      <div className="postbox-details-text mb-60">
-                        <div className="d-flex align-items-center justify-content-between mb-25 pb-2 border-bottom">
-                          <h4 className="postbox-details-title mb-0 fs-24 fw-600">
-                            Frequently Asked Questions
-                          </h4>
-                          <span className="badge bg-primary bg-opacity-10 text-primary font-monospace small px-3 py-2 rounded-pill">
-                            {blogData.faqs.length} FAQs
-                          </span>
-                        </div>
+                    {(() => {
+                      const faqsList =
+                        blogData.faqs ||
+                        (typeof blogData.faqs_json === "string" ? JSON.parse(blogData.faqs_json || "[]") : blogData.faqs_json) ||
+                        [];
+                      if (!faqsList || faqsList.length === 0) return null;
 
-                        <div className="accordion tp-custom-faq-accordion d-flex flex-column gap-3" id="blogFaqAccordion">
-                          {blogData.faqs.map((faq: any, fIdx: number) => (
-                            <details
-                              key={fIdx}
-                              className="card border rounded-3 shadow-none overflow-hidden"
-                              style={{ background: "#fcfcfc", transition: "all 0.2s ease" }}
-                              open={fIdx === 0}
-                            >
-                              <summary
-                                className="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between cursor-pointer border-0"
-                                style={{ listStyle: "none", cursor: "pointer" }}
+                      return (
+                        <div className="postbox-details-text mb-60">
+                          <div className="d-flex align-items-center justify-content-between mb-25 pb-2 border-bottom">
+                            <h4 className="postbox-details-title mb-0 fs-24 fw-600">
+                              Frequently Asked Questions
+                            </h4>
+                            <span className="badge bg-primary bg-opacity-10 text-primary font-monospace small px-3 py-2 rounded-pill">
+                              {faqsList.length} FAQs
+                            </span>
+                          </div>
+
+                          <div className="accordion tp-custom-faq-accordion d-flex flex-column gap-3" id="blogFaqAccordion">
+                            {faqsList.map((faq: any, fIdx: number) => (
+                              <details
+                                key={fIdx}
+                                className="card border rounded-3 shadow-none overflow-hidden"
+                                style={{ background: "#fcfcfc", transition: "all 0.2s ease" }}
+                                open={fIdx === 0}
                               >
-                                <span className="fw-600 text-dark small d-flex align-items-center gap-2">
-                                  <span
-                                    className="rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center fw-bold"
-                                    style={{ width: "22px", height: "22px", fontSize: "11px" }}
-                                  >
-                                    {fIdx + 1}
-                                  </span>
-                                  {faq.question}
-                                </span>
-                                <svg
-                                  width={12}
-                                  height={12}
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth={2.5}
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="text-muted"
+                                <summary
+                                  className="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between cursor-pointer border-0"
+                                  style={{ listStyle: "none", cursor: "pointer" }}
                                 >
-                                  <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
-                              </summary>
-                              <div className="card-body px-4 py-3 border-top bg-light">
-                                <p className="mb-0 text-muted" style={{ fontSize: "13.5px", lineHeight: "1.6" }}>
-                                  {faq.answer}
-                                </p>
-                              </div>
-                            </details>
-                          ))}
+                                  <span className="fw-600 text-dark small d-flex align-items-center gap-2">
+                                    <span
+                                      className="rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center fw-bold"
+                                      style={{ width: "22px", height: "22px", fontSize: "11px" }}
+                                    >
+                                      {fIdx + 1}
+                                    </span>
+                                    {faq.question}
+                                  </span>
+                                  <svg
+                                    width={12}
+                                    height={12}
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth={2.5}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    className="text-muted"
+                                  >
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                  </svg>
+                                </summary>
+                                <div className="card-body px-4 py-3 border-top bg-light">
+                                  <p className="mb-0 text-muted" style={{ fontSize: "13.5px", lineHeight: "1.6" }}>
+                                    {faq.answer}
+                                  </p>
+                                </div>
+                              </details>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Tags */}
                     <div className="postbox-details-tag-wrap d-flex align-items-center justify-content-between flex-wrap gap-3">
