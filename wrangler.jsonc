@@ -13,6 +13,11 @@
       "binding": "DB",
       "database_name": "discovery_convoy_auth",
       "database_id": "85ee9b2f-ba0e-4146-8d8f-94c062cc6bf0"
+    },
+    {
+      "binding": "BLOGS_DB",
+      "database_name": "discovery_convoy_blogs",
+      "database_id": "b15e9273-0279-42e7-b909-5cee71b871c0"
     }
   ],
   "observability": {

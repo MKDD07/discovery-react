@@ -4,7 +4,8 @@ export interface Env {
   VITE_PEXELS_API_KEY?: string;
   GROQ_API_KEY?: string;
   SESSION_SECRET?: string;
-  DB?: any; // Cloudflare D1 Database binding
+  DB?: any; // Cloudflare D1 Database binding (Users)
+  BLOGS_DB?: any; // Cloudflare D1 Database binding (Blogs: b15e9273-0279-42e7-b909-5cee71b871c0)
   USERS_KV?: any; // Cloudflare KV binding
   ASSETS: {
     fetch: (request: Request) => Promise<Response>;
@@ -242,10 +243,12 @@ export default {
       const category = url.searchParams.get("category");
       const location = url.searchParams.get("location");
 
+      const blogsDb = env?.BLOGS_DB || env?.DB;
+
       // Ensure blogs table exists
-      if (env?.DB) {
+      if (blogsDb) {
         try {
-          await env.DB.prepare(
+          await blogsDb.prepare(
             `CREATE TABLE IF NOT EXISTS blogs (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               slug TEXT UNIQUE NOT NULL,
@@ -271,10 +274,10 @@ export default {
 
       // GET Blog(s)
       if (request.method === "GET") {
-        if (env?.DB) {
+        if (blogsDb) {
           try {
             if (slug) {
-              const blog = await env.DB.prepare(
+              const blog = await blogsDb.prepare(
                 `SELECT * FROM blogs WHERE slug = ?`
               )
                 .bind(slug)
@@ -314,7 +317,7 @@ export default {
 
             query += ` ORDER BY created_at DESC LIMIT 50`;
 
-            const stmt = env.DB.prepare(query);
+            const stmt = blogsDb.prepare(query);
             const res = params.length > 0 ? await stmt.bind(...params).all() : await stmt.all();
 
             return new Response(
@@ -371,8 +374,8 @@ export default {
           const contentJson = JSON.stringify(content || []);
           const faqsJson = JSON.stringify(faqs || []);
 
-          if (env?.DB) {
-            await env.DB.prepare(
+          if (blogsDb) {
+            await blogsDb.prepare(
               `INSERT INTO blogs (slug, title, category, location, author, author_role, cover_query, summary, content_json, faqs_json, tags, created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(slug) DO UPDATE SET
