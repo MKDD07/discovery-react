@@ -532,38 +532,42 @@ Return ONLY valid JSON with this exact schema:
   "tags": "tag1, tag2, tag3, tag4"
 }`;
 
-        const aiResponse = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
+        const callAi = async (messages: any[], maxTokens = 4096) => {
+          return await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify(
+              isGroq
+                ? {
+                    model: "openai/gpt-oss-120b",
+                    messages,
+                    temperature: 0.8,
+                    max_completion_tokens: maxTokens,
+                    top_p: 1,
+                    reasoning_effort: "medium",
+                  }
+                : {
+                    model: "gpt-4o",
+                    messages,
+                    response_format: { type: "json_object" },
+                    temperature: 0.7,
+                  }
+            ),
+          });
+        };
+
+        const initialMessages = [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Write a complete, structured travel article about "${topic}". Location: "${location || "Global"}". Output valid and complete JSON only.`,
           },
-          body: JSON.stringify(
-            isGroq
-              ? {
-                  model: "openai/gpt-oss-120b",
-                  messages: [
-                    {
-                      role: "user",
-                      content: `${systemPrompt}\n\nTask: Write a full travel article about "${topic}". Target Location: "${location || "Global"}". Output valid JSON only.`,
-                    },
-                  ],
-                  temperature: 1,
-                  max_completion_tokens: 2048,
-                  top_p: 1,
-                  reasoning_effort: "medium",
-                }
-              : {
-                  model: "gpt-4o",
-                  messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: `Write a full travel article about: ${topic}. Location: ${location || "Global"}.` },
-                  ],
-                  response_format: { type: "json_object" },
-                  temperature: 0.7,
-                }
-          ),
-        });
+        ];
+
+        let aiResponse = await callAi(initialMessages);
 
         if (!aiResponse.ok) {
           const errText = await aiResponse.text();
@@ -573,8 +577,47 @@ Return ONLY valid JSON with this exact schema:
           );
         }
 
-        const aiData = (await aiResponse.json()) as any;
-        const rawContent = aiData.choices?.[0]?.message?.content || "";
+        let aiData = (await aiResponse.json()) as any;
+        let rawContent = aiData.choices?.[0]?.message?.content || "";
+        let finishReason = aiData.choices?.[0]?.finish_reason;
+
+        // Check if content is incomplete or truncated (e.g. finish_reason === "length" or JSON lacks closing curly brace)
+        const isJsonIncomplete = (text: string) => {
+          const trimmed = text.trim();
+          if (!trimmed.startsWith("{")) return true;
+          try {
+            JSON.parse(trimmed);
+            return false;
+          } catch {
+            return true;
+          }
+        };
+
+        // If truncated/incomplete, wait 5 seconds and continue the generation to complete the blog
+        if (finishReason === "length" || isJsonIncomplete(rawContent)) {
+          console.log("Incomplete blog content detected. Waiting 5s before sending continuation request...");
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+
+          const continuationMessages = [
+            ...initialMessages,
+            { role: "assistant", content: rawContent },
+            {
+              role: "user",
+              content: `Your previous response stopped midway or was truncated. Please continue EXACTLY where you stopped to complete the valid JSON structure. Do NOT repeat previous text. Output only the remaining valid JSON closing all open keys, arrays, and brackets.`,
+            },
+          ];
+
+          try {
+            const continueRes = await callAi(continuationMessages, 2048);
+            if (continueRes.ok) {
+              const continueData = (await continueRes.json()) as any;
+              const continueText = continueData.choices?.[0]?.message?.content || "";
+              rawContent += "\n" + continueText;
+            }
+          } catch (contErr) {
+            console.warn("Continuation request failed:", contErr);
+          }
+        }
 
         let generatedContent: any;
         try {

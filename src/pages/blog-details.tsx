@@ -275,26 +275,6 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                                   <span>{blogData.location || "Explore"}</span>
                                   <p className="mb-0">Click to discover more!</p>
                                 </div>
-                                <div className="tp-bounce">
-                                  <a href="#" className="postbox-details-thumb-btn">
-                                    <svg
-                                      width={9}
-                                      height={16}
-                                      viewBox="0 0 9 16"
-                                      fill="none"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                      <path
-                                        d="M0.75 14.75L7.75 7.75L0.75 0.75"
-                                        stroke="currentColor"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                      />
-                                    </svg>
-                                    <span />
-                                  </a>
-                                </div>
                               </div>
                             </div>
                           )}
