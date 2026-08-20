@@ -79,23 +79,19 @@ export default function Header() {
 
                       {/* Dropdown Menu */}
                       {showUserDropdown && (
-                        <div
-                          className="position-absolute end-0 mt-2 bg-white rounded-3 border shadow-lg py-2"
-                          style={{ minWidth: "180px", zIndex: 9999 }}
-                        >
-                          <div className="px-3 py-1 border-bottom mb-1">
-                            <div className="fw-bold text-dark text-truncate" style={{ fontSize: "12.5px" }}>
-                              {currentUser.name || "Member"}
+                        <div className="tp-user-dropdown-menu">
+                          <div className="tp-user-dropdown-header">
+                            <div className="tp-user-dropdown-name">
+                              {currentUser.name || "Discovery Member"}
                             </div>
-                            <div className="text-muted text-truncate" style={{ fontSize: "11px" }}>
+                            <div className="tp-user-dropdown-email">
                               {currentUser.email}
                             </div>
                           </div>
 
                           <a
                             href="/dashboard"
-                            className="dropdown-item px-3 py-2 text-dark d-flex align-items-center gap-2"
-                            style={{ fontSize: "13px" }}
+                            className="tp-user-dropdown-link"
                             onClick={(e) => {
                               e.preventDefault();
                               setShowUserDropdown(false);
@@ -103,23 +99,22 @@ export default function Header() {
                               window.dispatchEvent(new PopStateEvent("popstate"));
                             }}
                           >
-                            <i className="fa-regular fa-user text-primary" style={{ width: "16px" }}></i>
-                            Dashboard
+                            <i className="fa-regular fa-compass" style={{ width: "16px", color: "#FD4621" }}></i>
+                            <span>Member Dashboard</span>
                           </a>
 
-                          <div className="dropdown-divider my-1"></div>
+                          <div className="tp-user-dropdown-divider"></div>
 
                           <button
                             type="button"
-                            className="dropdown-item px-3 py-2 text-danger d-flex align-items-center gap-2 w-100 border-0 bg-transparent text-start"
-                            style={{ fontSize: "13px" }}
+                            className="tp-user-dropdown-link danger"
                             onClick={() => {
                               setShowUserDropdown(false);
                               logoutUser();
                             }}
                           >
                             <i className="fa-solid fa-arrow-right-from-bracket" style={{ width: "16px" }}></i>
-                            Logout
+                            <span>Sign Out</span>
                           </button>
                         </div>
                       )}

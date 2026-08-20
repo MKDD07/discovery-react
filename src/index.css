@@ -16396,3 +16396,94 @@ td.today.active.start-date.active.end-date.available {
     background-position: -200% 0;
   }
 }
+
+/*----------------------------------------*/
+/*  Header Account Dropdown (.tp-user-dropdown)
+/*----------------------------------------*/
+.tp-user-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #eaedf2;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  padding: 8px;
+  z-index: 99999;
+  animation: tpDropdownSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tpDropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tp-user-dropdown-header {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.tp-user-dropdown-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1a202c;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tp-user-dropdown-email {
+  font-size: 11.5px;
+  color: #718096;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.tp-user-dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #2d3748;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+
+.tp-user-dropdown-link:hover {
+  background: #f1f5f9;
+  color: #FD4621;
+}
+
+.tp-user-dropdown-link.danger {
+  color: #e53e3e;
+}
+
+.tp-user-dropdown-link.danger:hover {
+  background: #fff5f5;
+  color: #c53030;
+}
+
+.tp-user-dropdown-divider {
+  height: 1px;
+  background: #edf2f7;
+  margin: 6px 0;
+}

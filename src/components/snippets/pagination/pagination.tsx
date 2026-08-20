@@ -62,11 +62,13 @@ export const Pagination: React.FC<PaginationProps> = ({
               <li key={p}>
                 {p === currentPage ? (
                   <span
-                    className="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold shadow-sm"
+                    className="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold shadow-sm"
                     style={{
                       width: "42px",
                       height: "42px",
                       fontSize: "14px",
+                      background: "var(--tp-theme-1)",
+                      color: "var(--tp-common-white)",
                     }}
                   >
                     {p}
