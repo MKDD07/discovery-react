@@ -356,7 +356,7 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                       </div>
                     )}
 
-                    {/* FAQs as Dropdown Accordion Cards with Small Text */}
+                    {/* FAQs Section with Premium Accordion Design */}
                     {(() => {
                       const faqsList =
                         blogData.faqs ||
@@ -366,52 +366,99 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
 
                       return (
                         <div className="postbox-details-text mb-60">
-                          <div className="d-flex align-items-center justify-content-between mb-25 pb-2 border-bottom">
-                            <h4 className="postbox-details-title mb-0 fs-24 fw-600">
+                          <div className="d-flex align-items-center justify-content-between mb-30 pb-3 border-bottom border-light">
+                            <h4 className="postbox-details-title mb-0 fw-700 text-dark" style={{ fontSize: "22px", letterSpacing: "-0.3px" }}>
                               Frequently Asked Questions
                             </h4>
-                            <span className="badge bg-primary bg-opacity-10 text-primary font-monospace small px-3 py-2 rounded-pill">
-                              {faqsList.length} FAQs
+                            <span
+                              className="badge rounded-pill fw-semibold"
+                              style={{
+                                backgroundColor: "rgba(253, 70, 33, 0.08)",
+                                color: "#FD4621",
+                                fontSize: "12px",
+                                padding: "6px 14px",
+                              }}
+                            >
+                              {faqsList.length} Questions
                             </span>
                           </div>
 
-                          <div className="accordion tp-custom-faq-accordion d-flex flex-column gap-3" id="blogFaqAccordion">
+                          <div className="d-flex flex-column gap-3">
                             {faqsList.map((faq: any, fIdx: number) => (
                               <details
                                 key={fIdx}
-                                className="card border rounded-3 shadow-none overflow-hidden"
-                                style={{ background: "#fcfcfc", transition: "all 0.2s ease" }}
+                                className="group overflow-hidden border-bottom"
+                                style={{
+                                  borderColor: "#eaedf2",
+                                  backgroundColor: "#ffffff",
+                                  boxShadow: "0 2px 8px rgba(0, 0, 0, 0.03)",
+                                  transition: "all 0.25s ease",
+                                }}
                                 open={fIdx === 0}
                               >
                                 <summary
-                                  className="card-header bg-white py-3 px-4 d-flex align-items-center justify-content-between cursor-pointer border-0"
-                                  style={{ listStyle: "none", cursor: "pointer" }}
+                                  className="py-3 px-4 d-flex align-items-center justify-content-between cursor-pointer user-select-none"
+                                  style={{
+                                    listStyle: "none",
+                                    cursor: "pointer",
+                                    backgroundColor: "#ffffff",
+                                  }}
                                 >
-                                  <span className="fw-600 text-dark small d-flex align-items-center gap-2">
+                                  <div className="d-flex align-items-center gap-3 pe-3">
                                     <span
-                                      className="rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center fw-bold"
-                                      style={{ width: "22px", height: "22px", fontSize: "11px" }}
+                                      className="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold flex-shrink-0"
+                                      style={{
+                                        width: "26px",
+                                        height: "26px",
+                                        backgroundColor: "#84c418",
+                                        color: "#fff",
+                                      }}
                                     >
                                       {fIdx + 1}
                                     </span>
-                                    {faq.question}
-                                  </span>
-                                  <svg
-                                    width={12}
-                                    height={12}
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth={2.5}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    className="text-muted"
+                                    <span
+                                      className="text-dark fw-600 mb-0"
+                                      style={{ fontSize: "16px", lineHeight: "1.4" }}
+                                    >
+                                      {faq.question}
+                                    </span>
+                                  </div>
+                                  <span
+                                    className="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0 text-muted"
+                                    style={{
+                                      width: "28px",
+                                      height: "28px",
+                                      backgroundColor: "#f8fafc",
+                                      transition: "transform 0.2s ease",
+                                    }}
                                   >
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                  </svg>
+                                    <svg
+                                      width={12}
+                                      height={12}
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth={2.5}
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                  </span>
                                 </summary>
-                                <div className="card-body px-4 py-3 border-top bg-light">
-                                  <p className="mb-0 text-muted" style={{ fontSize: "13.5px", lineHeight: "1.6" }}>
+                                <div
+                                  className="px-4 pb-4 pt-2"
+                                  style={{
+                                  }}
+                                >
+                                  <p
+                                    className="mb-0 text-secondary"
+                                    style={{
+                                      fontSize: "14px",
+                                      lineHeight: "1.7",
+                                      paddingLeft: "38px",
+                                    }}
+                                  >
                                     {faq.answer}
                                   </p>
                                 </div>
@@ -578,30 +625,23 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                     </h3>
                     <div className="rc-post-wrap">
                       {recentBlogs.length === 0 ? (
-                        // Premium Skeleton Loader for Latest Posts
-                        <div className="d-flex flex-column gap-3">
+                        // Premium CSS Skeleton Loader
+                        <div>
                           {[1, 2, 3].map((n) => (
-                            <div key={n} className="rc-post d-flex align-items-center pb-3 border-bottom border-light">
-                              <div
-                                className="tp-skeleton-thumb rounded-3 flex-shrink-0"
-                                style={{ width: "75px", height: "65px" }}
-                              ></div>
-                              <div className="ps-3 w-100">
-                                <div className="tp-skeleton mb-2" style={{ width: "40%", height: "12px" }}></div>
-                                <div className="tp-skeleton mb-2" style={{ width: "90%", height: "15px" }}></div>
-                                <div className="tp-skeleton" style={{ width: "60%", height: "11px" }}></div>
+                            <div key={n} className="tp-rc-post-skeleton-item">
+                              <div className="tp-rc-post-skeleton-thumb"></div>
+                              <div className="tp-rc-post-skeleton-text">
+                                <div className="tp-rc-post-skeleton-line" style={{ width: "35%" }}></div>
+                                <div className="tp-rc-post-skeleton-line" style={{ width: "95%" }}></div>
+                                <div className="tp-rc-post-skeleton-line" style={{ width: "60%" }}></div>
                               </div>
                             </div>
                           ))}
                         </div>
                       ) : (
                         recentBlogs.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="rc-post d-flex align-items-center pb-3 mb-3 border-bottom border-light"
-                            style={{ transition: "all 0.2s ease" }}
-                          >
-                            <div className="rc-post-thumb overflow-hidden rounded-3 flex-shrink-0" style={{ width: "75px", height: "65px" }}>
+                          <div key={idx} className="tp-rc-post-item">
+                            <div className="tp-rc-post-thumb-wrap">
                               <a
                                 href={`/blog/${item.slug}`}
                                 onClick={(e) => {
@@ -616,29 +656,16 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                                   data-type="image"
                                   data-quality="small"
                                   alt={item.title}
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                 />
                               </a>
                             </div>
-                            <div className="rc-post-content ps-3">
-                              <div className="rc-post-category mb-1">
-                                <a
-                                  href={`/blog?category=${encodeURIComponent(item.category || "Adventure")}`}
-                                  className="text-primary text-uppercase fw-600 font-monospace"
-                                  style={{ fontSize: "11px", letterSpacing: "0.5px" }}
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    window.history.pushState({}, "", `/blog?category=${encodeURIComponent(item.category || "Adventure")}`);
-                                    window.dispatchEvent(new PopStateEvent("popstate"));
-                                  }}
-                                >
-                                  {item.category || "Adventure"}
-                                </a>
-                              </div>
-                              <h3 className="rc-post-title mb-1" style={{ fontSize: "14px", lineHeight: "1.4", fontWeight: 600 }}>
+                            <div className="tp-rc-post-content-wrap">
+                              <span className="tp-rc-post-badge">
+                                {item.category || "Adventure"}
+                              </span>
+                              <h4 className="tp-rc-post-heading mb-1">
                                 <a
                                   href={`/blog/${item.slug}`}
-                                  className="text-dark line-clamp-2"
                                   onClick={(e) => {
                                     e.preventDefault();
                                     window.history.pushState({}, "", `/blog/${item.slug}`);
@@ -647,11 +674,19 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                                 >
                                   {item.title}
                                 </a>
-                              </h3>
-                              <div className="rc-post-meta d-flex align-items-center gap-2 text-muted" style={{ fontSize: "12px" }}>
-                                <span>{item.created_at ? new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recent"}</span>
-                                <span>•</span>
-                                <span>3 Min</span>
+                              </h4>
+                              <div className="tp-rc-post-meta-row">
+                                <span>
+                                  {item.created_at
+                                    ? new Date(item.created_at).toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      })
+                                    : "Recent"}
+                                </span>
+                                <span className="tp-rc-post-meta-dot">•</span>
+                                <span>3 Min Read</span>
                               </div>
                             </div>
                           </div>
