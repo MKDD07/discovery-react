@@ -13,8 +13,11 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
   const containerRef = useRef<HTMLDivElement>(null);
   const [blogData, setBlogData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [recentBlogs, setRecentBlogs] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ name: string; count: number }[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch blog data from D1 Database
+  // Fetch blog data and sidebar items from D1 Database
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -28,7 +31,6 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
             if (!isCancelled && data.success && data.blog) {
               setBlogData(data.blog);
               setLoading(false);
-              return;
             }
           } else {
             setBlogData(null);
@@ -42,7 +44,40 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
       }
     }
 
+    async function loadSidebarData() {
+      try {
+        const res = await fetch("/api/blogs");
+        if (res.ok) {
+          const data = await res.json();
+          if (!isCancelled && data.success && Array.isArray(data.blogs)) {
+            setRecentBlogs(data.blogs.slice(0, 4));
+
+            // Calculate category counts dynamically from D1 blogs
+            const catMap: Record<string, number> = {};
+            data.blogs.forEach((b: any) => {
+              const cat = b.category || "Adventure";
+              catMap[cat] = (catMap[cat] || 0) + 1;
+            });
+
+            const catList = Object.entries(catMap).map(([name, count]) => ({
+              name,
+              count,
+            }));
+            setCategories(catList.length > 0 ? catList : [
+              { name: "Adventure", count: 1 },
+              { name: "Art and culture", count: 1 },
+              { name: "Nature", count: 1 },
+              { name: "Beach Trips", count: 1 },
+            ]);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load D1 sidebar blogs:", e);
+      }
+    }
+
     loadBlog();
+    loadSidebarData();
 
     return () => {
       isCancelled = true;
@@ -51,10 +86,10 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
 
   // Trigger Pexels loader once content is rendered
   useEffect(() => {
-    if (!loading && blogData && containerRef.current) {
+    if (!loading && containerRef.current) {
       loadAllPexelsMedia(containerRef.current);
     }
-  }, [loading, blogData]);
+  }, [loading, blogData, recentBlogs]);
 
   if (loading) {
     return (
@@ -118,26 +153,24 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                     <h3 className="postbox-title mb-30">
                       {blogData.title}
                     </h3>
-                    <div className="postbox-details-social-wrap d-flex align-items-center justify-content-between flex-wrap gap-3">
-                      <div className="d-flex align-items-center">
-                        <div className="tp-testimonial-user d-flex align-items-center mr-15">
-                          <img
-                            src="assets/img/testimonial/avatar.png"
-                            data-pexels="traveler photographer smiling portrait face"
-                            data-type="image"
-                            data-quality="small"
-                            alt={blogData.author || "Author"}
-                            style={{ width: "48px", height: "48px", borderRadius: "50%", objectFit: "cover" }}
-                          />
+                    <div className="postbox-details-social-wrap d-flex align-items-center justify-content-between flex-wrap gap-3 pb-3 mb-40 border-bottom">
+                      <div className="d-flex align-items-center gap-3">
+                        <div
+                          className="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                          style={{ width: "42px", height: "42px", fontSize: "14px", flexShrink: 0 }}
+                        >
+                          {(blogData.author || "A").charAt(0).toUpperCase()}
                         </div>
-                        <div className="tp-testimonial-avatar-info">
-                          <h3 className="tp-testimonial-avatar-title">{blogData.author || "Michael Lewis"}</h3>
-                          <span className="tp-testimonial-avatar-pos">
-                            {blogData.author_role || "Product Designer"}
+                        <div>
+                          <h6 className="mb-0 text-dark fw-600" style={{ fontSize: "15px" }}>
+                            {blogData.author || "Travel Editor"}
+                          </h6>
+                          <span className="text-muted" style={{ fontSize: "12.5px" }}>
+                            {blogData.author_role || "Discovery Travel Specialist"}
                           </span>
                         </div>
                       </div>
-                      <div className="postbox-social tp-bounce d-flex align-items-center gap-1">
+                      <div className="postbox-social tp-bounce d-flex align-items-center gap-2">
                         <a href="#">
                           <svg
                             width={9}
@@ -463,14 +496,29 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                 </div>
               </div>
 
-              {/* Sidebar with exact original HTML markup */}
+              {/* Sidebar connected dynamically with D1 database */}
               <div className="col-xxl-3 col-xl-4">
                 <div className="sidebar-wrapper mb-40">
+                  {/* Search Widget */}
                   <div className="sidebar-widget mb-45">
                     <div className="sidebar-search">
-                      <form action="#" onSubmit={(e) => e.preventDefault()}>
+                      <form
+                        action="#"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (searchQuery.trim()) {
+                            window.history.pushState({}, "", `/blog?q=${encodeURIComponent(searchQuery.trim())}`);
+                            window.dispatchEvent(new PopStateEvent("popstate"));
+                          }
+                        }}
+                      >
                         <div className="sidebar-search-input p-relative">
-                          <input type="text" placeholder="Search..." />
+                          <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
                           <button type="submit">
                             <svg
                               width={15}
@@ -497,165 +545,139 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                       </form>
                     </div>
                   </div>
+
+                  {/* Dynamic Categories Widget */}
                   <div className="sidebar-widget mb-45">
                     <h3 className="sidebar-widget-title mb-30">Categories</h3>
                     <div className="sidebar-widget-category">
                       <ul>
-                        <li>
-                          <a
-                            className="d-flex align-items-center justify-content-between"
-                            href="/blog"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              window.history.pushState({}, "", "/blog");
-                              window.dispatchEvent(new PopStateEvent("popstate"));
-                            }}
-                          >
-                            Journey
-                            <span>08</span>
-                          </a>
-                        </li>
-                        <li>
-                          <a
-                            className="d-flex align-items-center justify-content-between"
-                            href="/blog"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              window.history.pushState({}, "", "/blog");
-                              window.dispatchEvent(new PopStateEvent("popstate"));
-                            }}
-                          >
-                            Adventure
-                            <span>04</span>
-                          </a>
-                        </li>
-                        <li>
-                          <a
-                            className="d-flex align-items-center justify-content-between"
-                            href="/blog"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              window.history.pushState({}, "", "/blog");
-                              window.dispatchEvent(new PopStateEvent("popstate"));
-                            }}
-                          >
-                            Ocean
-                            <span>12</span>
-                          </a>
-                        </li>
-                        <li>
-                          <a
-                            className="d-flex align-items-center justify-content-between"
-                            href="/blog"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              window.history.pushState({}, "", "/blog");
-                              window.dispatchEvent(new PopStateEvent("popstate"));
-                            }}
-                          >
-                            Family Adventure
-                            <span>16</span>
-                          </a>
-                        </li>
+                        {categories.map((cat, idx) => (
+                          <li key={idx}>
+                            <a
+                              className="d-flex align-items-center justify-content-between"
+                              href={`/blog?category=${encodeURIComponent(cat.name)}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                window.history.pushState({}, "", `/blog?category=${encodeURIComponent(cat.name)}`);
+                                window.dispatchEvent(new PopStateEvent("popstate"));
+                              }}
+                            >
+                              {cat.name}
+                              <span>{String(cat.count).padStart(2, "0")}</span>
+                            </a>
+                          </li>
+                        ))}
                       </ul>
                     </div>
                   </div>
+
+                  {/* Dynamic Latest Posts Widget from D1 */}
                   <div className="sidebar-widget mb-45">
-                    <h3 className="sidebar-widget-title mb-30">Latest Posts</h3>
+                    <h3 className="sidebar-widget-title mb-25 pb-2 border-bottom fw-600" style={{ fontSize: "18px" }}>
+                      Latest Posts
+                    </h3>
                     <div className="rc-post-wrap">
-                      <div className="rc-post d-flex align-items-center">
-                        <div className="rc-post-thumb">
-                          <a href="/blog">
-                            <img
-                              src="assets/img/blog/rc/thumb.jpg"
-                              data-pexels="travel luggage airport adventure"
-                              data-type="image"
-                              data-quality="small"
-                              alt=""
-                            />
-                          </a>
+                      {recentBlogs.length === 0 ? (
+                        // Premium Skeleton Loader for Latest Posts
+                        <div className="d-flex flex-column gap-3">
+                          {[1, 2, 3].map((n) => (
+                            <div key={n} className="rc-post d-flex align-items-center pb-3 border-bottom border-light">
+                              <div
+                                className="tp-skeleton-thumb rounded-3 flex-shrink-0"
+                                style={{ width: "75px", height: "65px" }}
+                              ></div>
+                              <div className="ps-3 w-100">
+                                <div className="tp-skeleton mb-2" style={{ width: "40%", height: "12px" }}></div>
+                                <div className="tp-skeleton mb-2" style={{ width: "90%", height: "15px" }}></div>
+                                <div className="tp-skeleton" style={{ width: "60%", height: "11px" }}></div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div className="rc-post-content">
-                          <div className="rc-post-category">
-                            <a href="/blog">Travel</a>
+                      ) : (
+                        recentBlogs.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="rc-post d-flex align-items-center pb-3 mb-3 border-bottom border-light"
+                            style={{ transition: "all 0.2s ease" }}
+                          >
+                            <div className="rc-post-thumb overflow-hidden rounded-3 flex-shrink-0" style={{ width: "75px", height: "65px" }}>
+                              <a
+                                href={`/blog/${item.slug}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  window.history.pushState({}, "", `/blog/${item.slug}`);
+                                  window.dispatchEvent(new PopStateEvent("popstate"));
+                                }}
+                              >
+                                <img
+                                  src="assets/img/blog/rc/thumb.jpg"
+                                  data-pexels={item.cover_query || `${item.title} travel`}
+                                  data-type="image"
+                                  data-quality="small"
+                                  alt={item.title}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                />
+                              </a>
+                            </div>
+                            <div className="rc-post-content ps-3">
+                              <div className="rc-post-category mb-1">
+                                <a
+                                  href={`/blog?category=${encodeURIComponent(item.category || "Adventure")}`}
+                                  className="text-primary text-uppercase fw-600 font-monospace"
+                                  style={{ fontSize: "11px", letterSpacing: "0.5px" }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    window.history.pushState({}, "", `/blog?category=${encodeURIComponent(item.category || "Adventure")}`);
+                                    window.dispatchEvent(new PopStateEvent("popstate"));
+                                  }}
+                                >
+                                  {item.category || "Adventure"}
+                                </a>
+                              </div>
+                              <h3 className="rc-post-title mb-1" style={{ fontSize: "14px", lineHeight: "1.4", fontWeight: 600 }}>
+                                <a
+                                  href={`/blog/${item.slug}`}
+                                  className="text-dark line-clamp-2"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    window.history.pushState({}, "", `/blog/${item.slug}`);
+                                    window.dispatchEvent(new PopStateEvent("popstate"));
+                                  }}
+                                >
+                                  {item.title}
+                                </a>
+                              </h3>
+                              <div className="rc-post-meta d-flex align-items-center gap-2 text-muted" style={{ fontSize: "12px" }}>
+                                <span>{item.created_at ? new Date(item.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Recent"}</span>
+                                <span>•</span>
+                                <span>3 Min</span>
+                              </div>
+                            </div>
                           </div>
-                          <h3 className="rc-post-title">
-                            <a href="/blog">
-                              Fueling ambition &amp; Achieving your goals
-                            </a>
-                          </h3>
-                          <div className="rc-post-meta tp-blog-meta d-flex flex-wrap align-items-center ">
-                            <span>July 15, 2025</span>
-                            <span>12 Min</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="rc-post d-flex align-items-center">
-                        <div className="rc-post-thumb">
-                          <a href="/blog">
-                            <img
-                              src="assets/img/blog/rc/thumb-2.jpg"
-                              data-pexels="creative design photography travel camera"
-                              data-type="image"
-                              data-quality="small"
-                              alt=""
-                            />
-                          </a>
-                        </div>
-                        <div className="rc-post-content">
-                          <div className="rc-post-category">
-                            <a href="/blog">Design</a>
-                          </div>
-                          <h3 className="rc-post-title">
-                            <a href="/blog">
-                              Behind the scenes of creative processes
-                            </a>
-                          </h3>
-                          <div className="rc-post-meta tp-blog-meta d-flex flex-wrap align-items-center ">
-                            <span>July 15, 2025</span>
-                            <span>1 Min</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="rc-post d-flex align-items-center">
-                        <div className="rc-post-thumb">
-                          <a href="/blog">
-                            <img
-                              src="assets/img/blog/rc/thumb-3.jpg"
-                              data-pexels="digital nomad laptop coffee cafe travel"
-                              data-type="image"
-                              data-quality="small"
-                              alt=""
-                            />
-                          </a>
-                        </div>
-                        <div className="rc-post-content">
-                          <div className="rc-post-category">
-                            <a href="/blog">Design</a>
-                          </div>
-                          <h3 className="rc-post-title">
-                            <a href="/blog">
-                              Starting journey as your dream escape
-                            </a>
-                          </h3>
-                          <div className="rc-post-meta tp-blog-meta d-flex flex-wrap align-items-center ">
-                            <span>July 15, 2025</span>
-                            <span>16 Min</span>
-                          </div>
-                        </div>
-                      </div>
+                        ))
+                      )}
                     </div>
                   </div>
+
+                  {/* Popular Tags */}
                   <div className="sidebar-widget">
                     <h3 className="sidebar-widget-title mb-30">Popular Tag</h3>
                     <div className="sidebar-widget-content">
                       <div className="tagcloud">
-                        <a href="/blog">Adventure</a>
-                        <a href="/blog">Travel Tips</a>
-                        <a href="/blog">City Tour</a>
-                        <a href="/blog">Nature Escape</a>
-                        <a href="/blog">Beach Life</a>
-                        <a href="/blog">Mountain Hike</a>
+                        {["Adventure", "Travel Tips", "City Tour", "Nature Escape", "Beach Life", "Mountain Hike"].map((tag, tIdx) => (
+                          <a
+                            key={tIdx}
+                            href={`/blog?tag=${encodeURIComponent(tag)}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              window.history.pushState({}, "", `/blog?tag=${encodeURIComponent(tag)}`);
+                              window.dispatchEvent(new PopStateEvent("popstate"));
+                            }}
+                          >
+                            {tag}
+                          </a>
+                        ))}
                       </div>
                     </div>
                   </div>
