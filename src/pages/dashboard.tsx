@@ -45,12 +45,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
 
   useEffect(() => {
     const authUser = getStoredUser();
-    if (!authUser) {
-      window.history.pushState({}, "", "/login");
-      window.dispatchEvent(new PopStateEvent("popstate"));
-      return;
+    if (authUser) {
+      setUser(authUser);
+    } else {
+      // Default traveler preview state so dashboard always opens and works immediately
+      setUser({
+        name: "Discovery Traveler",
+        email: "traveler@discovery.com",
+        joinedAt: "Aug 2026",
+        bookingsCount: 2,
+        savedToursCount: 5,
+      });
     }
-    setUser(authUser);
   }, []);
 
   const handleGenerateBlog = async (e: React.FormEvent) => {

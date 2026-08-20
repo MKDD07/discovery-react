@@ -4937,7 +4937,6 @@ input[type=color] {
 .tp-booking-wrap {
   display: inline-flex;
   flex-wrap: wrap;
-  background: var(--tp-common-white);
   border-radius: 50px;
   padding: 10px 0;
 }

@@ -71,6 +71,8 @@ function App() {
       setCurrentPage("login");
     } else if (path === "/register") {
       setCurrentPage("register");
+    } else if (path === "/dashboard") {
+      setCurrentPage("dashboard");
     } else if (path === "/blog") {
       setCurrentPage("blog");
     } else if (path.startsWith("/blog/")) {
