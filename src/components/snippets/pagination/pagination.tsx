@@ -21,33 +21,38 @@ export const Pagination: React.FC<PaginationProps> = ({
   return (
     <div className="col-lg-12">
       <div className="tp-pagination text-center mt-40 mb-30">
-        <nav>
-          <ul className="d-flex align-items-center justify-content-center gap-1 list-unstyled mb-0">
-            {/* Prev Button */}
+        <nav aria-label="Page navigation">
+          <ul className="d-flex align-items-center justify-content-center gap-2 list-unstyled mb-0">
+            {/* Prev Arrow Button */}
             <li>
               <button
                 type="button"
-                className={`tp-pagination-prev prev page-numbers btn p-0 ${
-                  currentPage === 1 ? "disabled opacity-50 pe-none" : ""
+                className={`d-inline-flex align-items-center justify-content-center rounded-circle border transition-all ${
+                  currentPage === 1
+                    ? "opacity-30 pe-none bg-light text-muted border-light"
+                    : "bg-white text-dark border-secondary-subtle shadow-sm hover-primary"
                 }`}
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  transition: "all 0.2s ease-in-out",
+                }}
                 onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
                 aria-label="Previous Page"
               >
                 <svg
-                  width={7}
-                  height={12}
-                  viewBox="0 0 7 12"
+                  width={14}
+                  height={14}
+                  viewBox="0 0 24 24"
                   fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <path
-                    d="M5.75 10.75L0.75 5.75L5.75 0.75"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
               </button>
             </li>
@@ -56,11 +61,27 @@ export const Pagination: React.FC<PaginationProps> = ({
             {pages.map((p) => (
               <li key={p}>
                 {p === currentPage ? (
-                  <span className="current">{p}</span>
+                  <span
+                    className="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold shadow-sm"
+                    style={{
+                      width: "42px",
+                      height: "42px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {p}
+                  </span>
                 ) : (
                   <button
                     type="button"
-                    className="btn p-0 page-numbers"
+                    className="d-inline-flex align-items-center justify-content-center rounded-circle border border-secondary-subtle bg-white text-dark fw-semibold shadow-sm"
+                    style={{
+                      width: "42px",
+                      height: "42px",
+                      fontSize: "14px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease-in-out",
+                    }}
                     onClick={() => onPageChange(p)}
                   >
                     {p}
@@ -69,31 +90,36 @@ export const Pagination: React.FC<PaginationProps> = ({
               </li>
             ))}
 
-            {/* Next Button */}
+            {/* Next Arrow Button */}
             <li>
               <button
                 type="button"
-                className={`next page-numbers btn p-0 ${
-                  currentPage === totalPages ? "disabled opacity-50 pe-none" : ""
+                className={`d-inline-flex align-items-center justify-content-center rounded-circle border transition-all ${
+                  currentPage === totalPages
+                    ? "opacity-30 pe-none bg-light text-muted border-light"
+                    : "bg-white text-dark border-secondary-subtle shadow-sm hover-primary"
                 }`}
+                style={{
+                  width: "42px",
+                  height: "42px",
+                  cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                  transition: "all 0.2s ease-in-out",
+                }}
                 onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
                 aria-label="Next Page"
               >
                 <svg
-                  width={7}
-                  height={12}
-                  viewBox="0 0 7 12"
+                  width={14}
+                  height={14}
+                  viewBox="0 0 24 24"
                   fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
+                  stroke="currentColor"
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 >
-                  <path
-                    d="M0.75 10.75L5.75 5.75L0.75 0.75"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
               </button>
             </li>

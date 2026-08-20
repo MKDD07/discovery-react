@@ -80,7 +80,7 @@ export const BlogCard: React.FC<BlogCardProps> = ({ item, loading = false, onNav
                 src={item.fallbackImage || "assets/img/blog/three/thumb.jpg"}
                 data-pexels={item.pexelsQuery}
                 data-type="image"
-                data-quality="medium"
+                data-quality="large"
                 alt={item.title}
                 loading="lazy"
                 decoding="async"
