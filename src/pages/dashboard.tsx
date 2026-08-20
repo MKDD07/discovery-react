@@ -49,8 +49,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
     localStorage.getItem("discovery_groq_key") || ""
   );
   const [topic, setTopic] = useState("");
-  const [category, setCategory] = useState("Adventure");
-  const [location, setLocation] = useState("Goa, India");
+  const [category, setCategory] = useState("Auto-Detect");
+  const [location, setLocation] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generatedBlog, setGeneratedBlog] = useState<any>(null);
   const [publishStatus, setPublishStatus] = useState<string | null>(null);
@@ -478,14 +478,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                       </div>
 
                       <div className="col-md-3">
-                        <label className="form-label small text-muted fw-semibold">
-                          Category
+                        <label className="form-label small text-muted fw-semibold d-flex align-items-center justify-content-between">
+                          <span>Category</span>
+                          <span className="badge bg-primary bg-opacity-10 text-primary py-0 px-1 font-monospace" style={{ fontSize: "10px" }}>AI Auto-Select</span>
                         </label>
                         <select
                           className="form-select form-select-sm"
                           value={category}
                           onChange={(e) => setCategory(e.target.value)}
                         >
+                          <option value="Auto-Detect">✨ Auto-Detect by AI</option>
                           <option value="Adventure">Adventure</option>
                           <option value="Art and culture">Art and culture</option>
                           <option value="Nature">Nature</option>
@@ -496,13 +498,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                       </div>
 
                       <div className="col-md-3">
-                        <label className="form-label small text-muted fw-semibold">
-                          Target Location
+                        <label className="form-label small text-muted fw-semibold d-flex align-items-center justify-content-between">
+                          <span>Target Location</span>
+                          <span className="badge bg-primary bg-opacity-10 text-primary py-0 px-1 font-monospace" style={{ fontSize: "10px" }}>AI Auto-Extract</span>
                         </label>
                         <input
                           type="text"
                           className="form-control form-control-sm"
-                          placeholder="e.g. Goa, Kashmir, Dubai"
+                          placeholder="✨ Auto-detect (or specify e.g. Bali, Goa)"
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
                         />

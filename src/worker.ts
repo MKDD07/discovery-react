@@ -500,12 +500,15 @@ CRITICAL RULES FOR HEADINGS & CONTENT:
 - Provide a clean 3-5 word Pexels visual query per section (e.g. "bali sunrise mountain trekking").
 - Provide 4 to 10 structured sections (each with: subheading, 2 paragraphs, pexelsQuery, highlights).
 - Provide 5 to 10 clear FAQ items (question & answer).
+- CATEGORY & LOCATION AUTO-DETECTION:
+  * Category: ${category && category !== "Auto-Detect" ? `Use "${category}"` : 'Automatically pick the best matching category from ["Adventure", "Art and culture", "Nature", "Beach Trips", "Food & Travel", "Travel Tips"] based on the topic.'}
+  * Location: ${location && location !== "Auto-Detect" ? `Use "${location}"` : 'Automatically detect and extract the precise destination/country/city (e.g. "Bali, Indonesia", "Goa, India", "Kyoto, Japan", "Swiss Alps, Switzerland") from the topic.'}
 
 Return ONLY valid JSON with this exact schema:
 {
   "title": "Strictly 4-6 Words Title",
-  "category": "${category || "Adventure"}",
-  "location": "${location || "India"}",
+  "category": "Adventure",
+  "location": "Detected Location or City, Country",
   "cover_query": "3-5 word pexels query",
   "summary": "Engaging 2-sentence summary overview of the destination.",
   "sections": [
