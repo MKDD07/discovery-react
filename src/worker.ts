@@ -507,55 +507,66 @@ Constraints:
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
           },
-          body: JSON.stringify({
-            model: isGroq ? "llama-3.3-70b-versatile" : "gpt-4o",
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: `Write a full travel article about: ${topic}. Location: ${location || "Global"}.` },
-            ],
-            response_format: { type: "json_object" },
-            temperature: 0.7,
-          }),
+          body: JSON.stringify(
+            isGroq
+              ? {
+                  model: "openai/gpt-oss-120b",
+                  messages: [
+                    {
+                      role: "user",
+                      content: `${systemPrompt}\n\nTask: Write a full, detailed travel blog article about "${topic}". Target Location: "${location || "Global"}". Output valid JSON only.`,
+                    },
+                  ],
+                  temperature: 1,
+                  max_completion_tokens: 2048,
+                  top_p: 1,
+                  reasoning_effort: "medium",
+                }
+              : {
+                  model: "gpt-4o",
+                  messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: `Write a full travel article about: ${topic}. Location: ${location || "Global"}.` },
+                  ],
+                  response_format: { type: "json_object" },
+                  temperature: 0.7,
+                }
+          ),
         });
 
         if (!aiResponse.ok) {
-          // If fallback needed on model, try standard gpt-4o-mini or fallback
-          const fallbackModel = isGroq ? "llama-3.1-8b-instant" : "gpt-4o-mini";
-          const retryRes = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model: fallbackModel,
-              messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: `Write a full travel article about: ${topic}. Location: ${location || "Global"}.` },
-              ],
-              response_format: { type: "json_object" },
-              temperature: 0.7,
-            }),
-          });
-
-          if (!retryRes.ok) {
-            const errText = await retryRes.text();
-            return new Response(
-              JSON.stringify({ error: `AI API error: ${errText}` }),
-              { status: retryRes.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
-            );
-          }
-
-          const retryData = (await retryRes.json()) as any;
-          const generatedContent = JSON.parse(retryData.choices[0].message.content);
+          const errText = await aiResponse.text();
           return new Response(
-            JSON.stringify({ success: true, data: generatedContent }),
-            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            JSON.stringify({ error: `AI API error (${aiResponse.status}): ${errText}` }),
+            { status: aiResponse.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }
 
         const aiData = (await aiResponse.json()) as any;
-        const generatedContent = JSON.parse(aiData.choices[0].message.content);
+        const rawContent = aiData.choices?.[0]?.message?.content || "";
+
+        // Safely extract and parse JSON object from response
+        let generatedContent: any;
+        try {
+          const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+          generatedContent = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(rawContent);
+        } catch (parseErr) {
+          console.warn("JSON parse fallback for rawContent:", rawContent);
+          generatedContent = {
+            title: topic,
+            category: category || "Adventure",
+            location: location || "Global",
+            summary: rawContent.slice(0, 200),
+            sections: [
+              {
+                heading: `Exploring ${topic}`,
+                paragraphs: [rawContent],
+                pexelsQuery: `${topic} travel scenery landscape`,
+              },
+            ],
+            faqs: [],
+          };
+        }
 
         return new Response(
           JSON.stringify({ success: true, data: generatedContent }),
