@@ -584,21 +584,69 @@ Return ONLY valid JSON with this exact schema:
         let rawContent = aiData.choices?.[0]?.message?.content || "";
         let finishReason = aiData.choices?.[0]?.finish_reason;
 
-        // Check if content is incomplete or truncated (e.g. finish_reason === "length" or JSON lacks closing curly brace)
-        const isJsonIncomplete = (text: string) => {
-          const trimmed = text.trim();
-          if (!trimmed.startsWith("{")) return true;
+        // Repair truncated JSON helper
+        const repairTruncatedJson = (str: string): string => {
+          let cleaned = str.trim();
+          const firstOpen = cleaned.indexOf("{");
+          if (firstOpen !== -1) cleaned = cleaned.slice(firstOpen);
+
+          // If ends with unclosed string like "highlights": ["Guid...
+          let inString = false;
+          let escaped = false;
+          const openStack: string[] = [];
+
+          for (let i = 0; i < cleaned.length; i++) {
+            const char = cleaned[i];
+            if (escaped) {
+              escaped = false;
+              continue;
+            }
+            if (char === "\\") {
+              escaped = true;
+              continue;
+            }
+            if (char === '"') {
+              inString = !inString;
+              continue;
+            }
+            if (!inString) {
+              if (char === "{" || char === "[") {
+                openStack.push(char);
+              } else if (char === "}" || char === "]") {
+                openStack.pop();
+              }
+            }
+          }
+
+          // If still inside string, close it
+          if (inString) cleaned += '"';
+
+          // Close all open brackets in reverse order
+          while (openStack.length > 0) {
+            const last = openStack.pop();
+            if (last === "{") cleaned += "}";
+            if (last === "[") cleaned += "]";
+          }
+
+          return cleaned;
+        };
+
+        const tryParseJson = (text: string) => {
           try {
-            JSON.parse(trimmed);
-            return false;
+            return JSON.parse(text);
           } catch {
-            return true;
+            try {
+              const repaired = repairTruncatedJson(text);
+              return JSON.parse(repaired);
+            } catch {
+              return null;
+            }
           }
         };
 
-        // If truncated/incomplete, wait 5 seconds and continue the generation to complete the blog
-        if (finishReason === "length" || isJsonIncomplete(rawContent)) {
-          console.log("Incomplete blog content detected. Waiting 5s before sending continuation request...");
+        // If finishReason is length or JSON cannot be parsed directly, send continuation request
+        if (finishReason === "length" || !tryParseJson(rawContent)) {
+          console.log("Truncated JSON detected. Waiting 5s before continuing completion...");
           await new Promise((resolve) => setTimeout(resolve, 5000));
 
           const continuationMessages = [
@@ -606,7 +654,7 @@ Return ONLY valid JSON with this exact schema:
             { role: "assistant", content: rawContent },
             {
               role: "user",
-              content: `Your previous response stopped midway or was truncated. Please continue EXACTLY where you stopped to complete the valid JSON structure. Do NOT repeat previous text. Output only the remaining valid JSON closing all open keys, arrays, and brackets.`,
+              content: `You were stopped midway. Continue outputting the remainder of the JSON starting right after the truncation point. Do not repeat anything. Output valid JSON ending with }`,
             },
           ];
 
@@ -615,29 +663,38 @@ Return ONLY valid JSON with this exact schema:
             if (continueRes.ok) {
               const continueData = (await continueRes.json()) as any;
               const continueText = continueData.choices?.[0]?.message?.content || "";
-              rawContent += "\n" + continueText;
+              rawContent += continueText;
             }
           } catch (contErr) {
             console.warn("Continuation request failed:", contErr);
           }
         }
 
-        let generatedContent: any;
-        try {
-          const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-          generatedContent = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(rawContent);
-        } catch (parseErr) {
-          console.warn("JSON parse fallback for rawContent:", rawContent);
+        let generatedContent = tryParseJson(rawContent);
+        if (!generatedContent) {
+          try {
+            const jsonMatch = rawContent.match(/\{[\s\S]*/);
+            if (jsonMatch) {
+              const repaired = repairTruncatedJson(jsonMatch[0]);
+              generatedContent = JSON.parse(repaired);
+            }
+          } catch (e) {
+            console.warn("Regex JSON repair fallback failed:", e);
+          }
+        }
+
+        if (!generatedContent || typeof generatedContent !== "object") {
           generatedContent = {
             title: topic.split(" ").slice(0, 6).join(" "),
-            category: category || "Adventure",
-            location: location || "Global",
+            category: category && category !== "Auto-Detect" ? category : "Adventure",
+            location: location && location !== "Auto-Detect" ? location : "Global",
             summary: rawContent.slice(0, 200),
             sections: [
               {
                 heading: `Exploring ${topic}`.split(" ").slice(0, 6).join(" "),
                 paragraphs: [rawContent],
                 pexelsQuery: `${topic} travel landscape`,
+                highlights: ["Key destination highlight"],
               },
             ],
             faqs: [],
@@ -645,7 +702,7 @@ Return ONLY valid JSON with this exact schema:
         }
 
         return new Response(
-          JSON.stringify({ success: true, data: generatedContent }),
+          JSON.stringify({ success: true, data: generatedContent, raw: rawContent }),
           { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
         );
       } catch (err: any) {

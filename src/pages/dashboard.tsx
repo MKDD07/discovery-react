@@ -543,7 +543,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                           </span>
                           <h6 className="fw-700 text-dark mb-0">Interactive Rich Text Editor</h6>
                         </div>
-                        <div className="d-flex gap-2">
+                        <div className="d-flex gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-warning text-dark d-inline-flex align-items-center gap-1"
+                            onClick={handleGenerateBlog}
+                            disabled={generating}
+                            title="If generation stopped midway, click to re-prompt and continue completion"
+                          >
+                            <RefreshCw size={14} className={generating ? "animate-spin" : ""} /> Continue / Complete Blog
+                          </button>
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
