@@ -232,16 +232,17 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                     </div>
                   </div>
                   <div className="postbox-wrapper">
-                    {/* Main Cover Section */}
+                    {/* Main Cover Section (21:9 cinematic ratio, 1000x quality) */}
                     <div className="postbox-details-text mb-45">
-                      <div className="postbox-details-thumb mb-45">
+                      <div className="postbox-details-thumb mb-45 overflow-hidden rounded-4">
                         <img
                           className="w-100"
                           src="assets/img/blog/details/thumb.jpg"
                           data-pexels={blogData.cover_query || `${blogData.title} 4k travel landscape`}
                           data-type="image"
-                          data-quality="large"
+                          data-quality="1000x"
                           alt={blogData.title}
+                          style={{ aspectRatio: "21/9", objectFit: "cover", width: "100%", height: "auto" }}
                         />
                       </div>
                       <h4 className="postbox-details-title mb-10">
@@ -250,19 +251,20 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
                       {blogData.summary && <p>{blogData.summary}</p>}
                     </div>
 
-                    {/* Dynamic Sections with Headings, Paragraphs & Pexels Visuals */}
+                    {/* Dynamic Sections with Headings, Paragraphs & Pexels Visuals (21:9, 1000x) */}
                     {blogData.sections &&
                       blogData.sections.map((sec: any, idx: number) => (
                         <div key={idx} className="postbox-details-text mb-50">
                           {sec.pexelsQuery && (
-                            <div className="postbox-details-thumb postbox-details-thumb-overly mb-45 p-relative">
+                            <div className="postbox-details-thumb postbox-details-thumb-overly mb-45 p-relative overflow-hidden rounded-4">
                               <img
                                 className="w-100"
                                 src="assets/img/blog/details/thumb-2.jpg"
                                 data-pexels={sec.pexelsQuery}
                                 data-type="image"
-                                data-quality="large"
+                                data-quality="1000x"
                                 alt={sec.heading}
+                                style={{ aspectRatio: "21/9", objectFit: "cover", width: "100%", height: "auto" }}
                               />
                               <div className="postbox-details-thumb-content d-flex flex-wrap gap-1 align-items-center justify-content-between">
                                 <div className="postbox-details-thumb-info">

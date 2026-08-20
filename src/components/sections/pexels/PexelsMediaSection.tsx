@@ -41,11 +41,15 @@ export async function fetchPexelsVideo(query: string, orientation?: string | nul
 }
 
 /**
- * Pick correct image URL by quality/size key
+ * Pick correct image URL by quality/size key with support for 1000px resolution
  */
 export function pickImageUrl(photo: any, quality: string) {
   const src = photo.src || {};
-  return src[quality] || src.original || src.large || "";
+  if (quality === "1000x" || quality === "1000x1000" || quality === "1000") {
+    // Generate high quality 1000px wide image from Pexels
+    return src.original ? `${src.original}?auto=compress&cs=tinysrgb&w=1000&fit=crop` : (src.large2x || src.large || "");
+  }
+  return src[quality] || src.large2x || src.original || src.large || "";
 }
 
 /**

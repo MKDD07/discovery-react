@@ -669,7 +669,61 @@ Return ONLY valid JSON with this exact schema:
       }
     }
 
-    // ── 6. Intercept /api/serp requests ────────────────────────────────
+    // ── 6. Intercept /api/sqlite-console (Direct D1 SQL Execution & Inspector) ──
+    if (url.pathname === "/api/sqlite-console") {
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed" }), {
+          status: 405,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      try {
+        const body = (await request.json()) as { query?: string };
+        const query = body.query?.trim();
+
+        if (!query) {
+          return new Response(
+            JSON.stringify({ error: "SQL query is required" }),
+            { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        const d1 = env?.BLOGS_DB || env?.DB;
+        if (!d1) {
+          return new Response(
+            JSON.stringify({ error: "D1 Database binding not found" }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        const isSelect = query.toLowerCase().startsWith("select") || query.toLowerCase().startsWith("pragma");
+        if (isSelect) {
+          const { results } = await d1.prepare(query).all();
+          return new Response(
+            JSON.stringify({ success: true, results: results || [], count: results?.length || 0 }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        } else {
+          const res = await d1.prepare(query).run();
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: "Query executed successfully!",
+              meta: res?.meta || {},
+            }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ error: err.message || "SQL Execution Error" }),
+          { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    }
+
+    // ── 7. Intercept /api/serp requests ────────────────────────────────
     if (url.pathname.startsWith("/api/serp")) {
       const searchParams = new URLSearchParams(url.search);
 

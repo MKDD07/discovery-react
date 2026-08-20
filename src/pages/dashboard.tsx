@@ -30,6 +30,10 @@ import {
   List,
   Heading,
   Image,
+  Terminal,
+  Database,
+  Play,
+  Copy,
 } from "lucide-react";
 
 interface DashboardPageProps {
@@ -38,7 +42,7 @@ interface DashboardPageProps {
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "bookings" | "saved" | "createBlog" | "settings">("createBlog");
+  const [activeTab, setActiveTab] = useState<"overview" | "bookings" | "saved" | "createBlog" | "sqliteConsole" | "settings">("createBlog");
 
   // AI Blog Generator State
   const [groqKey, setGroqKey] = useState<string>(
@@ -53,6 +57,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
 
   // Field-level rewriting loading state
   const [rewritingField, setRewritingField] = useState<string | null>(null);
+
+  // SQLite Console State
+  const [sqlQuery, setSqlQuery] = useState<string>(
+    "SELECT id, slug, title, category, location, created_at FROM blogs ORDER BY created_at DESC LIMIT 10;"
+  );
+  const [sqlResults, setSqlResults] = useState<any[] | null>(null);
+  const [sqlError, setSqlError] = useState<string | null>(null);
+  const [sqlMessage, setSqlMessage] = useState<string | null>(null);
+  const [sqlRunning, setSqlRunning] = useState<boolean>(false);
 
   useEffect(() => {
     const authUser = getStoredUser();
@@ -244,6 +257,40 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
     }
   };
 
+  const handleExecuteSql = async (customQuery?: string) => {
+    const queryToRun = (customQuery || sqlQuery).trim();
+    if (!queryToRun) return;
+
+    setSqlRunning(true);
+    setSqlError(null);
+    setSqlMessage(null);
+
+    try {
+      const res = await fetch("/api/sqlite-console", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: queryToRun }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.results) {
+          setSqlResults(data.results);
+          setSqlMessage(`Query returned ${data.count ?? data.results.length} rows.`);
+        } else {
+          setSqlResults(null);
+          setSqlMessage(data.message || "Query executed successfully!");
+        }
+      } else {
+        setSqlError(data.error || "Execution failed");
+      }
+    } catch (err: any) {
+      setSqlError(err.message || "Failed to communicate with SQLite console endpoint.");
+    } finally {
+      setSqlRunning(false);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -326,6 +373,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                     onClick={() => setActiveTab("createBlog")}
                   >
                     <Sparkles size={16} /> AI Blog Creator &amp; Editor
+                  </button>
+                  <button
+                    className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
+                      activeTab === "sqliteConsole" ? "bg-primary text-white fw-600" : "text-dark bg-transparent"
+                    }`}
+                    style={{ fontSize: "14px" }}
+                    onClick={() => setActiveTab("sqliteConsole")}
+                  >
+                    <Terminal size={16} /> D1 SQLite Console
                   </button>
                   <button
                     className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
@@ -853,6 +909,182 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                           </a>
                         </div>
                       )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* D1 SQLite Console Tab */}
+              {activeTab === "sqliteConsole" && (
+                <div className="bg-white rounded-4 border p-4 shadow-sm mb-4">
+                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div>
+                      <span className="badge bg-primary bg-opacity-10 text-primary font-monospace small mb-1">
+                        Cloudflare D1 Database Engine
+                      </span>
+                      <h4 className="fw-700 text-dark mb-0 d-flex align-items-center gap-2">
+                        <Terminal size={20} className="text-primary" /> D1 SQLite SQL Console
+                      </h4>
+                    </div>
+                    <span className="badge bg-light text-muted font-monospace small border">
+                      DB ID: b15e9273-0279-42e7-b909-5cee71b871c0
+                    </span>
+                  </div>
+
+                  <p className="text-muted small mb-4">
+                    Execute raw SQL queries directly against your Cloudflare D1 SQLite database to inspect, query, insert paragraphs, update blogs, or manage tables.
+                  </p>
+
+                  {/* Preset Quick SQL Buttons */}
+                  <div className="d-flex align-items-center flex-wrap gap-2 mb-3">
+                    <span className="small text-muted fw-semibold me-1">Quick Queries:</span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
+                      style={{ fontSize: "11.5px" }}
+                      onClick={() => {
+                        const q = "SELECT id, slug, title, category, location, created_at FROM blogs ORDER BY created_at DESC LIMIT 10;";
+                        setSqlQuery(q);
+                        handleExecuteSql(q);
+                      }}
+                    >
+                      All Blogs (10)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
+                      style={{ fontSize: "11.5px" }}
+                      onClick={() => {
+                        const q = "PRAGMA table_info(blogs);";
+                        setSqlQuery(q);
+                        handleExecuteSql(q);
+                      }}
+                    >
+                      Table Schema (blogs)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
+                      style={{ fontSize: "11.5px" }}
+                      onClick={() => {
+                        const q = "SELECT count(*) as total_blogs FROM blogs;";
+                        setSqlQuery(q);
+                        handleExecuteSql(q);
+                      }}
+                    >
+                      Count Total Blogs
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
+                      style={{ fontSize: "11.5px" }}
+                      onClick={() => {
+                        const q = "SELECT slug, title, cover_query, json_array_length(content_json) as sections_count FROM blogs LIMIT 5;";
+                        setSqlQuery(q);
+                        handleExecuteSql(q);
+                      }}
+                    >
+                      Inspect Sections Count
+                    </button>
+                  </div>
+
+                  {/* SQL Query Box */}
+                  <div className="card rounded-3 border mb-3 overflow-hidden shadow-sm">
+                    <div className="card-header bg-dark text-white d-flex align-items-center justify-content-between py-2 px-3">
+                      <span className="small font-monospace text-warning d-flex align-items-center gap-1">
+                        <Database size={13} /> SQL Command Editor
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-success text-white py-1 px-3 d-inline-flex align-items-center gap-1 fw-semibold"
+                        style={{ fontSize: "12px" }}
+                        onClick={() => handleExecuteSql()}
+                        disabled={sqlRunning}
+                      >
+                        {sqlRunning ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin" /> Running...
+                          </>
+                        ) : (
+                          <>
+                            <Play size={13} /> Execute Query (Ctrl+Enter)
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <textarea
+                      className="form-control border-0 font-monospace bg-light p-3"
+                      rows={5}
+                      style={{ fontSize: "13px", resize: "vertical", fontFamily: "monospace" }}
+                      value={sqlQuery}
+                      onChange={(e) => setSqlQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                          handleExecuteSql();
+                        }
+                      }}
+                      placeholder="SELECT * FROM blogs WHERE category = 'Adventure' LIMIT 10;"
+                    />
+                  </div>
+
+                  {/* Messages / Errors */}
+                  {sqlError && (
+                    <div className="alert alert-danger py-2 px-3 small rounded-3 mb-3 d-flex align-items-center justify-content-between">
+                      <span><strong>Error:</strong> {sqlError}</span>
+                      <button type="button" className="btn-close" onClick={() => setSqlError(null)}></button>
+                    </div>
+                  )}
+
+                  {sqlMessage && (
+                    <div className="alert alert-success py-2 px-3 small rounded-3 mb-3 d-flex align-items-center justify-content-between">
+                      <span>✓ {sqlMessage}</span>
+                      <button type="button" className="btn-close" onClick={() => setSqlMessage(null)}></button>
+                    </div>
+                  )}
+
+                  {/* Query Results Table */}
+                  {sqlResults && sqlResults.length > 0 && (
+                    <div className="card rounded-3 border shadow-sm overflow-hidden mt-3">
+                      <div className="card-header bg-light py-2 px-3 d-flex align-items-center justify-content-between">
+                        <strong className="text-dark small">Results ({sqlResults.length} rows)</strong>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary py-0 px-2 small"
+                          style={{ fontSize: "11px" }}
+                          onClick={() => {
+                            navigator.clipboard.writeText(JSON.stringify(sqlResults, null, 2));
+                            alert("Copied results as JSON to clipboard!");
+                          }}
+                        >
+                          <Copy size={11} className="me-1" /> Copy JSON
+                        </button>
+                      </div>
+                      <div className="table-responsive mb-0" style={{ maxHeight: "360px" }}>
+                        <table className="table table-bordered table-striped table-hover mb-0 align-middle small">
+                          <thead className="table-dark" style={{ position: "sticky", top: 0, zIndex: 1 }}>
+                            <tr>
+                              {Object.keys(sqlResults[0] || {}).map((col) => (
+                                <th key={col} className="font-monospace fw-semibold" style={{ fontSize: "12px" }}>
+                                  {col}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sqlResults.map((row, rIdx) => (
+                              <tr key={rIdx}>
+                                {Object.keys(sqlResults[0] || {}).map((col, cIdx) => (
+                                  <td key={cIdx} className="font-monospace" style={{ fontSize: "11.5px", maxWidth: "300px", wordBreak: "break-word" }}>
+                                    {typeof row[col] === "object"
+                                      ? JSON.stringify(row[col])
+                                      : String(row[col] ?? "NULL")}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
                   )}
                 </div>
