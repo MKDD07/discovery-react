@@ -1,9 +1,5 @@
-// Multi-key configuration for SerpApi:
-// You can specify keys in .env (VITE_SERP_API_KEY_1, VITE_SERP_API_KEY_2) or set them directly here.
-const SERP_API_KEYS: string[] = [
-  (import.meta as any).env?.VITE_SERP_API_KEY_1 || "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69",
-  (import.meta as any).env?.VITE_SERP_API_KEY_2 || "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69",
-].filter(Boolean);
+// API keys are stored server-side in Cloudflare Worker env vars (SERP_API_KEY_1, SERP_API_KEY_2).
+// The frontend sends requests to /api/serp — no keys are exposed in the browser bundle.
 
 export interface SerpOrganicResult {
   title: string;
@@ -39,38 +35,34 @@ export interface SerpHotelResult {
 }
 
 async function fetchSerp(params: Record<string, string>): Promise<any> {
-  // 1. Try local/Cloudflare proxy first (/api/serp - configured in vite.config.ts & functions/api/serp.ts)
-  for (let i = 0; i < SERP_API_KEYS.length; i++) {
-    const key = SERP_API_KEYS[i];
-    const query = new URLSearchParams({ ...params, api_key: key });
+  // Strip slot from params before building query; worker reads it but SerpApi doesn't need it
+  const { slot, ...serpParams } = params as Record<string, string>;
+  const query = new URLSearchParams(serpParams);
 
-    // Method A: Direct /api/serp endpoint (Vite dev server proxy & Cloudflare Pages Functions)
-    try {
-      const res = await fetch(`/api/serp?${query.toString()}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (!data.error) return data;
-      }
-    } catch {
-      // Fall through to try public proxies or next key
-    }
+  // Only include slot if present (worker uses it to pick key, then drops it)
+  if (slot) query.set("slot", slot);
 
-    // Method B: Fast CORS proxy fallback
-    try {
-      const targetUrl = `https://serpapi.com/search.json?${query.toString()}`;
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-      const res = await fetch(proxyUrl);
-      if (res.ok) {
-        const data = await res.json();
-        if (!data.error) return data;
-      }
-    } catch {
-      // Fall through
+  try {
+    // /api/serp routes through:
+    //   - Vite dev server proxy (vite.config.ts) while running locally
+    //   - Cloudflare Worker (src/worker.ts) on discovery.mkmkataria07.workers.dev
+    const res = await fetch(`/api/serp?${query.toString()}`, {
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (!data?.error) return data;
+      console.warn("SerpApi error response:", data.error);
+    } else {
+      console.warn(`/api/serp returned ${res.status}. Using fallback data.`);
     }
+  } catch (err) {
+    console.warn("SerpApi fetch failed:", err);
   }
 
-  // If all API keys / proxies fail, gracefully return high-fidelity fallback data so the UI is always beautiful
-  console.info("SerpAPI using offline high-fidelity dataset for query:", params.q || params.departure_id);
+  // Graceful fallback — UI is never blank
+  console.info("SerpAPI using offline dataset for:", params.q || params.departure_id);
   return generateFallbackData(params);
 }
 
