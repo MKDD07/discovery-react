@@ -490,74 +490,64 @@ export default {
           ? "https://api.groq.com/openai/v1/chat/completions"
           : "https://api.openai.com/v1/chat/completions";
 
-        const systemPrompt = `You are a professional travel journalist and SEO copywriter for Discovery Convoy.
-Generate a high quality, well-structured travel blog article in clean JSON format.
+        const systemPrompt = `You are a professional travel journalist for Discovery Convoy.
+Write a compact, high-quality, structured travel article in clean JSON format.
 
-CRITICAL RULES FOR HEADINGS & CONTENT:
-- Main title MUST be strictly 4 to 6 words maximum (e.g., "Complete Insider Guide To Bali"). NEVER exceed 6 words.
-- Each section has 5 engaging, high-quality, immersive paragraphs.
-- Provide a clean 3-5 word Pexels visual query per section (e.g. "bali sunrise mountain trekking").
-- Provide 4 to 10 structured sections (each with: subheading, 5 paragraphs, pexelsQuery, highlights).
-- Provide 5 to 10 clear FAQ items (question & answer).
-- CATEGORY & LOCATION AUTO-DETECTION:
-  * Category: ${category && category !== "Auto-Detect" ? `Use "${category}"` : 'Automatically pick the best matching category from ["Adventure", "Luxury Escapes", "Beach Trips", "Nature", "Art and culture", "Honeymoon & Romance", "Food & Travel", "Heritage & History", "Mountain Treks", "Wellness & Spa", "Wildlife & Safari", "Cruise & Island Hopping", "Travel Tips", "Budget & Solo Travel", "City Breaks"] based on the topic.'}
-  * Location: ${location && location !== "Auto-Detect" ? `Use "${location}"` : 'Automatically detect and extract the precise destination/country/city (e.g. "Bali, Indonesia", "Goa, India", "Kyoto, Japan", "Swiss Alps, Switzerland") from the topic.'}
+RULES:
+- Title: Strictly 4 to 6 words (e.g. "Ultimate Travel Guide To Bali").
+- Sections: Exactly 3 to 4 structured sections.
+- Subheading: Strictly 3 to 6 words (e.g. "1. Sunrise At Mount Batur").
+- Paragraphs: 2 engaging, vivid paragraphs per section.
+- Pexels Query: 3-5 keywords for scenic photo search.
+- FAQs: Exactly 3 helpful traveler FAQs.
+- Category: ${category && category !== "Auto-Detect" ? `"${category}"` : 'Auto-select best from ["Adventure", "Luxury Escapes", "Beach Trips", "Nature", "Art and culture", "Honeymoon & Romance", "Food & Travel", "Heritage & History", "Mountain Treks", "Wellness & Spa", "Wildlife & Safari", "Cruise & Island Hopping", "Travel Tips", "Budget & Solo Travel", "City Breaks"]'}
+- Location: ${location && location !== "Auto-Detect" ? `"${location}"` : 'Auto-detect destination (e.g. "Bali, Indonesia", "Kyoto, Japan")'}
 
-Return ONLY valid JSON with this exact schema:
+Output ONLY valid JSON matching this schema:
 {
   "title": "Strictly 4-6 Words Title",
   "category": "Adventure",
-  "location": "Detected Location or City, Country",
-  "cover_query": "3-5 word pexels query",
-  "summary": "Engaging 2-sentence summary overview of the destination.",
+  "location": "Destination City, Country",
+  "cover_query": "3-5 word scenic photo query",
+  "summary": "Concise 2-sentence destination summary.",
   "sections": [
     {
       "heading": "Strictly 3-6 Words Subheading",
       "paragraphs": [
-        "First detailed travel paragraph...",
-        "Second detailed travel paragraph..."
+        "First rich travel paragraph...",
+        "Second rich travel paragraph..."
       ],
-      "pexelsQuery": "3-5 word image query",
-      "highlights": ["Key highlight or tip 1", "Key highlight or tip 2"]
+      "pexelsQuery": "3-5 word photo query",
+      "highlights": ["Highlight 1", "Highlight 2"]
     }
   ],
   "quote": {
     "text": "Inspiring one-line travel quote",
-    "author": "Guide or Author Name"
+    "author": "Local Guide"
   },
   "faqs": [
     {
-      "question": "Clear common traveler question?",
+      "question": "Common travel question?",
       "answer": "Concise, helpful answer."
     }
   ],
-  "tags": "tag1, tag2, tag3, tag4"
+  "tags": "luxury, travel, guide, itinerary"
 }`;
 
-        const callAi = async (messages: any[], maxTokens = 4096) => {
+        const callAi = async (messages: any[], maxTokens = 1500) => {
           return await fetch(endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify(
-              isGroq
-                ? {
-                    model: "openai/gpt-oss-120b",
-                    messages,
-                    temperature: 0.8,
-                    max_completion_tokens: maxTokens,
-                    top_p: 1,
-                    reasoning_effort: "medium",
-                  }
-                : {
-                    model: "gpt-4o",
-                    messages,
-                    response_format: { type: "json_object" },
-                    temperature: 0.7,
-                  }
-            ),
+            body: JSON.stringify({
+              model: isGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini",
+              messages,
+              temperature: 0.6,
+              max_tokens: maxTokens,
+              response_format: { type: "json_object" },
+            }),
           });
         };
 
@@ -764,12 +754,13 @@ Return ONLY valid JSON with this exact schema:
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify({
-            model: isGroq ? "openai/gpt-oss-120b" : "gpt-4o",
+            model: isGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini",
             messages: [
               { role: "system", content: instruction },
               { role: "user", content: `Context: ${prompt}. Current version: ${current || "None"}. Rewrite with maximum creativity and adherence to rules.` },
             ],
-            temperature: 0.9,
+            temperature: 0.7,
+            max_tokens: 600,
           }),
         });
 
