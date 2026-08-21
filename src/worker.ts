@@ -534,20 +534,30 @@ Output ONLY valid JSON matching this schema:
   "tags": "luxury, travel, guide, itinerary"
 }`;
 
-        const callAi = async (messages: any[], maxTokens = 1500) => {
+        const callAi = async (messages: any[], maxTokens = 4096) => {
           return await fetch(endpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${apiKey}`,
             },
-            body: JSON.stringify({
-              model: isGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini",
-              messages,
-              temperature: 0.6,
-              max_tokens: maxTokens,
-              response_format: { type: "json_object" },
-            }),
+            body: JSON.stringify(
+              isGroq
+                ? {
+                    model: "openai/gpt-oss-120b",
+                    messages,
+                    temperature: 0.8,
+                    max_completion_tokens: maxTokens,
+                    top_p: 1,
+                    reasoning_effort: "medium",
+                  }
+                : {
+                    model: "gpt-4o",
+                    messages,
+                    response_format: { type: "json_object" },
+                    temperature: 0.7,
+                  }
+            ),
           });
         };
 
@@ -779,15 +789,28 @@ Output ONLY valid JSON matching this schema:
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,
           },
-          body: JSON.stringify({
-            model: isGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini",
-            messages: [
-              { role: "system", content: instruction },
-              { role: "user", content: `Context: ${prompt}. Current version: ${current || "None"}. Rewrite with maximum creativity and adherence to rules.` },
-            ],
-            temperature: 0.7,
-            max_tokens: 600,
-          }),
+          body: JSON.stringify(
+            isGroq
+              ? {
+                  model: "openai/gpt-oss-120b",
+                  messages: [
+                    { role: "system", content: instruction },
+                    { role: "user", content: `Context: ${prompt}. Current version: ${current || "None"}. Rewrite with maximum creativity and adherence to rules.` },
+                  ],
+                  temperature: 0.9,
+                  max_completion_tokens: 1024,
+                  reasoning_effort: "medium",
+                }
+              : {
+                  model: "gpt-4o",
+                  messages: [
+                    { role: "system", content: instruction },
+                    { role: "user", content: `Context: ${prompt}. Current version: ${current || "None"}. Rewrite with maximum creativity and adherence to rules.` },
+                  ],
+                  temperature: 0.9,
+                  max_tokens: 1024,
+                }
+          ),
         });
 
         if (!rewriteRes.ok) {
