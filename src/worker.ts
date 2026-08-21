@@ -135,70 +135,96 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // ── 0. Dynamic /sitemap.xml — Reads all blogs from D1 in real time ──────
+    // ── 0. Dynamic /sitemap.xml — Reads all blogs & locations from D1 in real time ──────
     if (url.pathname === "/sitemap.xml") {
       // Use actual request host so sitemap works on workers.dev AND custom domain
       const BASE = `${url.protocol}//${url.host}`;
       const today = new Date().toISOString().split("T")[0];
 
-      // Static pages
+      // Static core pages
       const staticUrls = [
         { loc: `${BASE}/`, changefreq: "daily", priority: "1.0" },
-        { loc: `${BASE}/luxury`, changefreq: "daily", priority: "0.9" },
-        { loc: `${BASE}/blog`, changefreq: "daily", priority: "0.9" },
-        { loc: `${BASE}/about`, changefreq: "weekly", priority: "0.8" },
-        { loc: `${BASE}/contact`, changefreq: "weekly", priority: "0.8" },
-        { loc: `${BASE}/faq`, changefreq: "weekly", priority: "0.8" },
-        // Destination hubs
-        { loc: `${BASE}/destination/paris`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/dubai`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/goa`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/maldives`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/bali`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/switzerland`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/kashmir`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/london`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/tokyo`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/kerala`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/destination/rajasthan`, changefreq: "weekly", priority: "0.85" },
-        // Collection hubs
-        { loc: `${BASE}/collection/luxury-palaces-villas`, changefreq: "weekly", priority: "0.8" },
-        { loc: `${BASE}/collection/honeymoon-getaways`, changefreq: "weekly", priority: "0.8" },
-        { loc: `${BASE}/collection/mountain-wilderness-retreats`, changefreq: "weekly", priority: "0.8" },
-        { loc: `${BASE}/collection/beachfront-private-islands`, changefreq: "weekly", priority: "0.8" },
-        { loc: `${BASE}/collection/heritage-cultural-odysseys`, changefreq: "weekly", priority: "0.8" },
+        { loc: `${BASE}/luxury`, changefreq: "daily", priority: "0.95" },
+        { loc: `${BASE}/blog`, changefreq: "daily", priority: "0.90" },
+        { loc: `${BASE}/about`, changefreq: "monthly", priority: "0.80" },
+        { loc: `${BASE}/contact`, changefreq: "monthly", priority: "0.80" },
+        { loc: `${BASE}/faq`, changefreq: "monthly", priority: "0.80" },
+        // Curated Collection Hubs
+        { loc: `${BASE}/collection/luxury-palaces-villas`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/collection/honeymoon-getaways`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/collection/mountain-wilderness-retreats`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/collection/beachfront-private-islands`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/collection/heritage-cultural-odysseys`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/collection/wellness-ayurveda-sanctuaries`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/collection/safari-wildlife-expeditions`, changefreq: "weekly", priority: "0.85" },
       ];
 
-      // Fetch all blog slugs + dates from D1
-      let blogRows: { slug: string; created_at?: string }[] = [];
-      if (env?.BLOGS_DB) {
+      const d1Db = env?.BLOGS_DB || env?.DB;
+
+      // Fetch all locations from D1
+      let locationRows: { slug: string; name?: string; image_url?: string; heading?: string; updated_at?: string }[] = [];
+      if (d1Db) {
         try {
-          const result = await env.BLOGS_DB.prepare(
-            `SELECT slug, created_at FROM blogs ORDER BY created_at DESC LIMIT 2000`
+          const locRes = await d1Db.prepare(
+            `SELECT slug, name, image_url, heading, updated_at FROM locations WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 2000`
           ).all();
-          blogRows = (result?.results || []) as { slug: string; created_at?: string }[];
-        } catch {
-          // If D1 unavailable, sitemap still works with static pages
+          locationRows = (locRes?.results || []) as any[];
+        } catch (e) {
+          console.warn("D1 locations sitemap query error:", e);
         }
       }
 
-      const toXmlDate = (raw?: string): string => {
+      // Fetch all blog slugs + dates from D1
+      let blogRows: { slug: string; title?: string; cover_query?: string; updated_at?: string; created_at?: string }[] = [];
+      if (d1Db) {
+        try {
+          const blogRes = await d1Db.prepare(
+            `SELECT slug, title, cover_query, updated_at, created_at FROM blogs ORDER BY created_at DESC LIMIT 2000`
+          ).all();
+          blogRows = (blogRes?.results || []) as any[];
+        } catch (e) {
+          console.warn("D1 blogs sitemap query error:", e);
+        }
+      }
+
+      const toXmlDate = (raw?: string | number): string => {
         if (!raw) return today;
         try {
+          if (typeof raw === "number") return new Date(raw).toISOString().split("T")[0];
           return new Date(raw).toISOString().split("T")[0];
         } catch {
           return today;
         }
       };
 
+      const escapeXml = (str?: string): string => {
+        if (!str) return "";
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&apos;");
+      };
+
       const urlTags = [
         ...staticUrls.map(
           (u) => `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
         ),
-        ...blogRows.map(
-          (b) =>
-            `  <url>\n    <loc>${BASE}/blog/${b.slug}</loc>\n    <lastmod>${toXmlDate(b.created_at)}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.75</priority>\n  </url>`
-        ),
+        ...locationRows.map((loc) => {
+          const locUrl = `${BASE}/destination/${loc.slug}`;
+          const lastMod = toXmlDate(loc.updated_at);
+          let imgTag = "";
+          if (loc.image_url) {
+            imgTag = `\n    <image:image>\n      <image:loc>${escapeXml(loc.image_url)}</image:loc>\n      <image:title>${escapeXml(loc.heading || loc.name)}</image:title>\n    </image:image>`;
+          }
+          return `  <url>\n    <loc>${locUrl}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.90</priority>${imgTag}\n  </url>`;
+        }),
+        ...blogRows.map((b) => {
+          const blogUrl = `${BASE}/blog/${b.slug}`;
+          const lastMod = toXmlDate(b.updated_at || b.created_at);
+          return `  <url>\n    <loc>${blogUrl}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.85</priority>\n  </url>`;
+        }),
       ].join("\n");
 
       const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urlTags}\n</urlset>`;
@@ -207,7 +233,7 @@ export default {
         status: 200,
         headers: {
           "Content-Type": "application/xml; charset=utf-8",
-          "Cache-Control": "public, max-age=3600",
+          "Cache-Control": "public, max-age=3600, s-maxage=3600",
           ...corsHeaders,
         },
       });

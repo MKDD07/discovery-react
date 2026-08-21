@@ -149,7 +149,9 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
               <span className="tp-tour-review-score tp-ff-inter">( {hotel.reviews} Reviews )</span>
             </div>
             <h3 className="tp-tour-title fw-500 mb-10">
-              <a href={hotel.link}>{hotel.name}</a>
+              <a href={hotel.link} style={{ fontSize: '17px' }}>
+  {hotel.name}
+</a>
             </h3>
             <div className="tp-tour-info">
               <span>
