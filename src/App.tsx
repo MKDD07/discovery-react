@@ -37,6 +37,7 @@ function App() {
   const [bookingTab, setBookingTab] = useState<BookingTab>("hotels");
   const [selectedDestination, setSelectedDestination] = useState<{
     name: string;
+    slug?: string;
     query: string;
   } | null>(null);
   const [selectedTour, setSelectedTour] = useState<{
@@ -52,10 +53,13 @@ function App() {
   useEffect(() => {
     const path = window.location.pathname;
     if (path.startsWith("/destination/")) {
-      const citySlug = path.replace("/destination/", "");
-      const cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
+      const citySlug = path.replace("/destination/", "").replace(/\/$/, "");
+      const cityName = decodeURIComponent(citySlug)
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (l) => l.toUpperCase());
       setSelectedDestination({
         name: cityName,
+        slug: citySlug,
         query: `${cityName} landscape travel scenery`,
       });
     } else if (path.startsWith("/tour/")) {
@@ -98,10 +102,13 @@ function App() {
     const handlePopState = () => {
       const currentPath = window.location.pathname;
       if (currentPath.startsWith("/destination/")) {
-        const citySlug = currentPath.replace("/destination/", "");
-        const cityName = citySlug.charAt(0).toUpperCase() + citySlug.slice(1);
+        const citySlug = currentPath.replace("/destination/", "").replace(/\/$/, "");
+        const cityName = decodeURIComponent(citySlug)
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase());
         setSelectedDestination({
           name: cityName,
+          slug: citySlug,
           query: `${cityName} landscape travel scenery`,
         });
         setSelectedTour(null);
@@ -321,6 +328,7 @@ function App() {
     return (
       <CityDetailsPage
         location={selectedDestination.name}
+        slug={selectedDestination.slug}
         query={selectedDestination.query}
         onBackHome={() => {
           window.history.pushState({}, "", "/");

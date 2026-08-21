@@ -42,6 +42,84 @@ async function verifyPassword(password: string, saltB64: string, hashB64: string
   return hash === hashB64;
 }
 
+// ── Cloudflare D1 Locations Schema & Helpers ────────────────────────
+async function ensureLocationsTable(db: any) {
+  if (!db) return;
+  try {
+    await db.prepare(
+      `CREATE TABLE IF NOT EXISTS locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        country TEXT,
+        state_region TEXT,
+        location_type TEXT DEFAULT 'city',
+        parent_location TEXT,
+        latitude REAL,
+        longitude REAL,
+        image_url TEXT,
+        pexels_query TEXT,
+        heading TEXT,
+        short_description TEXT,
+        seo_title TEXT,
+        seo_description TEXT,
+        hotel_search_query TEXT,
+        currency TEXT DEFAULT 'INR',
+        timezone TEXT,
+        destination_content TEXT,
+        content_status TEXT DEFAULT 'pending',
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`
+    ).run();
+    await db.prepare(`CREATE INDEX IF NOT EXISTS idx_locations_slug ON locations(slug)`).run();
+    await db.prepare(`CREATE INDEX IF NOT EXISTS idx_locations_country ON locations(country)`).run();
+    await db.prepare(`CREATE INDEX IF NOT EXISTS idx_locations_active ON locations(is_active)`).run();
+  } catch (err) {
+    console.error("Locations table init error:", err);
+  }
+}
+
+async function fetchWebSnippets(query: string, env: Env): Promise<string> {
+  const keysToTry: string[] = [];
+  if (env?.SERP_API_KEY_1) keysToTry.push(env.SERP_API_KEY_1);
+  if (env?.SERP_API_KEY_2) keysToTry.push(env.SERP_API_KEY_2);
+  const DEFAULT_KEY = "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
+  if (!keysToTry.includes(DEFAULT_KEY)) keysToTry.push(DEFAULT_KEY);
+
+  for (const key of keysToTry) {
+    try {
+      const url = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&engine=google&api_key=${key}`;
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        const snippets: string[] = [];
+        if (data.knowledge_graph?.title) {
+          snippets.push(`Entity: ${data.knowledge_graph.title} (${data.knowledge_graph.type || ""})`);
+        }
+        if (data.knowledge_graph?.description) {
+          snippets.push(`Overview: ${data.knowledge_graph.description}`);
+        }
+        if (data.answer_box?.snippet) {
+          snippets.push(`Quick Info: ${data.answer_box.snippet}`);
+        }
+        if (Array.isArray(data.organic_results)) {
+          data.organic_results.slice(0, 4).forEach((r: any) => {
+            if (r.snippet) snippets.push(`${r.title || ""}: ${r.snippet}`);
+          });
+        }
+        if (snippets.length > 0) {
+          return snippets.join("\n").slice(0, 2500);
+        }
+      }
+    } catch (e) {
+      console.warn("Serp snippet search error:", e);
+    }
+  }
+  return "";
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -522,6 +600,621 @@ export default {
         } catch (err: any) {
           return new Response(
             JSON.stringify({ error: err.message || "Failed to save blog post" }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      }
+    }
+
+    // ── 3.5 Intercept /api/locations (CRUD & List Operations) ────────
+    if (url.pathname === "/api/locations" || url.pathname.startsWith("/api/locations/")) {
+      const locationsDb = env?.BLOGS_DB || env?.DB;
+      if (locationsDb) {
+        await ensureLocationsTable(locationsDb);
+      }
+
+      // Special Sub-route: AI Content Generation for a Location
+      if (url.pathname === "/api/locations/generate-ai") {
+        if (request.method !== "POST") {
+          return new Response(JSON.stringify({ error: "Method not allowed" }), {
+            status: 405,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+
+        try {
+          const body = (await request.json()) as {
+            id?: number;
+            name: string;
+            slug?: string;
+            country?: string;
+            state_region?: string;
+            useWebSearch?: boolean;
+            apiKey?: string;
+          };
+
+          const { id, name, slug: providedSlug, country: providedCountry, state_region: providedRegion, useWebSearch = true, apiKey: clientApiKey } = body;
+
+          if (!name || !name.trim()) {
+            return new Response(
+              JSON.stringify({ error: "Location name is required" }),
+              { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+
+          const apiKey = clientApiKey || env?.OPENAI_API_KEY || env?.GROQ_API_KEY;
+          if (!apiKey) {
+            return new Response(
+              JSON.stringify({ error: "API Key is missing. Please provide your OpenAI or Groq API key." }),
+              { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+
+          // 1. Fetch live web search snippets if enabled
+          let webContext = "";
+          if (useWebSearch !== false) {
+            try {
+              const searchQuery = `${name} ${providedCountry || ""} tourism travel facts coordinates best time attractions`;
+              webContext = await fetchWebSnippets(searchQuery, env);
+            } catch (e) {
+              console.warn("Web search lookup failed, continuing with LLM knowledge:", e);
+            }
+          }
+
+          // 2. Query LLM for complete location dataset
+          const isGroq = apiKey.startsWith("gsk_");
+          const endpoint = isGroq
+            ? "https://api.groq.com/openai/v1/chat/completions"
+            : "https://api.openai.com/v1/chat/completions";
+
+          const systemPrompt = `You are a world-class travel database architect & geographer for Discovery Convoy.
+Your job is to generate accurate, high-conversion, comprehensive destination and location metadata.
+
+OUTPUT REQUIREMENTS:
+- Format: Return ONLY a valid JSON object matching the exact schema below.
+- Accuracy: Use real geographical coordinates (latitude, longitude), real country, timezone (e.g. "Asia/Kolkata", "Europe/Paris", "America/New_York"), official currency code (e.g. "INR", "USD", "EUR", "AED", "JPY").
+- Heading: Catchy, inspiring 4 to 6 word title (e.g. "Timeless Royalty & Golden Sunsets").
+- Short Description: 2-3 vivid sentences describing what makes this destination iconic.
+- SEO Title: High-converting meta title strictly under 60 characters (e.g. "Visit Jaipur: Top Forts, Palaces & Travel Guide").
+- SEO Description: Meta description strictly between 130 and 155 characters summarizing the best experiences.
+- Pexels Query: 3-5 lowercase visual keywords for scenic photos (e.g. "jaipur hawa mahal palace").
+- Hotel Search Query: Targeted hotel search query (e.g. "luxury heritage hotels and resorts in jaipur").
+- Destination Content: Rich markdown format (approx 300-500 words) containing sections:
+  ### Overview & Heritage
+  ### Must-Visit Highlights
+  ### Best Time To Visit & Climate
+  ### Culture, Cuisine & Insider Tips
+
+JSON Schema to strictly output:
+{
+  "name": "${name.trim()}",
+  "slug": "${(providedSlug || name).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}",
+  "country": "Country Name",
+  "state_region": "State / Region / Province",
+  "location_type": "city",
+  "parent_location": "State or Country",
+  "latitude": 26.9124,
+  "longitude": 75.7873,
+  "image_url": "",
+  "pexels_query": "scenic keywords",
+  "heading": "4-6 Words Catchy Headline",
+  "short_description": "Vivid 2-3 sentence overview...",
+  "seo_title": "SEO Title under 60 chars",
+  "seo_description": "SEO description between 130-155 characters...",
+  "hotel_search_query": "hotels and resorts in ...",
+  "currency": "INR",
+  "timezone": "Asia/Kolkata",
+  "destination_content": "### Overview & Heritage\\n...\\n### Must-Visit Highlights\\n...",
+  "content_status": "completed",
+  "is_active": 1
+}`;
+
+          const userPrompt = `Location Name: "${name}"
+${providedCountry ? `Country Hint: "${providedCountry}"` : ""}
+${providedRegion ? `Region Hint: "${providedRegion}"` : ""}
+${webContext ? `\nLive Web Search Reference Context:\n${webContext}` : ""}
+
+Generate the complete JSON record with accurate coordinates, timezone, currency, rich travel copy, and SEO metadata. Return valid JSON only.`;
+
+          const aiRes = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify(
+              isGroq
+                ? {
+                    model: "openai/gpt-oss-120b",
+                    messages: [
+                      { role: "system", content: systemPrompt },
+                      { role: "user", content: userPrompt },
+                    ],
+                    temperature: 0.7,
+                    max_completion_tokens: 3000,
+                    top_p: 1,
+                    reasoning_effort: "medium",
+                  }
+                : {
+                    model: "gpt-4o",
+                    messages: [
+                      { role: "system", content: systemPrompt },
+                      { role: "user", content: userPrompt },
+                    ],
+                    response_format: { type: "json_object" },
+                    temperature: 0.7,
+                  }
+            ),
+          });
+
+          if (!aiRes.ok) {
+            const errText = await aiRes.text();
+            return new Response(
+              JSON.stringify({ error: `AI generation failed (${aiRes.status}): ${errText}` }),
+              { status: aiRes.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+
+          const aiData = (await aiRes.json()) as any;
+          const rawContent = aiData.choices?.[0]?.message?.content || "";
+
+          let parsed: any;
+          try {
+            const jsonStart = rawContent.indexOf("{");
+            const jsonEnd = rawContent.lastIndexOf("}");
+            if (jsonStart !== -1 && jsonEnd !== -1) {
+              parsed = JSON.parse(rawContent.slice(jsonStart, jsonEnd + 1));
+            } else {
+              parsed = JSON.parse(rawContent);
+            }
+          } catch (jsonErr) {
+            return new Response(
+              JSON.stringify({ error: "Failed to parse AI JSON response", raw: rawContent }),
+              { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+
+          // Fallback fields ensuring validity
+          const finalSlug =
+            parsed.slug ||
+            name
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-|-$/g, "");
+
+          const record = {
+            name: parsed.name || name,
+            slug: finalSlug,
+            country: parsed.country || providedCountry || "India",
+            state_region: parsed.state_region || providedRegion || null,
+            location_type: parsed.location_type || "city",
+            parent_location: parsed.parent_location || null,
+            latitude: typeof parsed.latitude === "number" ? parsed.latitude : parseFloat(parsed.latitude) || null,
+            longitude: typeof parsed.longitude === "number" ? parsed.longitude : parseFloat(parsed.longitude) || null,
+            image_url: parsed.image_url || null,
+            pexels_query: parsed.pexels_query || `${name} travel landscape`,
+            heading: parsed.heading || `Discover ${name}`,
+            short_description: parsed.short_description || "",
+            seo_title: parsed.seo_title || `Explore ${name} - Attractions & Hotels`,
+            seo_description: parsed.seo_description || `Plan your luxury trip to ${name}. Discover top landmarks, resorts, and exclusive experiences.`,
+            hotel_search_query: parsed.hotel_search_query || `luxury hotels in ${name}`,
+            currency: parsed.currency || "INR",
+            timezone: parsed.timezone || "Asia/Kolkata",
+            destination_content: parsed.destination_content || "",
+            content_status: "completed",
+            is_active: parsed.is_active ?? 1,
+          };
+
+          // Save / Update directly in Cloudflare D1
+          if (locationsDb) {
+            const now = new Date().toISOString();
+            if (id) {
+              await locationsDb.prepare(
+                `UPDATE locations SET
+                  name = ?, slug = ?, country = ?, state_region = ?, location_type = ?, parent_location = ?,
+                  latitude = ?, longitude = ?, image_url = ?, pexels_query = ?, heading = ?, short_description = ?,
+                  seo_title = ?, seo_description = ?, hotel_search_query = ?, currency = ?, timezone = ?,
+                  destination_content = ?, content_status = 'completed', is_active = ?, updated_at = ?
+                WHERE id = ?`
+              )
+                .bind(
+                  record.name,
+                  record.slug,
+                  record.country,
+                  record.state_region,
+                  record.location_type,
+                  record.parent_location,
+                  record.latitude,
+                  record.longitude,
+                  record.image_url,
+                  record.pexels_query,
+                  record.heading,
+                  record.short_description,
+                  record.seo_title,
+                  record.seo_description,
+                  record.hotel_search_query,
+                  record.currency,
+                  record.timezone,
+                  record.destination_content,
+                  record.is_active,
+                  now,
+                  id
+                )
+                .run();
+            } else {
+              await locationsDb.prepare(
+                `INSERT INTO locations (
+                  name, slug, country, state_region, location_type, parent_location, latitude, longitude,
+                  image_url, pexels_query, heading, short_description, seo_title, seo_description,
+                  hotel_search_query, currency, timezone, destination_content, content_status, is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
+                ON CONFLICT(slug) DO UPDATE SET
+                  name = excluded.name,
+                  country = excluded.country,
+                  state_region = excluded.state_region,
+                  location_type = excluded.location_type,
+                  parent_location = excluded.parent_location,
+                  latitude = excluded.latitude,
+                  longitude = excluded.longitude,
+                  pexels_query = excluded.pexels_query,
+                  heading = excluded.heading,
+                  short_description = excluded.short_description,
+                  seo_title = excluded.seo_title,
+                  seo_description = excluded.seo_description,
+                  hotel_search_query = excluded.hotel_search_query,
+                  currency = excluded.currency,
+                  timezone = excluded.timezone,
+                  destination_content = excluded.destination_content,
+                  content_status = 'completed',
+                  is_active = excluded.is_active,
+                  updated_at = excluded.updated_at`
+              )
+                .bind(
+                  record.name,
+                  record.slug,
+                  record.country,
+                  record.state_region,
+                  record.location_type,
+                  record.parent_location,
+                  record.latitude,
+                  record.longitude,
+                  record.image_url,
+                  record.pexels_query,
+                  record.heading,
+                  record.short_description,
+                  record.seo_title,
+                  record.seo_description,
+                  record.hotel_search_query,
+                  record.currency,
+                  record.timezone,
+                  record.destination_content,
+                  record.is_active,
+                  now,
+                  now
+                )
+                .run();
+            }
+          }
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: `AI enriched content generated for ${record.name}`,
+              location: record,
+              webSearched: !!webContext,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        } catch (err: any) {
+          return new Response(
+            JSON.stringify({ error: err.message || "Failed to generate AI content for location" }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      }
+
+      // GET: Query & Filter Locations
+      if (request.method === "GET") {
+        if (!locationsDb) {
+          return new Response(
+            JSON.stringify({ success: true, locations: [], metrics: { total: 0, completed: 0, pending: 0, active: 0 } }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        try {
+          const search = url.searchParams.get("search")?.trim();
+          const status = url.searchParams.get("status")?.trim();
+          const country = url.searchParams.get("country")?.trim();
+          const slug = url.searchParams.get("slug")?.trim();
+          const limit = parseInt(url.searchParams.get("limit") || "1000", 10);
+
+          if (slug) {
+            const loc = await locationsDb.prepare(`SELECT * FROM locations WHERE slug = ?`).bind(slug).first();
+            if (!loc) {
+              return new Response(JSON.stringify({ error: "Location not found" }), {
+                status: 404,
+                headers: { "Content-Type": "application/json", ...corsHeaders },
+              });
+            }
+            return new Response(JSON.stringify({ success: true, location: loc }), {
+              status: 200,
+              headers: { "Content-Type": "application/json", ...corsHeaders },
+            });
+          }
+
+          let whereClauses: string[] = [];
+          let params: any[] = [];
+
+          if (search) {
+            whereClauses.push(`(name LIKE ? OR country LIKE ? OR state_region LIKE ? OR heading LIKE ?)`);
+            const s = `%${search}%`;
+            params.push(s, s, s, s);
+          }
+
+          if (status && status !== "all") {
+            whereClauses.push(`content_status = ?`);
+            params.push(status);
+          }
+
+          if (country && country !== "all") {
+            whereClauses.push(`country = ?`);
+            params.push(country);
+          }
+
+          const whereSql = whereClauses.length > 0 ? ` WHERE ${whereClauses.join(" AND ")}` : "";
+          const listSql = `SELECT * FROM locations${whereSql} ORDER BY id ASC LIMIT ?`;
+          params.push(limit);
+
+          const stmt = locationsDb.prepare(listSql);
+          const listRes = await stmt.bind(...params).all();
+          const locations = listRes.results || [];
+
+          // Compute quick metrics
+          const metricsRes = await locationsDb.prepare(
+            `SELECT
+              COUNT(*) as total,
+              SUM(CASE WHEN content_status = 'completed' THEN 1 ELSE 0 END) as completed,
+              SUM(CASE WHEN content_status != 'completed' OR content_status IS NULL THEN 1 ELSE 0 END) as pending,
+              SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active
+            FROM locations`
+          ).first();
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              locations,
+              metrics: {
+                total: metricsRes?.total || locations.length,
+                completed: metricsRes?.completed || 0,
+                pending: metricsRes?.pending || 0,
+                active: metricsRes?.active || 0,
+              },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        } catch (dbErr: any) {
+          return new Response(
+            JSON.stringify({ error: dbErr.message || "Failed to query locations from D1" }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      }
+
+      // POST: Insert Single or Bulk Locations
+      if (request.method === "POST") {
+        if (!locationsDb) {
+          return new Response(
+            JSON.stringify({ error: "Cloudflare D1 Database binding is not configured." }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        try {
+          const body = (await request.json()) as any;
+          const items: any[] = Array.isArray(body) ? body : Array.isArray(body.items) ? body.items : [body];
+          const now = new Date().toISOString();
+
+          let insertedCount = 0;
+          for (const item of items) {
+            if (!item.name || !item.name.trim()) continue;
+
+            const name = item.name.trim();
+            const slug =
+              item.slug ||
+              name
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "-")
+                .replace(/^-|-$/g, "");
+
+            await locationsDb.prepare(
+              `INSERT INTO locations (
+                name, slug, country, state_region, location_type, parent_location, latitude, longitude,
+                image_url, pexels_query, heading, short_description, seo_title, seo_description,
+                hotel_search_query, currency, timezone, destination_content, content_status, is_active, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(slug) DO UPDATE SET
+                name = excluded.name,
+                country = COALESCE(excluded.country, locations.country),
+                state_region = COALESCE(excluded.state_region, locations.state_region),
+                location_type = COALESCE(excluded.location_type, locations.location_type),
+                parent_location = COALESCE(excluded.parent_location, locations.parent_location),
+                latitude = COALESCE(excluded.latitude, locations.latitude),
+                longitude = COALESCE(excluded.longitude, locations.longitude),
+                image_url = COALESCE(excluded.image_url, locations.image_url),
+                pexels_query = COALESCE(excluded.pexels_query, locations.pexels_query),
+                heading = COALESCE(excluded.heading, locations.heading),
+                short_description = COALESCE(excluded.short_description, locations.short_description),
+                seo_title = COALESCE(excluded.seo_title, locations.seo_title),
+                seo_description = COALESCE(excluded.seo_description, locations.seo_description),
+                hotel_search_query = COALESCE(excluded.hotel_search_query, locations.hotel_search_query),
+                currency = COALESCE(excluded.currency, locations.currency),
+                timezone = COALESCE(excluded.timezone, locations.timezone),
+                destination_content = COALESCE(excluded.destination_content, locations.destination_content),
+                content_status = COALESCE(excluded.content_status, locations.content_status),
+                is_active = COALESCE(excluded.is_active, locations.is_active),
+                updated_at = excluded.updated_at`
+            )
+              .bind(
+                name,
+                slug,
+                item.country || "India",
+                item.state_region || null,
+                item.location_type || "city",
+                item.parent_location || null,
+                item.latitude || null,
+                item.longitude || null,
+                item.image_url || null,
+                item.pexels_query || `${name} travel scenery`,
+                item.heading || null,
+                item.short_description || null,
+                item.seo_title || null,
+                item.seo_description || null,
+                item.hotel_search_query || `luxury hotels in ${name}`,
+                item.currency || "INR",
+                item.timezone || "Asia/Kolkata",
+                item.destination_content || null,
+                item.content_status || "pending",
+                item.is_active ?? 1,
+                now,
+                now
+              )
+              .run();
+
+            insertedCount++;
+          }
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: `Successfully saved ${insertedCount} location(s) to D1.`,
+              count: insertedCount,
+            }),
+            { status: 201, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        } catch (err: any) {
+          return new Response(
+            JSON.stringify({ error: err.message || "Failed to save location(s)" }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      }
+
+      // PUT: Update an existing location
+      if (request.method === "PUT") {
+        if (!locationsDb) {
+          return new Response(
+            JSON.stringify({ error: "Cloudflare D1 Database binding is not configured." }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        try {
+          const body = (await request.json()) as any;
+          const { id, slug } = body;
+
+          if (!id && !slug) {
+            return new Response(
+              JSON.stringify({ error: "Location ID or slug is required for update." }),
+              { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+
+          const now = new Date().toISOString();
+
+          await locationsDb.prepare(
+            `UPDATE locations SET
+              name = COALESCE(?, name),
+              slug = COALESCE(?, slug),
+              country = COALESCE(?, country),
+              state_region = COALESCE(?, state_region),
+              location_type = COALESCE(?, location_type),
+              parent_location = COALESCE(?, parent_location),
+              latitude = COALESCE(?, latitude),
+              longitude = COALESCE(?, longitude),
+              image_url = COALESCE(?, image_url),
+              pexels_query = COALESCE(?, pexels_query),
+              heading = COALESCE(?, heading),
+              short_description = COALESCE(?, short_description),
+              seo_title = COALESCE(?, seo_title),
+              seo_description = COALESCE(?, seo_description),
+              hotel_search_query = COALESCE(?, hotel_search_query),
+              currency = COALESCE(?, currency),
+              timezone = COALESCE(?, timezone),
+              destination_content = COALESCE(?, destination_content),
+              content_status = COALESCE(?, content_status),
+              is_active = COALESCE(?, is_active),
+              updated_at = ?
+            WHERE id = ? OR slug = ?`
+          )
+            .bind(
+              body.name || null,
+              body.slug || null,
+              body.country || null,
+              body.state_region || null,
+              body.location_type || null,
+              body.parent_location || null,
+              body.latitude ?? null,
+              body.longitude ?? null,
+              body.image_url || null,
+              body.pexels_query || null,
+              body.heading || null,
+              body.short_description || null,
+              body.seo_title || null,
+              body.seo_description || null,
+              body.hotel_search_query || null,
+              body.currency || null,
+              body.timezone || null,
+              body.destination_content || null,
+              body.content_status || null,
+              body.is_active ?? null,
+              now,
+              id || -1,
+              slug || ""
+            )
+            .run();
+
+          return new Response(
+            JSON.stringify({ success: true, message: "Location updated successfully." }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        } catch (err: any) {
+          return new Response(
+            JSON.stringify({ error: err.message || "Failed to update location" }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+      }
+
+      // DELETE: Delete a location
+      if (request.method === "DELETE") {
+        if (!locationsDb) {
+          return new Response(
+            JSON.stringify({ error: "Cloudflare D1 Database binding is not configured." }),
+            { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        try {
+          const body = (await request.json().catch(() => ({}))) as any;
+          const id = body.id || url.searchParams.get("id");
+
+          if (!id) {
+            return new Response(
+              JSON.stringify({ error: "Location ID is required for deletion." }),
+              { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+            );
+          }
+
+          await locationsDb.prepare(`DELETE FROM locations WHERE id = ?`).bind(id).run();
+
+          return new Response(
+            JSON.stringify({ success: true, message: "Location deleted successfully." }),
+            { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        } catch (err: any) {
+          return new Response(
+            JSON.stringify({ error: err.message || "Failed to delete location" }),
             { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
           );
         }

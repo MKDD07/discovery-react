@@ -40,6 +40,15 @@ import {
   AlertCircle,
   ExternalLink,
   Check,
+  Globe,
+  Search,
+  Filter,
+  Sliders,
+  X,
+  ChevronRight,
+  Info,
+  Navigation,
+  Wand2,
 } from "lucide-react";
 
 interface DashboardPageProps {
@@ -58,9 +67,37 @@ export interface BatchBlogItem {
   errorMsg?: string;
 }
 
+export interface LocationItem {
+  id?: number;
+  name: string;
+  slug: string;
+  country?: string;
+  state_region?: string;
+  location_type?: string;
+  parent_location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  image_url?: string | null;
+  pexels_query?: string | null;
+  heading?: string | null;
+  short_description?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  hotel_search_query?: string | null;
+  currency?: string | null;
+  timezone?: string | null;
+  destination_content?: string | null;
+  content_status?: "pending" | "completed" | string;
+  is_active?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "bookings" | "saved" | "createBlog" | "sqliteConsole" | "settings">("createBlog");
+  const [activeTab, setActiveTab] = useState<
+    "createBlog" | "locations" | "sqliteConsole" | "overview" | "bookings" | "saved" | "settings"
+  >("createBlog");
 
   // Mode: "single" | "batch"
   const [generatorMode, setGeneratorMode] = useState<"single" | "batch">("single");
@@ -90,6 +127,64 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
   const [batchAutoPublish, setBatchAutoPublish] = useState<boolean>(true);
   const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
   const isCancelledRef = useRef<boolean>(false);
+
+  // ── Locations Database State ─────────────────────────────────────────
+  const [locations, setLocations] = useState<LocationItem[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState<boolean>(false);
+  const [locationSearch, setLocationSearch] = useState<string>("");
+  const [locationStatusFilter, setLocationStatusFilter] = useState<string>("all");
+  const [locationCountryFilter, setLocationCountryFilter] = useState<string>("all");
+  const [locationsMetrics, setLocationsMetrics] = useState({
+    total: 0,
+    completed: 0,
+    pending: 0,
+    active: 0,
+  });
+
+  // Single Location AI Generation in Progress ID
+  const [generatingLocationId, setGeneratingLocationId] = useState<number | string | null>(null);
+
+  // Location Modal (Add / Edit / Inspect)
+  const [locationModalOpen, setLocationModalOpen] = useState<boolean>(false);
+  const [locationModalMode, setLocationModalMode] = useState<"add" | "edit" | "bulk">("add");
+  const [currentLocationEdit, setCurrentLocationEdit] = useState<Partial<LocationItem>>({
+    name: "",
+    slug: "",
+    country: "India",
+    state_region: "",
+    location_type: "city",
+    parent_location: "",
+    latitude: null,
+    longitude: null,
+    image_url: "",
+    pexels_query: "",
+    heading: "",
+    short_description: "",
+    seo_title: "",
+    seo_description: "",
+    hotel_search_query: "",
+    currency: "INR",
+    timezone: "Asia/Kolkata",
+    destination_content: "",
+    content_status: "pending",
+    is_active: 1,
+  });
+  const [bulkLocationText, setBulkLocationText] = useState<string>(
+    "Jaipur, India\nGoa, India\nUdaipur, India\nManali, India\nKerala, India\nKashmir, India\nDubai, United Arab Emirates\nMaldives, Maldives\nBali, Indonesia\nParis, France\nSwiss Alps, Switzerland\nTokyo, Japan"
+  );
+  const [savingLocation, setSavingLocation] = useState<boolean>(false);
+
+  // Batch Location AI Fill State
+  const [useWebSearchForLocation, setUseWebSearchForLocation] = useState<boolean>(true);
+  const [batchLocationRunning, setBatchLocationRunning] = useState<boolean>(false);
+  const [batchLocationProgress, setBatchLocationProgress] = useState<{
+    current: number;
+    total: number;
+    currentName: string;
+    status: string;
+  }>({ current: 0, total: 0, currentName: "", status: "idle" });
+  const [locationCooldownSeconds, setLocationCooldownSeconds] = useState<number>(0);
+  const isBatchLocationCancelledRef = useRef<boolean>(false);
 
   // SQLite Console State
   const [sqlQuery, setSqlQuery] = useState<string>(
@@ -470,7 +565,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
 
-      const res = await fetch("/api/blogs", {
+      const { ok, data } = await safeJsonFetch("/api/blogs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -488,8 +583,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
         }),
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
+      if (ok && data.success) {
         setPublishStatus("published");
       } else {
         alert(data.error || "Failed to save blog to D1 database.");
@@ -510,14 +604,13 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
     setSqlMessage(null);
 
     try {
-      const res = await fetch("/api/sqlite-console", {
+      const { ok, data } = await safeJsonFetch("/api/sqlite-console", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: queryToRun }),
       });
 
-      const data = await res.json();
-      if (res.ok && data.success) {
+      if (ok && data.success) {
         if (data.results) {
           setSqlResults(data.results);
           setSqlMessage(`Query returned ${data.count ?? data.results.length} rows.`);
@@ -532,6 +625,525 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
       setSqlError(err.message || "Failed to communicate with SQLite console endpoint.");
     } finally {
       setSqlRunning(false);
+    }
+  };
+
+  // ── Locations Manager Handlers (Direct Cloudflare D1 Engine) ────────
+  const safeJsonFetch = async (url: string, options?: RequestInit) => {
+    try {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = { error: `Server error (${res.status}): ${text.slice(0, 150)}` };
+      }
+      return { ok: res.ok, status: res.status, data };
+    } catch (err: any) {
+      return { ok: false, status: 500, data: { error: err.message || "Network request failed" } };
+    }
+  };
+
+  const executeSqlDirect = async (query: string) => {
+    return await safeJsonFetch("/api/sqlite-console", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+  };
+
+  const fetchLocations = async () => {
+    setLocationsLoading(true);
+    try {
+      let query = "SELECT * FROM locations";
+      const conditions: string[] = [];
+      if (locationSearch.trim()) {
+        const s = locationSearch.trim().replace(/'/g, "''");
+        conditions.push(`(name LIKE '%${s}%' OR country LIKE '%${s}%' OR state_region LIKE '%${s}%' OR heading LIKE '%${s}%')`);
+      }
+      if (locationStatusFilter !== "all") {
+        conditions.push(`content_status = '${locationStatusFilter.replace(/'/g, "''")}'`);
+      }
+      if (locationCountryFilter !== "all") {
+        conditions.push(`country = '${locationCountryFilter.replace(/'/g, "''")}'`);
+      }
+      if (conditions.length > 0) {
+        query += " WHERE " + conditions.join(" AND ");
+      }
+      query += " ORDER BY id ASC LIMIT 500;";
+
+      const { ok, data } = await executeSqlDirect(query);
+      if (ok && Array.isArray(data.results)) {
+        const rows: LocationItem[] = data.results;
+        setLocations(rows);
+        const total = rows.length;
+        const completed = rows.filter((r) => r.content_status === "completed" || !!r.short_description).length;
+        const pending = total - completed;
+        const active = rows.filter((r) => r.is_active === 1 || r.is_active === undefined).length;
+        setLocationsMetrics({ total, completed, pending, active });
+      }
+    } catch (e) {
+      console.warn("Failed to load locations from D1:", e);
+    } finally {
+      setLocationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "locations") {
+      fetchLocations();
+    }
+  }, [activeTab, locationStatusFilter, locationCountryFilter]);
+
+  // Fetch live web search snippets using SerpApi
+  const fetchWebInfo = async (query: string): Promise<string> => {
+    try {
+      const res = await safeJsonFetch(`/api/serp?q=${encodeURIComponent(query)}&engine=google`);
+      if (res.ok && res.data) {
+        const data = res.data;
+        const snippets: string[] = [];
+        if (data.knowledge_graph?.description) snippets.push(`Overview: ${data.knowledge_graph.description}`);
+        if (data.answer_box?.snippet) snippets.push(`Fact: ${data.answer_box.snippet}`);
+        if (Array.isArray(data.organic_results)) {
+          data.organic_results.slice(0, 3).forEach((r: any) => {
+            if (r.snippet) snippets.push(`${r.title || ""}: ${r.snippet}`);
+          });
+        }
+        return snippets.join("\n").slice(0, 2000);
+      }
+    } catch (e) {
+      console.warn("Serp web lookup error:", e);
+    }
+    return "";
+  };
+
+  // Generate location content using Groq / OpenAI LLM
+  const generateLocationContentWithAI = async (locName: string, locCountry?: string, locRegion?: string) => {
+    const key = groqKey.trim() || undefined;
+    if (!key) throw new Error("API Key is missing. Please enter your Groq or OpenAI key in the AI Blog tab.");
+
+    let webSnippets = "";
+    if (useWebSearchForLocation) {
+      webSnippets = await fetchWebInfo(`${locName} ${locCountry || ""} tourism facts coordinates best time attractions`);
+    }
+
+    const isGroq = key.startsWith("gsk_");
+    const endpoint = isGroq
+      ? "https://api.groq.com/openai/v1/chat/completions"
+      : "https://api.openai.com/v1/chat/completions";
+
+    const systemPrompt = `You are an expert global geographer and luxury travel copywriter for Discovery Convoy.
+Return ONLY valid JSON matching this schema:
+{
+  "name": "${locName}",
+  "slug": "${locName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}",
+  "country": "Country Name",
+  "state_region": "State or Region",
+  "location_type": "city",
+  "parent_location": "Country or Region",
+  "latitude": 26.9124,
+  "longitude": 75.7873,
+  "image_url": "",
+  "pexels_query": "3-5 word photo query",
+  "heading": "4 to 6 word catchy headline",
+  "short_description": "2-3 vivid sentences describing what makes this destination iconic.",
+  "seo_title": "SEO Title under 60 chars",
+  "seo_description": "SEO description between 130-155 chars",
+  "hotel_search_query": "luxury hotels in ${locName}",
+  "currency": "INR",
+  "timezone": "Asia/Kolkata",
+  "destination_content": "### Overview & Heritage\\n...\\n### Must-Visit Highlights\\n...",
+  "content_status": "completed",
+  "is_active": 1
+}`;
+
+    const userPrompt = `Destination: "${locName}". Country hint: "${locCountry || "India"}". Region hint: "${locRegion || ""}".
+${webSnippets ? `\nLive Google Search Context:\n${webSnippets}` : ""}
+
+Return valid JSON with accurate coordinates, timezone, currency, rich copy, and SEO meta.`;
+
+    const aiRes = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify(
+        isGroq
+          ? {
+              model: "openai/gpt-oss-120b",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+              ],
+              temperature: 0.7,
+              max_completion_tokens: 2500,
+            }
+          : {
+              model: "gpt-4o",
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.7,
+            }
+      ),
+    });
+
+    if (!aiRes.ok) {
+      const err = await aiRes.text();
+      throw new Error(`AI error (${aiRes.status}): ${err.slice(0, 100)}`);
+    }
+
+    const aiData = await aiRes.json();
+    const contentStr = aiData.choices?.[0]?.message?.content || "";
+    const start = contentStr.indexOf("{");
+    const end = contentStr.lastIndexOf("}");
+    if (start !== -1 && end !== -1) {
+      return JSON.parse(contentStr.slice(start, end + 1));
+    }
+    return JSON.parse(contentStr);
+  };
+
+  // Handle single AI content enrichment for a location
+  const handleGenerateAiLocation = async (loc: LocationItem) => {
+    const locIdKey = loc.id || loc.slug;
+    setGeneratingLocationId(locIdKey);
+
+    try {
+      if (groqKey) {
+        localStorage.setItem("discovery_groq_key", groqKey.trim());
+      }
+
+      const generated = await generateLocationContentWithAI(loc.name, loc.country, loc.state_region);
+      const now = new Date().toISOString();
+
+      const escapeSql = (val: any) => (val === null || val === undefined ? "NULL" : `'${String(val).replace(/'/g, "''")}'`);
+
+      const updateSql = `UPDATE locations SET
+        country = ${escapeSql(generated.country || loc.country)},
+        state_region = ${escapeSql(generated.state_region || loc.state_region)},
+        location_type = ${escapeSql(generated.location_type || loc.location_type || "city")},
+        parent_location = ${escapeSql(generated.parent_location || loc.parent_location)},
+        latitude = ${generated.latitude ?? "NULL"},
+        longitude = ${generated.longitude ?? "NULL"},
+        pexels_query = ${escapeSql(generated.pexels_query || `${loc.name} travel landscape`)},
+        heading = ${escapeSql(generated.heading)},
+        short_description = ${escapeSql(generated.short_description)},
+        seo_title = ${escapeSql(generated.seo_title)},
+        seo_description = ${escapeSql(generated.seo_description)},
+        hotel_search_query = ${escapeSql(generated.hotel_search_query || `luxury hotels in ${loc.name}`)},
+        currency = ${escapeSql(generated.currency || "INR")},
+        timezone = ${escapeSql(generated.timezone || "Asia/Kolkata")},
+        destination_content = ${escapeSql(generated.destination_content)},
+        content_status = 'completed',
+        is_active = 1,
+        updated_at = '${now}'
+      WHERE id = ${loc.id} OR slug = '${loc.slug}';`;
+
+      const sqlRes = await executeSqlDirect(updateSql);
+      if (sqlRes.ok) {
+        setLocations((prev) =>
+          prev.map((item) =>
+            item.id === loc.id || item.slug === loc.slug
+              ? { ...item, ...generated, content_status: "completed" }
+              : item
+          )
+        );
+        setLocationsMetrics((prev) => ({
+          ...prev,
+          completed: prev.completed + (loc.content_status === "completed" ? 0 : 1),
+          pending: Math.max(0, prev.pending - (loc.content_status === "completed" ? 0 : 1)),
+        }));
+      } else {
+        alert(sqlRes.data?.error || "Failed to update location in D1.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to generate AI content.");
+    } finally {
+      setGeneratingLocationId(null);
+    }
+  };
+
+  // Batch AI Location Enrichment Queue
+  const handleStartBatchLocationFill = async () => {
+    const targetLocations = locations.filter(
+      (l) => l.content_status !== "completed" || !l.short_description
+    );
+
+    if (targetLocations.length === 0) {
+      alert("All locations already have completed AI content! To re-generate, click the ✨ AI button on specific rows.");
+      return;
+    }
+
+    if (groqKey) {
+      localStorage.setItem("discovery_groq_key", groqKey.trim());
+    }
+
+    setBatchLocationRunning(true);
+    isBatchLocationCancelledRef.current = false;
+    setBatchLocationProgress({
+      current: 0,
+      total: targetLocations.length,
+      currentName: targetLocations[0].name,
+      status: "running",
+    });
+
+    for (let i = 0; i < targetLocations.length; i++) {
+      if (isBatchLocationCancelledRef.current) break;
+
+      const loc = targetLocations[i];
+      setBatchLocationProgress({
+        current: i + 1,
+        total: targetLocations.length,
+        currentName: loc.name,
+        status: `Enriching ${loc.name} with ${useWebSearchForLocation ? "Google Web search & " : ""}AI...`,
+      });
+
+      setGeneratingLocationId(loc.id || loc.slug);
+
+      let hadError = false;
+      try {
+        const generated = await generateLocationContentWithAI(loc.name, loc.country, loc.state_region);
+        const now = new Date().toISOString();
+        const escapeSql = (val: any) => (val === null || val === undefined ? "NULL" : `'${String(val).replace(/'/g, "''")}'`);
+
+        const updateSql = `UPDATE locations SET
+          country = ${escapeSql(generated.country || loc.country)},
+          state_region = ${escapeSql(generated.state_region || loc.state_region)},
+          location_type = ${escapeSql(generated.location_type || loc.location_type || "city")},
+          parent_location = ${escapeSql(generated.parent_location || loc.parent_location)},
+          latitude = ${generated.latitude ?? "NULL"},
+          longitude = ${generated.longitude ?? "NULL"},
+          pexels_query = ${escapeSql(generated.pexels_query || `${loc.name} travel landscape`)},
+          heading = ${escapeSql(generated.heading)},
+          short_description = ${escapeSql(generated.short_description)},
+          seo_title = ${escapeSql(generated.seo_title)},
+          seo_description = ${escapeSql(generated.seo_description)},
+          hotel_search_query = ${escapeSql(generated.hotel_search_query || `luxury hotels in ${loc.name}`)},
+          currency = ${escapeSql(generated.currency || "INR")},
+          timezone = ${escapeSql(generated.timezone || "Asia/Kolkata")},
+          destination_content = ${escapeSql(generated.destination_content)},
+          content_status = 'completed',
+          is_active = 1,
+          updated_at = '${now}'
+        WHERE id = ${loc.id} OR slug = '${loc.slug}';`;
+
+        await executeSqlDirect(updateSql);
+
+        setLocations((prev) =>
+          prev.map((item) =>
+            item.id === loc.id || item.slug === loc.slug
+              ? { ...item, ...generated, content_status: "completed" }
+              : item
+          )
+        );
+      } catch (err) {
+        hadError = true;
+        console.warn(`Error during batch location fill for ${loc.name}:`, err);
+      } finally {
+        setGeneratingLocationId(null);
+      }
+
+      if (i < targetLocations.length - 1 && !isBatchLocationCancelledRef.current) {
+        const delay = hadError ? 12 : 8;
+        for (let sec = delay; sec > 0; sec--) {
+          if (isBatchLocationCancelledRef.current) break;
+          setLocationCooldownSeconds(sec);
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+        setLocationCooldownSeconds(0);
+      }
+    }
+
+    setLocationCooldownSeconds(0);
+    setBatchLocationRunning(false);
+    setGeneratingLocationId(null);
+    fetchLocations();
+  };
+
+  const handleStopBatchLocationFill = () => {
+    isBatchLocationCancelledRef.current = true;
+    setLocationCooldownSeconds(0);
+    setBatchLocationRunning(false);
+    setGeneratingLocationId(null);
+  };
+
+  // Save / Update Modal Location
+  const handleSaveLocationModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingLocation(true);
+
+    try {
+      const escapeSql = (val: any) => (val === null || val === undefined ? "NULL" : `'${String(val).replace(/'/g, "''")}'`);
+      const now = new Date().toISOString();
+
+      if (locationModalMode === "bulk") {
+        const lines = bulkLocationText
+          .split("\n")
+          .map((l) => l.trim())
+          .filter((l) => l.length > 1);
+
+        for (const line of lines) {
+          const parts = line.split(",").map((p) => p.trim());
+          const name = parts[0];
+          const country = parts[1] || "India";
+          if (name) {
+            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+            const insertSql = `INSERT OR IGNORE INTO locations (name, slug, country, content_status, is_active, created_at, updated_at)
+              VALUES ('${name.replace(/'/g, "''")}', '${slug}', '${country.replace(/'/g, "''")}', 'pending', 1, '${now}', '${now}');`;
+            await executeSqlDirect(insertSql);
+          }
+        }
+        setLocationModalOpen(false);
+        fetchLocations();
+      } else if (locationModalMode === "add") {
+        if (!currentLocationEdit.name?.trim()) {
+          alert("Location name is required.");
+          setSavingLocation(false);
+          return;
+        }
+
+        const name = currentLocationEdit.name.trim();
+        const slug =
+          currentLocationEdit.slug ||
+          name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+        const insertSql = `INSERT INTO locations (
+          name, slug, country, state_region, location_type, parent_location, latitude, longitude,
+          image_url, pexels_query, heading, short_description, seo_title, seo_description,
+          hotel_search_query, currency, timezone, destination_content, content_status, is_active, created_at, updated_at
+        ) VALUES (
+          ${escapeSql(name)}, ${escapeSql(slug)}, ${escapeSql(currentLocationEdit.country || "India")},
+          ${escapeSql(currentLocationEdit.state_region)}, ${escapeSql(currentLocationEdit.location_type || "city")},
+          ${escapeSql(currentLocationEdit.parent_location)}, ${currentLocationEdit.latitude ?? "NULL"}, ${currentLocationEdit.longitude ?? "NULL"},
+          ${escapeSql(currentLocationEdit.image_url)}, ${escapeSql(currentLocationEdit.pexels_query)},
+          ${escapeSql(currentLocationEdit.heading)}, ${escapeSql(currentLocationEdit.short_description)},
+          ${escapeSql(currentLocationEdit.seo_title)}, ${escapeSql(currentLocationEdit.seo_description)},
+          ${escapeSql(currentLocationEdit.hotel_search_query)}, ${escapeSql(currentLocationEdit.currency || "INR")},
+          ${escapeSql(currentLocationEdit.timezone || "Asia/Kolkata")}, ${escapeSql(currentLocationEdit.destination_content)},
+          ${escapeSql(currentLocationEdit.content_status || "pending")}, ${currentLocationEdit.is_active ?? 1},
+          '${now}', '${now}'
+        );`;
+
+        const res = await executeSqlDirect(insertSql);
+        if (res.ok) {
+          setLocationModalOpen(false);
+          fetchLocations();
+        } else {
+          alert(res.data?.error || "Failed to add location.");
+        }
+      } else {
+        // Edit mode
+        const updateSql = `UPDATE locations SET
+          name = ${escapeSql(currentLocationEdit.name)},
+          slug = ${escapeSql(currentLocationEdit.slug)},
+          country = ${escapeSql(currentLocationEdit.country)},
+          state_region = ${escapeSql(currentLocationEdit.state_region)},
+          location_type = ${escapeSql(currentLocationEdit.location_type)},
+          parent_location = ${escapeSql(currentLocationEdit.parent_location)},
+          latitude = ${currentLocationEdit.latitude ?? "NULL"},
+          longitude = ${currentLocationEdit.longitude ?? "NULL"},
+          image_url = ${escapeSql(currentLocationEdit.image_url)},
+          pexels_query = ${escapeSql(currentLocationEdit.pexels_query)},
+          heading = ${escapeSql(currentLocationEdit.heading)},
+          short_description = ${escapeSql(currentLocationEdit.short_description)},
+          seo_title = ${escapeSql(currentLocationEdit.seo_title)},
+          seo_description = ${escapeSql(currentLocationEdit.seo_description)},
+          hotel_search_query = ${escapeSql(currentLocationEdit.hotel_search_query)},
+          currency = ${escapeSql(currentLocationEdit.currency)},
+          timezone = ${escapeSql(currentLocationEdit.timezone)},
+          destination_content = ${escapeSql(currentLocationEdit.destination_content)},
+          content_status = ${escapeSql(currentLocationEdit.content_status)},
+          is_active = ${currentLocationEdit.is_active ?? 1},
+          updated_at = '${now}'
+        WHERE id = ${currentLocationEdit.id};`;
+
+        const res = await executeSqlDirect(updateSql);
+        if (res.ok) {
+          setLocationModalOpen(false);
+          fetchLocations();
+        } else {
+          alert(res.data?.error || "Failed to update location.");
+        }
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to save location.");
+    } finally {
+      setSavingLocation(false);
+    }
+  };
+
+  // Delete Location
+  const handleDeleteLocation = async (id?: number, name?: string) => {
+    if (!id) return;
+    if (!confirm(`Are you sure you want to delete "${name || "this location"}" from the D1 database?`)) {
+      return;
+    }
+
+    try {
+      const res = await executeSqlDirect(`DELETE FROM locations WHERE id = ${id};`);
+      if (res.ok) {
+        setLocations((prev) => prev.filter((l) => l.id !== id));
+        setLocationsMetrics((prev) => ({
+          ...prev,
+          total: Math.max(0, prev.total - 1),
+        }));
+      } else {
+        alert(res.data?.error || "Failed to delete location.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to delete location.");
+    }
+  };
+
+  // Seed popular 27 project destinations directly into D1
+  const handleSeedDefaultLocations = async (silent = false) => {
+    const popularDestinations = [
+      { name: "Taj Mahal", slug: "taj-mahal", country: "India", state_region: "Uttar Pradesh", location_type: "city", pexels_query: "taj mahal agra architecture landscape scenery" },
+      { name: "Jaipur", slug: "jaipur", country: "India", state_region: "Rajasthan", location_type: "city", pexels_query: "jaipur palace rajasthan architecture landscape" },
+      { name: "Goa", slug: "goa", country: "India", state_region: "Goa", location_type: "state", pexels_query: "goa beach sea landscape nature" },
+      { name: "Kerala", slug: "kerala", country: "India", state_region: "Kerala", location_type: "state", pexels_query: "kerala backwaters nature landscape lake" },
+      { name: "Varanasi", slug: "varanasi", country: "India", state_region: "Uttar Pradesh", location_type: "city", pexels_query: "varanasi ganges river ghat landscape" },
+      { name: "Ladakh", slug: "ladakh", country: "India", state_region: "Ladakh", location_type: "region", pexels_query: "ladakh pangong lake mountains landscape" },
+      { name: "Mumbai", slug: "mumbai", country: "India", state_region: "Maharashtra", location_type: "city", pexels_query: "mumbai gateway of india skyline architecture" },
+      { name: "Udaipur", slug: "udaipur", country: "India", state_region: "Rajasthan", location_type: "city", pexels_query: "udaipur lake palace architecture landscape" },
+      { name: "Manali", slug: "manali", country: "India", state_region: "Himachal Pradesh", location_type: "city", pexels_query: "manali snow mountains landscape nature" },
+      { name: "Rishikesh", slug: "rishikesh", country: "India", state_region: "Uttarakhand", location_type: "city", pexels_query: "rishikesh ganges river mountains landscape" },
+      { name: "Darjeeling", slug: "darjeeling", country: "India", state_region: "West Bengal", location_type: "city", pexels_query: "darjeeling tea gardens mountains landscape" },
+      { name: "Ooty", slug: "ooty", country: "India", state_region: "Tamil Nadu", location_type: "city", pexels_query: "ooty tea gardens mountains landscape nature" },
+      { name: "Amritsar", slug: "amritsar", country: "India", state_region: "Punjab", location_type: "city", pexels_query: "golden temple amritsar architecture landscape" },
+      { name: "Hampi", slug: "hampi", country: "India", state_region: "Karnataka", location_type: "city", pexels_query: "hampi ruins architecture landscape heritage" },
+      { name: "Kashmir", slug: "kashmir", country: "India", state_region: "Jammu & Kashmir", location_type: "region", pexels_query: "dal lake srinagar kashmir mountains landscape" },
+      { name: "Munnar", slug: "munnar", country: "India", state_region: "Kerala", location_type: "city", pexels_query: "munnar tea estate green hills landscape" },
+      { name: "Shimla", slug: "shimla", country: "India", state_region: "Himachal Pradesh", location_type: "city", pexels_query: "shimla hill station mountains landscape" },
+      { name: "Coorg", slug: "coorg", country: "India", state_region: "Karnataka", location_type: "city", pexels_query: "coorg green hills nature landscape" },
+      { name: "Andaman", slug: "andaman", country: "India", state_region: "Andaman & Nicobar", location_type: "island", pexels_query: "andaman radhanagar beach turquoise sea landscape" },
+      { name: "Meghalaya", slug: "meghalaya", country: "India", state_region: "Meghalaya", location_type: "state", pexels_query: "meghalaya waterfall nature forest landscape" },
+      { name: "Dubai", slug: "dubai", country: "United Arab Emirates", state_region: "Dubai", location_type: "city", pexels_query: "dubai skyline burj khalifa luxury" },
+      { name: "Maldives", slug: "maldives", country: "Maldives", state_region: "Male Atoll", location_type: "country", pexels_query: "maldives overwater bungalow crystal sea" },
+      { name: "Bali", slug: "bali", country: "Indonesia", state_region: "Bali", location_type: "island", pexels_query: "bali rice terrace temple nature" },
+      { name: "Paris", slug: "paris", country: "France", state_region: "Île-de-France", location_type: "city", pexels_query: "paris eiffel tower architecture landscape" },
+      { name: "Swiss Alps", slug: "swiss-alps", country: "Switzerland", state_region: "Alps", location_type: "region", pexels_query: "swiss alps mountain snow chalets" },
+      { name: "Tokyo", slug: "tokyo", country: "Japan", state_region: "Kantō", location_type: "city", pexels_query: "tokyo shinjuku skyline neon architecture" },
+      { name: "London", slug: "london", country: "United Kingdom", state_region: "England", location_type: "city", pexels_query: "london big ben thames river architecture" },
+    ];
+
+    setSavingLocation(true);
+    try {
+      const now = new Date().toISOString();
+      for (const loc of popularDestinations) {
+        const sql = `INSERT OR IGNORE INTO locations (name, slug, country, state_region, location_type, pexels_query, hotel_search_query, currency, timezone, content_status, is_active, created_at, updated_at)
+          VALUES ('${loc.name.replace(/'/g, "''")}', '${loc.slug}', '${loc.country.replace(/'/g, "''")}', '${(loc.state_region || "").replace(/'/g, "''")}', '${loc.location_type}', '${loc.pexels_query}', 'luxury hotels in ${loc.name.replace(/'/g, "''")}', 'INR', 'Asia/Kolkata', 'pending', 1, '${now}', '${now}');`;
+        await executeSqlDirect(sql);
+      }
+      fetchLocations();
+    } catch (e: any) {
+      if (!silent) alert(e.message || "Failed to seed locations.");
+    } finally {
+      setSavingLocation(false);
     }
   };
 
@@ -617,6 +1229,30 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                     onClick={() => setActiveTab("createBlog")}
                   >
                     <Sparkles size={16} /> AI Blog Creator &amp; Editor
+                  </button>
+                  <button
+                    className={`btn text-start d-flex align-items-center justify-content-between px-3 py-2 rounded-3 border-0 ${
+                      activeTab === "locations" ? "bg-primary text-white fw-600" : "text-dark bg-transparent"
+                    }`}
+                    style={{ fontSize: "14px" }}
+                    onClick={() => {
+                      setActiveTab("locations");
+                      fetchLocations();
+                    }}
+                  >
+                    <span className="d-flex align-items-center gap-2">
+                      <MapPin size={16} /> Locations DB &amp; AI
+                    </span>
+                    {locations.length > 0 && (
+                      <span
+                        className={`badge rounded-pill ${
+                          activeTab === "locations" ? "bg-white text-primary" : "bg-primary bg-opacity-10 text-primary"
+                        }`}
+                        style={{ fontSize: "11px" }}
+                      >
+                        {locations.length}
+                      </span>
+                    )}
                   </button>
                   <button
                     className={`btn text-start d-flex align-items-center gap-2 px-3 py-2 rounded-3 border-0 ${
@@ -1501,6 +2137,866 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                 </div>
               )}
 
+              {/* ── Locations Database & AI Content Tab ──────────────── */}
+              {activeTab === "locations" && (
+                <div className="bg-white rounded-4 border p-4 shadow-sm mb-4">
+                  {/* Header */}
+                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div>
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <span className="badge bg-primary bg-opacity-10 text-primary font-monospace small">
+                          Cloudflare D1 Database
+                        </span>
+                        <span className="badge bg-light text-muted font-monospace small border">
+                          DB ID: b15e9273-0279-42e7-b909-5cee71b871c0
+                        </span>
+                      </div>
+                      <h4 className="fw-700 text-dark mb-0 d-flex align-items-center gap-2">
+                        <MapPin size={22} className="text-primary" /> Locations &amp; Destinations Database
+                      </h4>
+                    </div>
+
+                    {/* Action buttons on top */}
+                    <div className="d-flex align-items-center flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 py-1 px-3 rounded-pill"
+                        style={{ fontSize: "12.5px" }}
+                        onClick={fetchLocations}
+                        disabled={locationsLoading}
+                      >
+                        <RefreshCw size={13} className={locationsLoading ? "animate-spin" : ""} /> Refresh
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 py-1 px-3 rounded-pill"
+                        style={{ fontSize: "12.5px" }}
+                        onClick={() => handleSeedDefaultLocations(false)}
+                        disabled={savingLocation}
+                        title="Load all existing project destinations (India & Global hubs)"
+                      >
+                        <Sparkles size={13} /> 📥 Load All 27 Project Destinations
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1 py-1 px-3 rounded-pill"
+                        style={{ fontSize: "12.5px" }}
+                        onClick={() => {
+                          setLocationModalMode("bulk");
+                          setLocationModalOpen(true);
+                        }}
+                      >
+                        <ListPlus size={13} /> Bulk Add
+                      </button>
+
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary text-white d-inline-flex align-items-center gap-1 py-1 px-3 rounded-pill fw-semibold shadow-sm"
+                        style={{ fontSize: "12.5px" }}
+                        onClick={() => {
+                          setCurrentLocationEdit({
+                            name: "",
+                            slug: "",
+                            country: "India",
+                            state_region: "",
+                            location_type: "city",
+                            parent_location: "",
+                            latitude: null,
+                            longitude: null,
+                            image_url: "",
+                            pexels_query: "",
+                            heading: "",
+                            short_description: "",
+                            seo_title: "",
+                            seo_description: "",
+                            hotel_search_query: "",
+                            currency: "INR",
+                            timezone: "Asia/Kolkata",
+                            destination_content: "",
+                            content_status: "pending",
+                            is_active: 1,
+                          });
+                          setLocationModalMode("add");
+                          setLocationModalOpen(true);
+                        }}
+                      >
+                        <PlusCircle size={13} /> + Add Location
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-muted small mb-4">
+                    Manage all destinations stored in your Cloudflare D1 database. Use Google Web-Search-assisted AI to generate and enrich real geographic coordinates, Pexels visual queries, SEO meta descriptions, and rich travel copy for single destinations or in batch.
+                  </p>
+
+                  {/* ── Key Metrics Cards ─────────────────────────────── */}
+                  <div className="row g-3 mb-4">
+                    <div className="col-lg-3 col-sm-6">
+                      <div className="p-3 bg-light rounded-4 border d-flex align-items-center justify-content-between">
+                        <div>
+                          <div className="text-muted small fw-semibold text-uppercase" style={{ fontSize: "11px" }}>
+                            Total Destinations
+                          </div>
+                          <div className="fs-4 fw-bold text-dark">{locationsMetrics.total || locations.length}</div>
+                        </div>
+                        <div className="p-2 rounded-circle bg-primary bg-opacity-10 text-primary">
+                          <MapPin size={20} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="col-lg-3 col-sm-6">
+                      <div className="p-3 bg-light rounded-4 border d-flex align-items-center justify-content-between">
+                        <div>
+                          <div className="text-muted small fw-semibold text-uppercase" style={{ fontSize: "11px" }}>
+                            AI Content Ready
+                          </div>
+                          <div className="fs-4 fw-bold text-success">{locationsMetrics.completed}</div>
+                        </div>
+                        <div className="p-2 rounded-circle bg-success bg-opacity-10 text-success">
+                          <CheckCircle2 size={20} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="col-lg-3 col-sm-6">
+                      <div className="p-3 bg-light rounded-4 border d-flex align-items-center justify-content-between">
+                        <div>
+                          <div className="text-muted small fw-semibold text-uppercase" style={{ fontSize: "11px" }}>
+                            Pending / Missing
+                          </div>
+                          <div className="fs-4 fw-bold text-warning">{locationsMetrics.pending}</div>
+                        </div>
+                        <div className="p-2 rounded-circle bg-warning bg-opacity-10 text-warning">
+                          <AlertCircle size={20} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="col-lg-3 col-sm-6">
+                      <div className="p-3 bg-light rounded-4 border d-flex align-items-center justify-content-between">
+                        <div>
+                          <div className="text-muted small fw-semibold text-uppercase" style={{ fontSize: "11px" }}>
+                            Active Online
+                          </div>
+                          <div className="fs-4 fw-bold text-info">{locationsMetrics.active}</div>
+                        </div>
+                        <div className="p-2 rounded-circle bg-info bg-opacity-10 text-info">
+                          <Globe size={20} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ── Batch Generation Progress Banner ──────────────── */}
+                  {batchLocationRunning && (
+                    <div className="p-3 mb-4 rounded-4 border border-primary bg-primary bg-opacity-10 shadow-sm">
+                      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <Loader2 size={16} className="text-primary animate-spin" />
+                          <strong className="text-dark small">
+                            AI Batch Enriching: ({batchLocationProgress.current} / {batchLocationProgress.total})
+                          </strong>
+                          <span className="badge bg-primary text-white font-monospace small">
+                            {batchLocationProgress.currentName}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-danger py-1 px-3 rounded-pill d-inline-flex align-items-center gap-1"
+                          style={{ fontSize: "12px" }}
+                          onClick={handleStopBatchLocationFill}
+                        >
+                          <Pause size={12} /> Stop Batch
+                        </button>
+                      </div>
+
+                      <div className="progress rounded-pill mb-2" style={{ height: "7px" }}>
+                        <div
+                          className="progress-bar bg-primary progress-bar-striped progress-bar-animated"
+                          style={{
+                            width: `${Math.round(
+                              (batchLocationProgress.current / Math.max(1, batchLocationProgress.total)) * 100
+                            )}%`,
+                          }}
+                        ></div>
+                      </div>
+
+                      <div className="d-flex align-items-center justify-content-between text-muted small" style={{ fontSize: "11.5px" }}>
+                        <span>{batchLocationProgress.status}</span>
+                        {locationCooldownSeconds > 0 && (
+                          <span className="text-warning fw-bold">
+                            Rate limit safety cooldown: {locationCooldownSeconds}s...
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Toolbar: Search, Filters & AI Batch Button ───── */}
+                  <div className="p-3 bg-light rounded-4 border mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div className="d-flex align-items-center flex-wrap gap-2 flex-grow-1">
+                      {/* Search */}
+                      <div className="input-group input-group-sm" style={{ maxWidth: "260px" }}>
+                        <span className="input-group-text bg-white border-end-0">
+                          <Search size={14} className="text-muted" />
+                        </span>
+                        <input
+                          type="text"
+                          className="form-control border-start-0"
+                          placeholder="Search destination..."
+                          value={locationSearch}
+                          onChange={(e) => setLocationSearch(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") fetchLocations();
+                          }}
+                        />
+                        {locationSearch && (
+                          <button
+                            className="btn btn-outline-secondary bg-white"
+                            type="button"
+                            onClick={() => {
+                              setLocationSearch("");
+                              fetchLocations();
+                            }}
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Status Filter */}
+                      <select
+                        className="form-select form-select-sm"
+                        style={{ maxWidth: "160px" }}
+                        value={locationStatusFilter}
+                        onChange={(e) => setLocationStatusFilter(e.target.value)}
+                      >
+                        <option value="all">Status: All</option>
+                        <option value="pending">Pending AI</option>
+                        <option value="completed">Completed</option>
+                      </select>
+
+                      {/* Country Filter */}
+                      <select
+                        className="form-select form-select-sm"
+                        style={{ maxWidth: "160px" }}
+                        value={locationCountryFilter}
+                        onChange={(e) => setLocationCountryFilter(e.target.value)}
+                      >
+                        <option value="all">Country: All</option>
+                        <option value="India">India</option>
+                        <option value="United Arab Emirates">United Arab Emirates</option>
+                        <option value="Indonesia">Indonesia</option>
+                        <option value="Maldives">Maldives</option>
+                        <option value="France">France</option>
+                        <option value="Switzerland">Switzerland</option>
+                        <option value="Japan">Japan</option>
+                      </select>
+
+                      {/* Web Search Toggle */}
+                      <div className="form-check form-switch ms-2 d-flex align-items-center gap-1 mb-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          role="switch"
+                          id="webSearchToggle"
+                          checked={useWebSearchForLocation}
+                          onChange={(e) => setUseWebSearchForLocation(e.target.checked)}
+                        />
+                        <label className="form-check-label small fw-semibold text-dark cursor-pointer" htmlFor="webSearchToggle">
+                          <Globe size={13} className="text-primary me-1" />
+                          Web Search Facts
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Top Batch AI Button */}
+                    <div>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-dark text-white rounded-pill px-3 py-1.5 d-inline-flex align-items-center gap-2 fw-semibold shadow-sm"
+                        onClick={handleStartBatchLocationFill}
+                        disabled={batchLocationRunning || locations.length === 0}
+                      >
+                        {batchLocationRunning ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" /> Batch Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={14} className="text-warning" /> AI Batch Fill Missing (Web Assisted)
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ── Locations Table ───────────────────────────────── */}
+                  {locationsLoading && locations.length === 0 ? (
+                    <div className="text-center py-5">
+                      <Loader2 size={32} className="text-primary animate-spin mb-2" />
+                      <p className="text-muted small">Loading locations from Cloudflare D1...</p>
+                    </div>
+                  ) : locations.length === 0 ? (
+                    <div className="text-center py-5 border rounded-4 bg-light">
+                      <MapPin size={40} className="text-muted mb-2 opacity-50" />
+                      <h6 className="fw-700 text-dark mb-1">No Locations Found in Database</h6>
+                      <p className="text-muted small mb-3">
+                        Get started by adding your first location or seeding popular preset destinations.
+                      </p>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-primary rounded-pill px-4"
+                        onClick={() => handleSeedDefaultLocations(false)}
+                        disabled={savingLocation}
+                      >
+                        <Sparkles size={14} className="me-1" /> 📥 Load All 27 Project Destinations
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="table-responsive border rounded-4 shadow-sm overflow-hidden">
+                      <table className="table table-hover align-middle mb-0 small">
+                        <thead className="table-light">
+                          <tr>
+                            <th className="fw-semibold text-muted text-uppercase" style={{ fontSize: "11px" }}>
+                              Status
+                            </th>
+                            <th className="fw-semibold text-muted text-uppercase" style={{ fontSize: "11px" }}>
+                              Destination &amp; Slug
+                            </th>
+                            <th className="fw-semibold text-muted text-uppercase" style={{ fontSize: "11px" }}>
+                              Country / Region
+                            </th>
+                            <th className="fw-semibold text-muted text-uppercase" style={{ fontSize: "11px" }}>
+                              Coordinates
+                            </th>
+                            <th className="fw-semibold text-muted text-uppercase" style={{ fontSize: "11px" }}>
+                              Heading &amp; Description
+                            </th>
+                            <th className="fw-semibold text-muted text-uppercase" style={{ fontSize: "11px" }}>
+                              Visual / Pexels
+                            </th>
+                            <th className="fw-semibold text-muted text-uppercase text-end" style={{ fontSize: "11px" }}>
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {locations.map((loc) => {
+                            const isGenerating = generatingLocationId === (loc.id || loc.slug);
+                            const hasContent = loc.content_status === "completed" || !!loc.short_description;
+
+                            return (
+                              <tr key={loc.id || loc.slug}>
+                                {/* Status */}
+                                <td>
+                                  {isGenerating ? (
+                                    <span className="badge bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center gap-1">
+                                      <Loader2 size={11} className="animate-spin" /> AI Generating
+                                    </span>
+                                  ) : hasContent ? (
+                                    <span className="badge bg-success bg-opacity-10 text-success d-inline-flex align-items-center gap-1">
+                                      <CheckCircle2 size={11} /> Complete
+                                    </span>
+                                  ) : (
+                                    <span className="badge bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center gap-1">
+                                      <AlertCircle size={11} /> Pending AI
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Name & Slug */}
+                                <td>
+                                  <div className="fw-bold text-dark">{loc.name}</div>
+                                  <div className="text-muted font-monospace" style={{ fontSize: "11px" }}>
+                                    /{loc.slug}
+                                  </div>
+                                </td>
+
+                                {/* Country & Region */}
+                                <td>
+                                  <div className="text-dark fw-500">{loc.country || "—"}</div>
+                                  <div className="text-muted" style={{ fontSize: "11.5px" }}>
+                                    {loc.state_region || loc.location_type || "city"}
+                                  </div>
+                                </td>
+
+                                {/* Lat / Lng */}
+                                <td>
+                                  {loc.latitude && loc.longitude ? (
+                                    <span className="font-monospace text-dark d-inline-flex align-items-center gap-1" style={{ fontSize: "11px" }}>
+                                      <Navigation size={11} className="text-primary" />
+                                      {loc.latitude.toFixed(2)}°, {loc.longitude.toFixed(2)}°
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted small">Not set</span>
+                                  )}
+                                </td>
+
+                                {/* Heading & Short Description */}
+                                <td style={{ maxWidth: "260px" }}>
+                                  {loc.heading ? (
+                                    <div>
+                                      <div className="fw-semibold text-dark text-truncate" title={loc.heading}>
+                                        {loc.heading}
+                                      </div>
+                                      <div className="text-muted text-truncate small" title={loc.short_description || ""}>
+                                        {loc.short_description || "No description yet"}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-muted fst-italic">Missing AI travel copy</span>
+                                  )}
+                                </td>
+
+                                {/* Pexels Query */}
+                                <td>
+                                  {loc.pexels_query ? (
+                                    <span className="badge bg-light text-muted border font-monospace text-truncate d-inline-block" style={{ maxWidth: "130px" }}>
+                                      {loc.pexels_query}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted small">—</span>
+                                  )}
+                                </td>
+
+                                {/* Actions */}
+                                <td className="text-end">
+                                  <div className="d-inline-flex align-items-center gap-1">
+                                    {/* Single AI Enrich Button */}
+                                    <button
+                                      type="button"
+                                      className={`btn btn-sm ${
+                                        hasContent ? "btn-outline-primary" : "btn-warning text-dark"
+                                      } py-1 px-2 d-inline-flex align-items-center gap-1 rounded-3`}
+                                      style={{ fontSize: "12px" }}
+                                      title="Enrich with AI + Web search"
+                                      onClick={() => handleGenerateAiLocation(loc)}
+                                      disabled={isGenerating || batchLocationRunning}
+                                    >
+                                      {isGenerating ? (
+                                        <>
+                                          <Loader2 size={12} className="animate-spin" /> AI...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Sparkles size={12} /> AI Fill
+                                        </>
+                                      )}
+                                    </button>
+
+                                    {/* Edit / Inspect */}
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-light border text-dark py-1 px-2 rounded-3"
+                                      title="Inspect & Edit all fields"
+                                      onClick={() => {
+                                        setCurrentLocationEdit({ ...loc });
+                                        setLocationModalMode("edit");
+                                        setLocationModalOpen(true);
+                                      }}
+                                    >
+                                      <Edit3 size={13} />
+                                    </button>
+
+                                    {/* Delete */}
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-light border text-danger py-1 px-2 rounded-3"
+                                      title="Delete location from D1"
+                                      onClick={() => handleDeleteLocation(loc.id, loc.name)}
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* ── Location Modal (Add / Edit / Bulk) ─────────────── */}
+                  {locationModalOpen && (
+                    <div
+                      className="modal d-block"
+                      style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1050 }}
+                      tabIndex={-1}
+                    >
+                      <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                        <div className="modal-content rounded-4 border-0 shadow-lg">
+                          <div className="modal-header bg-light border-bottom py-3 px-4">
+                            <div>
+                              <h5 className="modal-title fw-700 text-dark mb-0 d-flex align-items-center gap-2">
+                                <MapPin size={18} className="text-primary" />
+                                {locationModalMode === "bulk"
+                                  ? "Bulk Add Destinations to D1"
+                                  : locationModalMode === "edit"
+                                  ? `Edit Location: ${currentLocationEdit.name}`
+                                  : "Add New Destination"}
+                              </h5>
+                              <span className="text-muted small">
+                                {locationModalMode === "bulk"
+                                  ? "Paste one location per line in 'City, Country' format"
+                                  : "Configure complete geographic, SEO, and AI travel metadata"}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn-close"
+                              onClick={() => setLocationModalOpen(false)}
+                            ></button>
+                          </div>
+
+                          <div className="modal-body p-4">
+                            {locationModalMode === "bulk" ? (
+                              <div>
+                                <label className="form-label small fw-semibold text-dark">
+                                  Destinations List (One per line: "City, Country")
+                                </label>
+                                <textarea
+                                  className="form-control font-monospace p-3 mb-2"
+                                  rows={8}
+                                  value={bulkLocationText}
+                                  onChange={(e) => setBulkLocationText(e.target.value)}
+                                  placeholder="Jaipur, India&#10;Goa, India&#10;Paris, France"
+                                />
+                                <div className="text-muted small">
+                                  Slugs will automatically be derived from destination names. You can run <strong>AI Batch Fill</strong> after importing to populate all rich metadata and coordinates!
+                                </div>
+                              </div>
+                            ) : (
+                              <form id="locationForm" onSubmit={handleSaveLocationModal}>
+                                {/* Top quick action to generate fields with AI */}
+                                <div className="p-3 bg-light rounded-3 border mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                  <div>
+                                    <strong className="text-dark small d-block">
+                                      <Sparkles size={14} className="text-primary me-1" />
+                                      Auto-fill this form using AI
+                                    </strong>
+                                    <span className="text-muted small">
+                                      Enter the Name and Country below, then click to research and populate all coordinates, copy, and SEO tags.
+                                    </span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-primary rounded-pill px-3 d-inline-flex align-items-center gap-1"
+                                    onClick={async () => {
+                                      if (!currentLocationEdit.name?.trim()) {
+                                        alert("Please enter a Location Name first.");
+                                        return;
+                                      }
+                                      setSavingLocation(true);
+                                      try {
+                                        const res = await fetch("/api/locations/generate-ai", {
+                                          method: "POST",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({
+                                            name: currentLocationEdit.name,
+                                            country: currentLocationEdit.country,
+                                            state_region: currentLocationEdit.state_region,
+                                            useWebSearch: useWebSearchForLocation,
+                                            apiKey: groqKey.trim() || undefined,
+                                          }),
+                                        });
+                                        const data = await res.json();
+                                        if (res.ok && data.success && data.location) {
+                                          setCurrentLocationEdit((prev) => ({
+                                            ...prev,
+                                            ...data.location,
+                                          }));
+                                        } else {
+                                          alert(data.error || "Failed to generate AI content.");
+                                        }
+                                      } catch (err: any) {
+                                        alert(err.message || "Failed to contact AI endpoint.");
+                                      } finally {
+                                        setSavingLocation(false);
+                                      }
+                                    }}
+                                    disabled={savingLocation}
+                                  >
+                                    {savingLocation ? (
+                                      <>
+                                        <Loader2 size={13} className="animate-spin" /> Generating...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Wand2 size={13} /> AI Fill Form
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+
+                                <div className="row g-3">
+                                  {/* Name */}
+                                  <div className="col-md-6">
+                                    <label className="form-label small fw-semibold text-dark">
+                                      Destination Name <span className="text-danger">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      required
+                                      value={currentLocationEdit.name || ""}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCurrentLocationEdit((prev) => ({
+                                          ...prev,
+                                          name: val,
+                                          slug:
+                                            prev.slug && prev.slug !== prev.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-")
+                                              ? prev.slug
+                                              : val.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+                                        }));
+                                      }}
+                                    />
+                                  </div>
+
+                                  {/* Slug */}
+                                  <div className="col-md-6">
+                                    <label className="form-label small fw-semibold text-dark">
+                                      Slug (URL identifier) <span className="text-danger">*</span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm font-monospace"
+                                      required
+                                      value={currentLocationEdit.slug || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, slug: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* Country */}
+                                  <div className="col-md-4">
+                                    <label className="form-label small fw-semibold text-dark">Country</label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={currentLocationEdit.country || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, country: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* State / Region */}
+                                  <div className="col-md-4">
+                                    <label className="form-label small fw-semibold text-dark">State / Region</label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={currentLocationEdit.state_region || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, state_region: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* Location Type */}
+                                  <div className="col-md-4">
+                                    <label className="form-label small fw-semibold text-dark">Location Type</label>
+                                    <select
+                                      className="form-select form-select-sm"
+                                      value={currentLocationEdit.location_type || "city"}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, location_type: e.target.value }))
+                                      }
+                                    >
+                                      <option value="city">City</option>
+                                      <option value="state">State</option>
+                                      <option value="region">Region</option>
+                                      <option value="island">Island</option>
+                                      <option value="country">Country</option>
+                                    </select>
+                                  </div>
+
+                                  {/* Latitude & Longitude */}
+                                  <div className="col-md-3">
+                                    <label className="form-label small fw-semibold text-dark">Latitude</label>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      className="form-control form-control-sm font-monospace"
+                                      value={currentLocationEdit.latitude ?? ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({
+                                          ...prev,
+                                          latitude: e.target.value === "" ? null : parseFloat(e.target.value),
+                                        }))
+                                      }
+                                    />
+                                  </div>
+
+                                  <div className="col-md-3">
+                                    <label className="form-label small fw-semibold text-dark">Longitude</label>
+                                    <input
+                                      type="number"
+                                      step="any"
+                                      className="form-control form-control-sm font-monospace"
+                                      value={currentLocationEdit.longitude ?? ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({
+                                          ...prev,
+                                          longitude: e.target.value === "" ? null : parseFloat(e.target.value),
+                                        }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* Currency */}
+                                  <div className="col-md-3">
+                                    <label className="form-label small fw-semibold text-dark">Currency</label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={currentLocationEdit.currency || "INR"}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, currency: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* Timezone */}
+                                  <div className="col-md-3">
+                                    <label className="form-label small fw-semibold text-dark">Timezone</label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={currentLocationEdit.timezone || "Asia/Kolkata"}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, timezone: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* Heading */}
+                                  <div className="col-md-6">
+                                    <label className="form-label small fw-semibold text-dark">
+                                      Catchy Headline (4–6 words)
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={currentLocationEdit.heading || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, heading: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* Pexels Query */}
+                                  <div className="col-md-6">
+                                    <label className="form-label small fw-semibold text-dark">
+                                      Pexels Photo Query (3–5 keywords)
+                                    </label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={currentLocationEdit.pexels_query || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, pexels_query: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* Short Description */}
+                                  <div className="col-12">
+                                    <label className="form-label small fw-semibold text-dark">Short Description</label>
+                                    <textarea
+                                      className="form-control form-control-sm"
+                                      rows={2}
+                                      value={currentLocationEdit.short_description || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, short_description: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* SEO Title */}
+                                  <div className="col-md-6">
+                                    <label className="form-label small fw-semibold text-dark">SEO Meta Title</label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={currentLocationEdit.seo_title || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, seo_title: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* SEO Description */}
+                                  <div className="col-md-6">
+                                    <label className="form-label small fw-semibold text-dark">SEO Meta Description</label>
+                                    <input
+                                      type="text"
+                                      className="form-control form-control-sm"
+                                      value={currentLocationEdit.seo_description || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, seo_description: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+
+                                  {/* Destination Rich Content */}
+                                  <div className="col-12">
+                                    <label className="form-label small fw-semibold text-dark">
+                                      Destination Guide Content (Markdown format)
+                                    </label>
+                                    <textarea
+                                      className="form-control form-control-sm font-monospace"
+                                      rows={6}
+                                      value={currentLocationEdit.destination_content || ""}
+                                      onChange={(e) =>
+                                        setCurrentLocationEdit((prev) => ({ ...prev, destination_content: e.target.value }))
+                                      }
+                                      placeholder="### Overview & Heritage&#10;...&#10;### Must-Visit Highlights&#10;..."
+                                    />
+                                  </div>
+                                </div>
+                              </form>
+                            )}
+                          </div>
+
+                          <div className="modal-footer bg-light border-top py-2 px-4 d-flex justify-content-between">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                              onClick={() => setLocationModalOpen(false)}
+                            >
+                              Cancel
+                            </button>
+
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-primary rounded-pill px-4 fw-semibold"
+                              onClick={handleSaveLocationModal}
+                              disabled={savingLocation}
+                            >
+                              {savingLocation ? (
+                                <>
+                                  <Loader2 size={13} className="animate-spin me-1" /> Saving...
+                                </>
+                              ) : (
+                                "Save to Cloudflare D1"
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* D1 SQLite Console Tab */}
               {activeTab === "sqliteConsole" && (
                 <div className="bg-white rounded-4 border p-4 shadow-sm mb-4">
@@ -1530,6 +3026,42 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                       className="btn btn-sm btn-light border small font-monospace py-1 px-2"
                       style={{ fontSize: "11.5px" }}
                       onClick={() => {
+                        const q = "SELECT id, name, slug, country, state_region, latitude, longitude, content_status FROM locations ORDER BY id ASC LIMIT 10;";
+                        setSqlQuery(q);
+                        handleExecuteSql(q);
+                      }}
+                    >
+                      Locations (10)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
+                      style={{ fontSize: "11.5px" }}
+                      onClick={() => {
+                        const q = "PRAGMA table_info(locations);";
+                        setSqlQuery(q);
+                        handleExecuteSql(q);
+                      }}
+                    >
+                      Schema: locations
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
+                      style={{ fontSize: "11.5px" }}
+                      onClick={() => {
+                        const q = "SELECT count(*) as total, content_status FROM locations GROUP BY content_status;";
+                        setSqlQuery(q);
+                        handleExecuteSql(q);
+                      }}
+                    >
+                      Locations By Status
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
+                      style={{ fontSize: "11.5px" }}
+                      onClick={() => {
                         const q = "SELECT id, slug, title, category, location, created_at FROM blogs ORDER BY created_at DESC LIMIT 10;";
                         setSqlQuery(q);
                         handleExecuteSql(q);
@@ -1547,31 +3079,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                         handleExecuteSql(q);
                       }}
                     >
-                      Table Schema (blogs)
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
-                      style={{ fontSize: "11.5px" }}
-                      onClick={() => {
-                        const q = "SELECT count(*) as total_blogs FROM blogs;";
-                        setSqlQuery(q);
-                        handleExecuteSql(q);
-                      }}
-                    >
-                      Count Total Blogs
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-light border small font-monospace py-1 px-2"
-                      style={{ fontSize: "11.5px" }}
-                      onClick={() => {
-                        const q = "SELECT slug, title, cover_query, json_array_length(content_json) as sections_count FROM blogs LIMIT 5;";
-                        setSqlQuery(q);
-                        handleExecuteSql(q);
-                      }}
-                    >
-                      Inspect Sections Count
+                      Schema: blogs
                     </button>
                   </div>
 
@@ -1610,7 +3118,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                           handleExecuteSql();
                         }
                       }}
-                      placeholder="SELECT * FROM blogs WHERE category = 'Adventure' LIMIT 10;"
+                      placeholder="SELECT * FROM locations WHERE content_status = 'completed' LIMIT 10;"
                     />
                   </div>
 

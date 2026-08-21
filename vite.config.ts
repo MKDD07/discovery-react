@@ -17,23 +17,7 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/serp/, "/search.json"),
       },
-      "/api/register": {
-        target: "https://discovery.mkmkataria07.workers.dev",
-        changeOrigin: true,
-      },
-      "/api/signup": {
-        target: "https://discovery.mkmkataria07.workers.dev",
-        changeOrigin: true,
-      },
-      "/api/login": {
-        target: "https://discovery.mkmkataria07.workers.dev",
-        changeOrigin: true,
-      },
-      "/api/blogs": {
-        target: "https://discovery.mkmkataria07.workers.dev",
-        changeOrigin: true,
-      },
-      "/api/generate-blog": {
+      "/api": {
         target: "https://discovery.mkmkataria07.workers.dev",
         changeOrigin: true,
       },
