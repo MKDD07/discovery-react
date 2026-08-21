@@ -59,7 +59,8 @@ export default {
 
     // ── 0. Dynamic /sitemap.xml — Reads all blogs from D1 in real time ──────
     if (url.pathname === "/sitemap.xml") {
-      const BASE = "https://discoveryconvoy.com";
+      // Use actual request host so sitemap works on workers.dev AND custom domain
+      const BASE = `${url.protocol}//${url.host}`;
       const today = new Date().toISOString().split("T")[0];
 
       // Static pages
