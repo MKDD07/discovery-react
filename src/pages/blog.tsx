@@ -155,11 +155,8 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
                 <div className="tp-blog-grid-tab mb-50 text-center">
                   <div className="tp-about-section-title p-relative pb-25">
                     <h2 className="tp-section-title fs-32 fw-600 mb-2">
-                      Published Travel Articles
+                      Travel Articles
                     </h2>
-                    <p className="text-muted">
-                      Directly connected with Cloudflare D1 SQLite Database.
-                    </p>
                   </div>
 
                   {/* Category Filter Tabs */}
