@@ -2,6 +2,7 @@ import React from "react";
 import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
 import Button from "../components/snippets/button";
+import SEO from "../components/snippets/seo/SEO";
 import {
   Sparkles,
   Compass,
@@ -31,6 +32,12 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onBackHome }) => {
 
   return (
     <div className="tp-page-wrapper bg-white min-vh-100 d-flex flex-column">
+      <SEO
+        title="About Us | Redefining Luxury Travel - Discovery Convoy"
+        description="Discover the heritage, mission, and bespoke concierge philosophy of Discovery Convoy. Curating 10,000+ luxury stays and personalized odysseys across 150+ destinations worldwide."
+        keywords={["about Discovery Convoy", "luxury travel agency", "concierge services", "bespoke itineraries", "luxury brand heritage"]}
+        url="https://discoveryconvoy.com/about"
+      />
       <Header />
 
       <main className="flex-grow-1">

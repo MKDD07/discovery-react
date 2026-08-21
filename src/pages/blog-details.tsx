@@ -3,6 +3,7 @@ import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
 import { loadAllPexelsMedia } from "../components/sections/pexels/PexelsMediaSection";
 import DomesticLocation from "../components/sections/domestic-location/domestic-location";
+import SEO from "../components/snippets/seo/SEO";
 
 interface BlogDetailsPageProps {
   slug?: string;
@@ -137,6 +138,35 @@ export const BlogDetailsPage: React.FC<BlogDetailsPageProps> = ({ slug, onBackHo
 
   return (
     <>
+      <SEO
+        title={blogData.title}
+        description={blogData.summary || blogData.excerpt || `Read the complete luxury travel dossier for ${blogData.title} on Discovery Convoy.`}
+        keywords={[blogData.category || "Luxury Travel", "travel guide", "Discovery Convoy", blogData.title]}
+        url={`https://discoveryconvoy.com/blog/${slug}`}
+        type="article"
+        author={blogData.author || "Discovery Convoy Editorial Desk"}
+        publishedTime={blogData.created_at}
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          headline: blogData.title,
+          description: blogData.summary || blogData.excerpt,
+          url: `https://discoveryconvoy.com/blog/${slug}`,
+          datePublished: blogData.created_at,
+          author: {
+            "@type": "Person",
+            name: blogData.author || "Discovery Convoy Editorial Desk",
+          },
+          publisher: {
+            "@type": "Organization",
+            name: "Discovery Convoy",
+            logo: {
+              "@type": "ImageObject",
+              url: "https://discoveryconvoy.com/assets/logo.png",
+            },
+          },
+        }}
+      />
       <Header />
       <main ref={containerRef}>
         {/* Breadcrumb Header with Parallax Effect & Navigational Trail */}

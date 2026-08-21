@@ -31,6 +31,7 @@ import CollectionPage from "./pages/collection";
 import AboutPage from "./pages/about";
 import ContactPage from "./pages/contact";
 import FaqPage from "./pages/faq";
+import SEO from "./components/snippets/seo/SEO";
 
 function App() {
   const [bookingTab, setBookingTab] = useState<BookingTab>("hotels");
@@ -331,6 +332,11 @@ function App() {
 
   return (
     <>
+      <SEO
+        title="Discovery Convoy | Luxury Stays, Flight Intelligence & Bespoke Escapes"
+        description="Experience unparalleled luxury travel with Discovery Convoy. Handpicked 5-star palace hotels, private overwater villas, real-time Google flight search intelligence, and 24/7 concierge assistance."
+        url="https://discoveryconvoy.com/"
+      />
       <Header />
       <main>
         <HeroBanner activeTab={bookingTab} />

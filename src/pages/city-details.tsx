@@ -6,6 +6,7 @@ import HotelOffersSection from "../components/sections/offers/hotel-offers";
 import CategoryCity from "../components/sections/category-city/category-city";
 import OfferBannerArea from "../components/sections/offer-banner-area/offer-banner-area";
 import CollectionFaq from "../components/sections/collection-faq/collection-faq";
+import SEO from "../components/snippets/seo/SEO";
 
 interface CityDetailsPageProps {
   location?: string;
@@ -20,6 +21,19 @@ export const CityDetailsPage: React.FC<CityDetailsPageProps> = ({
 }) => {
   return (
     <>
+      <SEO
+        title={`${location} Luxury Holidays & Tour Packages`}
+        description={`Explore handpicked 5-star luxury stays, resort escapes, curated itineraries and flight packages for ${location} with Discovery Convoy.`}
+        keywords={[location, `${location} luxury stays`, `${location} packages`, `${location} tour guides`, "Discovery Convoy"]}
+        url={`https://discoveryconvoy.com/destination/${encodeURIComponent(location.toLowerCase())}`}
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "Place",
+          name: `${location} Travel Guide`,
+          description: `Exclusive holiday guides and luxury resort packages in ${location}.`,
+          url: `https://discoveryconvoy.com/destination/${encodeURIComponent(location.toLowerCase())}`,
+        }}
+      />
       <Header />
       <main>
         {/* Navigation Breadcrumb back link */}

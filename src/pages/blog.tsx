@@ -5,6 +5,7 @@ import { loadAllPexelsMedia } from "../components/sections/pexels/PexelsMediaSec
 import BlogCard, { BlogItem } from "../components/snippets/blog-card/blog-card";
 import Pagination from "../components/snippets/pagination/pagination";
 import { Sparkles, Compass } from "lucide-react";
+import SEO from "../components/snippets/seo/SEO";
 
 const CATEGORIES = [
   "All",
@@ -104,6 +105,12 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
 
   return (
     <>
+      <SEO
+        title="Travel Journal & Editorial Blog | Discovery Convoy"
+        description="Inspiring luxury travel dossiers, secret destination guides, 5-star resort reviews, and expert itineraries from Discovery Convoy's global editors."
+        keywords={["travel blog", "luxury travel guides", "itineraries", "hotel reviews", "Discovery Convoy"]}
+        url="https://discoveryconvoy.com/blog"
+      />
       <Header />
       <main ref={containerRef}>
         {/* Breadcrumb Header with Parallax Effect */}

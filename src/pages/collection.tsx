@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { searchHotels, resizeImage } from "../services/serpApi";
 import Button from "../components/snippets/button";
+import SEO from "../components/snippets/seo/SEO";
 
 interface CollectionPageProps {
   slug?: string;
@@ -254,6 +255,13 @@ export default function CollectionPage({
 
   return (
     <div className="discovery-collection-page bg-light-luxury min-vh-100">
+      <SEO
+        title={`${theme.title} - Luxury Collection`}
+        description={theme.subtitle}
+        keywords={[theme.title, theme.badge, "luxury collection", "5 star stays", "Discovery Convoy"]}
+        image={theme.heroImage}
+        url={`https://discoveryconvoy.com/collection/${currentSlug}`}
+      />
       <Header />
 
       {/* ── 1. Hero Collection Banner ─────────────────────────────────────── */}

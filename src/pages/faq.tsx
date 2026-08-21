@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
 import Button from "../components/snippets/button";
+import SEO from "../components/snippets/seo/SEO";
 import {
   Sparkles,
   Search,
@@ -170,6 +171,24 @@ export const FaqPage: React.FC<FaqPageProps> = ({ onBackHome }) => {
 
   return (
     <div className="tp-page-wrapper bg-white min-vh-100 d-flex flex-column">
+      <SEO
+        title="Frequently Asked Questions & Help Center | Discovery Convoy"
+        description="Get answers regarding luxury stay bookings, 24/7 concierge privileges, flight search, corporate GST invoices, and free cancellation policies on Discovery Convoy."
+        keywords={["travel FAQ", "concierge questions", "hotel cancellation terms", "flight booking help", "Discovery Convoy"]}
+        url="https://discoveryconvoy.com/faq"
+        schema={{
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          mainEntity: FAQ_DATA.map((faq) => ({
+            "@type": "Question",
+            name: faq.question,
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: faq.answer,
+            },
+          })),
+        }}
+      />
       <Header />
 
       <main className="flex-grow-1">

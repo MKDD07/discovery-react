@@ -28,6 +28,7 @@ import "swiper/css";
 import "swiper/css/autoplay";
 import { searchHotels, resizeImage } from "../services/serpApi";
 import { fetchPexelsVideo, pickVideoUrl } from "../components/sections/pexels/PexelsMediaSection";
+import SEO from "../components/snippets/seo/SEO";
 
 interface LuxuryPageProps {
   onBackHome?: () => void;
@@ -617,6 +618,12 @@ export const LuxuryPage: React.FC<LuxuryPageProps> = ({
 
   return (
     <div className="discovery-luxe-page bg-light-luxury">
+      <SEO
+        title="Luxe Selections | 5-Star Palaces, Villas & Luxury Resorts"
+        description="Immerse in unparalleled luxury with Discovery Convoy's handpicked 5-star heritage palaces, private pool villas, overwater suites, and bespoke concierge experiences."
+        keywords={["luxury palaces", "5-star luxury hotels", "private pool villas", "overwater suites", "Discovery Convoy Luxe", "bespoke luxury retreats"]}
+        url="https://discoveryconvoy.com/luxury"
+      />
       <Header />
 
       {/* ── 1. Hero Luxury Showcase Banner ─────────────────────────────────── */}

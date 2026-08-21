@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
 import Button from "../components/snippets/button";
+import SEO from "../components/snippets/seo/SEO";
 import {
   Phone,
   Mail,
@@ -41,6 +42,12 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackHome }) => {
 
   return (
     <div className="tp-page-wrapper bg-white min-vh-100 d-flex flex-column">
+      <SEO
+        title="Contact Concierge | 24/7 Private Travel Desk - Discovery Convoy"
+        description="Connect with Discovery Convoy's 24/7 luxury concierge desk for bespoke travel bookings, private island reservations, flight inquiries, or corporate retreats."
+        keywords={["contact concierge", "luxury travel inquiry", "Discovery Convoy phone", "travel concierge helpline", "custom travel quotes"]}
+        url="https://discoveryconvoy.com/contact"
+      />
       <Header />
 
       <main className="flex-grow-1">
@@ -79,7 +86,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackHome }) => {
               <div className="col-lg-5">
                 <div className="d-flex flex-column gap-3 h-100">
                   {/* Phone Helpline Card */}
-                  <div className="bg-white p-4 rounded-4 border shadow-sm">
+                  <div className="bg-white p-4 rounded-4 shadow-sm">
                     <div className="d-flex align-items-start gap-3">
                       <div
                         className="d-flex align-items-center justify-content-center rounded-3 p-3 text-dark"
@@ -105,7 +112,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackHome }) => {
                   </div>
 
                   {/* Email Support Card */}
-                  <div className="bg-white p-4 rounded-4 border shadow-sm">
+                  <div className="bg-white p-4 rounded-4 shadow-sm">
                     <div className="d-flex align-items-start gap-3">
                       <div
                         className="d-flex align-items-center justify-content-center rounded-3 p-3 text-dark"
@@ -131,7 +138,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackHome }) => {
                   </div>
 
                   {/* Office Headquarters Card */}
-                  <div className="bg-white p-4 rounded-4 border shadow-sm">
+                  <div className="bg-white p-4 rounded-4 shadow-sm">
                     <div className="d-flex align-items-start gap-3">
                       <div
                         className="d-flex align-items-center justify-content-center rounded-3 p-3 text-dark"
@@ -154,7 +161,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackHome }) => {
                   </div>
 
                   {/* Working Hours Card */}
-                  <div className="bg-white p-4 rounded-4 border shadow-sm flex-grow-1">
+                  <div className="bg-white p-4 rounded-4 shadow-sm flex-grow-1">
                     <div className="d-flex align-items-start gap-3">
                       <div
                         className="d-flex align-items-center justify-content-center rounded-3 p-3 text-dark"
@@ -180,7 +187,7 @@ export const ContactPage: React.FC<ContactPageProps> = ({ onBackHome }) => {
 
               {/* Right Column: Interactive Luxury Inquiry Form */}
               <div className="col-lg-7">
-                <div className="bg-white p-4 p-md-5 rounded-4 border shadow-sm h-100">
+                <div className="bg-white p-4 p-md-5 rounded-4 shadow-sm h-100">
                   {formSubmitted ? (
                     <div className="text-center py-5">
                       <div
