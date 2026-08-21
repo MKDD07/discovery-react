@@ -26,9 +26,11 @@ import RegisterPage from "./pages/register";
 import DashboardPage from "./pages/dashboard";
 import BlogPage from "./pages/blog";
 import BlogDetailsPage from "./pages/blog-details";
+import LuxuryPage from "./pages/luxury";
+import CollectionPage from "./pages/collection";
 
 function App() {
-  const [bookingTab, setBookingTab] = useState<BookingTab>("packages");
+  const [bookingTab, setBookingTab] = useState<BookingTab>("hotels");
   const [selectedDestination, setSelectedDestination] = useState<{
     name: string;
     query: string;
@@ -77,6 +79,10 @@ function App() {
       setCurrentPage("blog");
     } else if (path.startsWith("/blog/")) {
       setCurrentPage(path);
+    } else if (path === "/luxury" || path === "/luxe") {
+      setCurrentPage("luxury");
+    } else if (path.startsWith("/collection/") || path.startsWith("/collections")) {
+      setCurrentPage(path);
     }
 
     const handlePopState = () => {
@@ -123,6 +129,14 @@ function App() {
         setSelectedDestination(null);
         setSelectedTour(null);
       } else if (currentPath.startsWith("/blog/")) {
+        setCurrentPage(currentPath);
+        setSelectedDestination(null);
+        setSelectedTour(null);
+      } else if (currentPath === "/luxury" || currentPath === "/luxe") {
+        setCurrentPage("luxury");
+        setSelectedDestination(null);
+        setSelectedTour(null);
+      } else if (currentPath.startsWith("/collection/") || currentPath.startsWith("/collections")) {
         setCurrentPage(currentPath);
         setSelectedDestination(null);
         setSelectedTour(null);
@@ -189,6 +203,44 @@ function App() {
         onBackHome={() => {
           window.history.pushState({}, "", "/");
           setCurrentPage(null);
+        }}
+      />
+    );
+  }
+
+  if (currentPage === "luxury") {
+    return (
+      <LuxuryPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+        onSelectTour={(tour) => {
+          setSelectedTour(tour);
+          setSelectedDestination(null);
+          setCurrentPage(null);
+          const tourUrl = `/tour/${encodeURIComponent(tour.name)}?loc=${encodeURIComponent(tour.location)}${tour.price ? `&price=${encodeURIComponent(tour.price)}` : ""}`;
+          window.history.pushState({ hotel: tour.initialHotel }, "", tourUrl);
+        }}
+      />
+    );
+  }
+
+  if (currentPage && (currentPage.startsWith("/collection/") || currentPage.startsWith("/collections"))) {
+    const colSlug = currentPage.replace("/collection/", "").replace("/collections/", "").replace("/collections", "");
+    return (
+      <CollectionPage
+        slug={colSlug}
+        onBackLuxe={() => {
+          window.history.pushState({}, "", "/luxury");
+          setCurrentPage("luxury");
+        }}
+        onSelectTour={(tour) => {
+          setSelectedTour(tour);
+          setSelectedDestination(null);
+          setCurrentPage(null);
+          const tourUrl = `/tour/${encodeURIComponent(tour.name)}?loc=${encodeURIComponent(tour.location)}${tour.price ? `&price=${encodeURIComponent(tour.price)}` : ""}`;
+          window.history.pushState({ hotel: tour.initialHotel }, "", tourUrl);
         }}
       />
     );
@@ -265,41 +317,6 @@ function App() {
   maxCards={8}
 />
         <AboutArea />
-<DomesticLocation
-  location="West India"
-  layout="swiper"
-  subtitle="Beaches, Heritage & Royalty"
-  title="West India"
-  iconClass="fa-solid fa-sun"
-  showBtn={true}
-  btnText="View All West India"
-  btnHref="/domestic/west"
-  maxCards={8}
-/>
-
-<DomesticLocation
-  location="South India"
-  layout="swiper"
-  subtitle="Backwaters, Temples & Coastal Charms"
-  title="South India"
-  iconClass="fa-solid fa-umbrella-beach"
-  showBtn={true}
-  btnText="View All South India"
-  btnHref="/domestic/south"
-  maxCards={8}
-/>
-
-<DomesticLocation
-  location="East India"
-  layout="swiper"
-  subtitle="Nature, Tea Gardens & Culture"
-  title="East India"
-  iconClass="fa-solid fa-leaf"
-  showBtn={true}
-  btnText="View All East India"
-  btnHref="/domestic/east"
-  maxCards={8}
-/>
         <FlightOffersSection />
 
 {/* ================= Domestic Flights Section ================= */}

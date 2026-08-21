@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import SerpAPI, { SerpHotelResult, SerpOrganicResult } from "../../../services/serpApi";
+import React, { useState, useRef, useEffect } from "react";
+import SerpAPI, { SerpHotelResult, SerpOrganicResult, SerpFlightResult } from "../../../services/serpApi";
+import Button from "../../snippets/button";
 import {
-  Package,
   Building,
   Plane,
   Route,
@@ -13,10 +13,15 @@ import {
   ArrowUpRight,
   Sparkles,
   Loader2,
-  CheckCircle2,
+  Clock,
+  ArrowLeftRight,
+  Plus,
+  Minus,
+  Check,
+  Compass,
 } from "lucide-react";
 
-export type BookingTab = "packages" | "hotels" | "flights" | "travels";
+export type BookingTab = "hotels" | "flights" | "travels";
 
 const IATA_AIRPORTS = [
   { code: "DEL", city: "New Delhi", name: "Indira Gandhi Intl Airport, India" },
@@ -34,34 +39,57 @@ const IATA_AIRPORTS = [
   { code: "HND", city: "Tokyo", name: "Haneda Airport, Japan" },
 ];
 
+const POPULAR_DESTINATIONS = [
+  "Paris", "Goa", "Dubai", "Maldives", "Kashmir", "Bali", "Switzerland", "London", "Tokyo", "Rajasthan", "Kerala"
+];
+
 export interface BookingFormProps {
   activeTab?: BookingTab;
   onTabChange?: (tab: BookingTab) => void;
 }
 
+const getFormattedDate = (daysFromToday = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromToday);
+  return d.toISOString().split("T")[0];
+};
+
 export const BookingForm: React.FC<BookingFormProps> = ({
   activeTab: controlledActiveTab,
   onTabChange,
 }) => {
-  const [internalActiveTab, setInternalActiveTab] = useState<BookingTab>("packages");
+  const [internalActiveTab, setInternalActiveTab] = useState<BookingTab>("hotels");
   const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : internalActiveTab;
 
-  // Input States
+  // Input States (Defaults: checkIn = Today, checkOut = Tomorrow)
   const [location, setLocation] = useState("");
   const [originIata, setOriginIata] = useState("DEL");
-  const [destIata, setDestIata] = useState("JFK");
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
+  const [destIata, setDestIata] = useState("DXB");
+  const [checkIn, setCheckIn] = useState(getFormattedDate(0));
+  const [checkOut, setCheckOut] = useState(getFormattedDate(1));
+
+  // Interactive Guest Selector States
   const [adults, setAdults] = useState(2);
   const [childrenCount, setChildrenCount] = useState(0);
-
-  // Dropdown visibility toggles
-  const [showLocationList, setShowLocationList] = useState(false);
+  const [rooms, setRooms] = useState(1);
+  const [showGuestsPopover, setShowGuestsPopover] = useState(false);
+  const guestsRef = useRef<HTMLDivElement>(null);
 
   // Search Results & Loading State
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+
+  // Close guest popover on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (guestsRef.current && !guestsRef.current.contains(e.target as Node)) {
+        setShowGuestsPopover(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleTabChange = (tab: BookingTab) => {
     if (controlledActiveTab === undefined) {
@@ -70,37 +98,43 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     onTabChange?.(tab);
     setSearchResults([]);
     setSearched(false);
-    setShowLocationList(false);
+    setShowGuestsPopover(false);
+  };
+
+  const swapAirports = () => {
+    const temp = originIata;
+    setOriginIata(destIata);
+    setDestIata(temp);
   };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSearched(true);
-    setShowLocationList(false);
+    setShowGuestsPopover(false);
 
     try {
-      if (activeTab === "packages") {
-        const query = location.trim() ? `${location.trim()} tour packages holiday deals` : "India tour packages holiday deals";
-        const data = await SerpAPI.searchHome(query);
-        const results = SerpAPI.extractOrganicResults(data, 6);
-        setSearchResults(results);
-      } else if (activeTab === "hotels") {
+      if (activeTab === "hotels") {
         const query = location.trim() || "Goa, India";
         const data = await SerpAPI.searchHotels({
           q: query,
           check_in: checkIn || undefined,
           check_out: checkOut || undefined,
+          adults,
         });
         const results = SerpAPI.extractHotels(data, 6);
         setSearchResults(results);
       } else if (activeTab === "flights") {
-        const query = `cheap flights from ${originIata} to ${destIata}`;
-        const data = await SerpAPI.searchFlights({ query });
+        const data = await SerpAPI.searchFlights({
+          departure_id: originIata,
+          arrival_id: destIata,
+          outbound_date: checkIn || undefined,
+          query: `flights from ${originIata} to ${destIata}`,
+        });
         const results = SerpAPI.extractFlights(data, 6);
         setSearchResults(results);
       } else if (activeTab === "travels") {
-        const query = location.trim() ? `travel guide itineraries ${location}` : "top travel itineraries & guides";
+        const query = location.trim() ? `travel guide itineraries ${location}` : "top travel itineraries & luxury guides";
         const data = await SerpAPI.searchHome(query);
         const results = SerpAPI.extractOrganicResults(data, 6);
         setSearchResults(results);
@@ -113,6 +147,12 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     }
   };
 
+  const navigateToDestination = (destName: string) => {
+    const slug = destName.toLowerCase().trim().replace(/[^a-z0-9]/g, "");
+    window.history.pushState({}, "", `/destination/${slug}`);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+
   const navigateToTour = (title: string, loc?: string, price?: string) => {
     const slug = encodeURIComponent(title);
     const searchParams = new URLSearchParams();
@@ -123,305 +163,402 @@ export const BookingForm: React.FC<BookingFormProps> = ({
     window.dispatchEvent(new PopStateEvent("popstate"));
   };
 
+  const isDestinationMatch = location.trim() && POPULAR_DESTINATIONS.some(
+    (d) => d.toLowerCase() === location.trim().toLowerCase()
+  );
+
   return (
-    <div className="tp-booking-form-area py-4" style={{ marginTop: "-55px", position: "relative", zIndex: 30 }}>
+    <div className="tp-booking-form-area py-3" style={{ marginTop: "-60px", position: "relative", zIndex: 30 }}>
       <div className="container container-1350">
         <div className="row justify-content-center">
           <div className="col-12">
-            {/* Glassmorphism Blurred Background Container */}
+            {/* ── Luxury Card Container ─────────────────────────────── */}
             <div
-              className="tp-booking-form tp-booking-6-form rounded-4 p-4 p-md-5 border shadow-lg"
+              className="tp-luxury-booking-card shadow-lg"
               style={{
-                background: "rgba(255, 255, 255, 0.88)",
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
-                borderColor: "rgba(255, 255, 255, 0.6)",
-                boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.12)",
+                background: "rgba(255, 255, 255, 0.95)",
+                backdropFilter: "blur(24px)",
+                WebkitBackdropFilter: "blur(24px)",
+                border: "1px solid rgba(255, 255, 255, 0.8)",
+                borderRadius: "28px",
+                padding: "26px 32px",
+                boxShadow: "0 24px 50px -12px rgba(15, 23, 42, 0.12)",
               }}
             >
               {/* Category Navigation Tabs */}
-              <div className="tp-booking-nav-tabs d-flex align-items-center gap-2 mb-4 flex-wrap">
-                <button
-                  type="button"
-                  className={`btn btn-sm px-4 py-2 rounded-pill fw-600 d-inline-flex align-items-center gap-2 transition-all ${
-                    activeTab === "packages"
-                      ? "tp-btn text-white shadow-sm"
-                      : "bg-white text-dark border hover-bg-light"
-                  }`}
-                  style={{ fontSize: "13px" }}
-                  onClick={() => handleTabChange("packages")}
-                >
-                  <Package size={15} /> Packages
-                </button>
+              <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 pb-2 border-bottom">
+                <div className="d-flex align-items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    className={`btn btn-sm px-4 py-2 rounded-pill fw-bold d-inline-flex align-items-center gap-2 transition-all ${
+                      activeTab === "hotels"
+                        ? "tp-btn-universal-bg text-white shadow-sm"
+                        : "bg-light text-dark border-0 hover-bg-light"
+                    }`}
+                    style={{ fontSize: "13.5px" }}
+                    onClick={() => handleTabChange("hotels")}
+                  >
+                    <Building size={16} /> Hotels & Resorts
+                  </button>
 
-                <button
-                  type="button"
-                  className={`btn btn-sm px-4 py-2 rounded-pill fw-600 d-inline-flex align-items-center gap-2 transition-all ${
-                    activeTab === "hotels"
-                      ? "tp-btn text-white shadow-sm"
-                      : "bg-white text-dark border hover-bg-light"
-                  }`}
-                  style={{ fontSize: "13px" }}
-                  onClick={() => handleTabChange("hotels")}
-                >
-                  <Building size={15} /> Hotels
-                </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm px-4 py-2 rounded-pill fw-bold d-inline-flex align-items-center gap-2 transition-all ${
+                      activeTab === "flights"
+                        ? "tp-btn-universal-bg text-white shadow-sm"
+                        : "bg-light text-dark border-0 hover-bg-light"
+                    }`}
+                    style={{ fontSize: "13.5px" }}
+                    onClick={() => handleTabChange("flights")}
+                  >
+                    <Plane size={16} /> Flights
+                  </button>
 
-                <button
-                  type="button"
-                  className={`btn btn-sm px-4 py-2 rounded-pill fw-600 d-inline-flex align-items-center gap-2 transition-all ${
-                    activeTab === "flights"
-                      ? "tp-btn text-white shadow-sm"
-                      : "bg-white text-dark border hover-bg-light"
-                  }`}
-                  style={{ fontSize: "13px" }}
-                  onClick={() => handleTabChange("flights")}
-                >
-                  <Plane size={15} /> Flights (IATA)
-                </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm px-4 py-2 rounded-pill fw-bold d-inline-flex align-items-center gap-2 transition-all ${
+                      activeTab === "travels"
+                        ? "tp-btn-universal-bg text-white shadow-sm"
+                        : "bg-light text-dark border-0 hover-bg-light"
+                    }`}
+                    style={{ fontSize: "13.5px" }}
+                    onClick={() => handleTabChange("travels")}
+                  >
+                    <Route size={16} /> Curated Travels
+                  </button>
+                </div>
 
-                <button
-                  type="button"
-                  className={`btn btn-sm px-4 py-2 rounded-pill fw-600 d-inline-flex align-items-center gap-2 transition-all ${
-                    activeTab === "travels"
-                      ? "tp-btn text-white shadow-sm"
-                      : "bg-white text-dark border hover-bg-light"
-                  }`}
-                  style={{ fontSize: "13px" }}
-                  onClick={() => handleTabChange("travels")}
-                >
-                  <Route size={15} /> Travels
-                </button>
+                <span className="text-muted small d-none d-md-inline-flex align-items-center gap-1">
+                  <Sparkles size={14} className="text-success" /> Best Rate Guarantee
+                </span>
               </div>
 
               {/* Main Booking Search Form */}
               <form onSubmit={handleSearch}>
-                <div className="tp-booking-wrap d-flex flex-column flex-lg-row align-items-stretch align-items-lg-end gap-3">
-                  {/* Field 1: Destination / Hotel / Origin */}
-                  {activeTab !== "flights" ? (
-                    <div className="tp-booking-location tp-booking-col-1 p-relative flex-grow-1">
-                      <span className="tp-booking-6-title fw-600 d-inline-block mb-2 text-dark" style={{ fontSize: "13px" }}>
-                        {activeTab === "packages" && "Package Destination"}
-                        {activeTab === "hotels" && "Hotel Location"}
-                        {activeTab === "travels" && "Travel Spot"}
-                      </span>
-                      <div className="tp-booking-location-input tp-booking-toggle p-relative">
-                        <span className="tp-booking-input-icon text-muted">
-                          <MapPin size={16} />
-                        </span>
-                        <input
-                          className="tp-input bg-white rounded-3 border ps-5"
-                          type="text"
-                          value={location}
-                          onChange={(e) => setLocation(e.target.value)}
-                          onFocus={() => setShowLocationList(true)}
-                          placeholder="Where to ? (e.g. Goa, Kashmir, Dubai)"
-                          style={{ fontSize: "13.5px", height: "48px" }}
-                        />
-                      </div>
-
-                      {/* Autocomplete Suggestions */}
-                      {showLocationList && (
-                        <div
-                          className="tp-booking-location-list tp-booking-toggle-active position-absolute top-100 start-0 w-100 bg-white rounded-3 border shadow-lg mt-1 p-2"
-                          style={{ zIndex: 999 }}
-                        >
-                          <div className="tp-booking-location-inner">
-                            <span className="tp-booking-location-suggested d-block text-muted px-3 py-1 font-monospace small">
-                              Suggested destinations
-                            </span>
-                            <ul className="list-unstyled mb-0">
-                              {[
-                                { city: "Goa, India", desc: "Pristine beaches & nightlife" },
-                                { city: "Kashmir, India", desc: "Snow valleys & scenic mountains" },
-                                { city: "Dubai, UAE", desc: "Luxury resorts & desert safari" },
-                                { city: "Kerala, India", desc: "Peaceful backwaters & tea estates" },
-                                { city: "Paris, France", desc: "Historic landmarks & romance" },
-                              ].map((item, idx) => (
-                                <li
-                                  key={idx}
-                                  className="px-3 py-2 rounded-2 hover-bg-light cursor-pointer transition-all"
-                                  onClick={() => {
-                                    setLocation(item.city);
-                                    setShowLocationList(false);
-                                  }}
-                                  style={{ cursor: "pointer" }}
-                                >
-                                  <div className="tp-booking-location-content">
-                                    <span className="fw-600 text-dark d-block" style={{ fontSize: "13px" }}>
-                                      {item.city}
-                                    </span>
-                                    <p className="text-muted small mb-0">{item.desc}</p>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
+                <div className="row align-items-end g-3">
+                  {/* Field 1: Destination / Hotel or Flight Origin */}
+                  {activeTab === "flights" ? (
                     <>
-                      {/* Flight Origin */}
-                      <div className="tp-booking-location tp-booking-col-1 p-relative flex-grow-1">
-                        <span className="tp-booking-6-title fw-600 d-inline-block mb-2 text-dark" style={{ fontSize: "13px" }}>
-                          From (Origin IATA)
-                        </span>
-                        <div className="tp-booking-location-input p-relative">
-                          <span className="tp-booking-input-icon text-muted">
+                      {/* Origin Airport */}
+                      <div className="col-xl-3 col-lg-3 col-md-6">
+                        <label className="form-label text-dark fw-bold mb-1" style={{ fontSize: "12.5px" }}>
+                          From (Origin)
+                        </label>
+                        <div className="position-relative">
+                          <span className="position-absolute text-muted" style={{ left: "14px", top: "50%", transform: "translateY(-50%)" }}>
                             <Plane size={16} />
                           </span>
                           <select
-                            className="tp-input bg-white rounded-3 border ps-5 w-100"
+                            className="form-select bg-light border-0 ps-5 fw-semibold"
                             value={originIata}
                             onChange={(e) => setOriginIata(e.target.value)}
-                            style={{ fontSize: "13.5px", height: "48px" }}
+                            style={{ height: "48px", borderRadius: "14px", fontSize: "13.5px" }}
                           >
                             {IATA_AIRPORTS.map((ap, idx) => (
                               <option key={idx} value={ap.code}>
-                                {ap.code} - {ap.city} ({ap.name})
+                                {ap.code} - {ap.city}
                               </option>
                             ))}
                           </select>
                         </div>
                       </div>
 
-                      {/* Flight Destination */}
-                      <div className="tp-booking-location tp-booking-col-1 p-relative flex-grow-1">
-                        <span className="tp-booking-6-title fw-600 d-inline-block mb-2 text-dark" style={{ fontSize: "13px" }}>
-                          To (Destination IATA)
-                        </span>
-                        <div className="tp-booking-location-input p-relative">
-                          <span className="tp-booking-input-icon text-muted">
-                            <Plane size={16} style={{ transform: "rotate(45deg)" }} />
+                      {/* Swap Airport Button */}
+                      <div className="col-auto d-none d-lg-flex align-items-center justify-content-center p-0" style={{ marginBottom: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={swapAirports}
+                          className="btn btn-light rounded-circle shadow-sm border p-0 d-flex align-items-center justify-content-center"
+                          style={{ width: "36px", height: "36px" }}
+                          title="Swap Airports"
+                        >
+                          <ArrowLeftRight size={14} className="text-dark" />
+                        </button>
+                      </div>
+
+                      {/* Destination Airport */}
+                      <div className="col-xl-3 col-lg-3 col-md-6">
+                        <label className="form-label text-dark fw-bold mb-1" style={{ fontSize: "12.5px" }}>
+                          To (Destination)
+                        </label>
+                        <div className="position-relative">
+                          <span className="position-absolute text-muted" style={{ left: "14px", top: "50%", transform: "translateY(-50%)" }}>
+                            <MapPin size={16} />
                           </span>
                           <select
-                            className="tp-input bg-white rounded-3 border ps-5 w-100"
+                            className="form-select bg-light border-0 ps-5 fw-semibold"
                             value={destIata}
                             onChange={(e) => setDestIata(e.target.value)}
-                            style={{ fontSize: "13.5px", height: "48px" }}
+                            style={{ height: "48px", borderRadius: "14px", fontSize: "13.5px" }}
                           >
                             {IATA_AIRPORTS.map((ap, idx) => (
                               <option key={idx} value={ap.code}>
-                                {ap.code} - {ap.city} ({ap.name})
+                                {ap.code} - {ap.city}
                               </option>
                             ))}
                           </select>
                         </div>
                       </div>
                     </>
+                  ) : (
+                    <div className="col-xl-4 col-lg-4 col-md-6">
+                      <div className="d-flex align-items-center justify-content-between mb-1">
+                        <label className="form-label text-dark fw-bold mb-0" style={{ fontSize: "12.5px" }}>
+                          {activeTab === "hotels" ? "City, Destination or Hotel" : "Travel Region or Spot"}
+                        </label>
+                        {isDestinationMatch && (
+                          <button
+                            type="button"
+                            onClick={() => navigateToDestination(location)}
+                            className="btn p-0 border-0 bg-transparent text-success fw-bold d-inline-flex align-items-center gap-1"
+                            style={{ fontSize: "11.5px" }}
+                          >
+                            <Compass size={12} /> Open {location} Hub
+                          </button>
+                        )}
+                      </div>
+                      <div className="position-relative">
+                        <span className="position-absolute text-muted" style={{ left: "14px", top: "50%", transform: "translateY(-50%)" }}>
+                          <MapPin size={16} />
+                        </span>
+                        <input
+                          type="text"
+                          className="form-control bg-light border-0 ps-5 fw-semibold"
+                          value={location}
+                          onChange={(e) => setLocation(e.target.value)}
+                          placeholder={activeTab === "hotels" ? "Where are you going? (e.g. Goa, Paris, Dubai)" : "Where to explore?"}
+                          style={{ height: "48px", borderRadius: "14px", fontSize: "13.5px" }}
+                        />
+                      </div>
+                    </div>
                   )}
 
-                  {/* Field 2: Check-In - Check-Out */}
-                  <div className="tp-booking-location tp-booking-col-2 tp-booking-datepicker p-relative flex-grow-1">
-                    <span className="tp-booking-6-title fw-600 d-inline-block mb-2 text-dark" style={{ fontSize: "13px" }}>
-                      Check In - Check Out
-                    </span>
-                    <div className="tp-booking-location-input p-relative d-flex align-items-center gap-2">
-                      <span className="tp-booking-input-icon text-muted">
-                        <Calendar size={16} />
-                      </span>
-                      <input
-                        className="tp-input bg-white rounded-3 border ps-5 w-50"
-                        type="date"
-                        value={checkIn}
-                        onChange={(e) => setCheckIn(e.target.value)}
-                        style={{ fontSize: "13px", height: "48px" }}
-                      />
-                      <input
-                        className="tp-input bg-white rounded-3 border ps-3 w-50"
-                        type="date"
-                        value={checkOut}
-                        onChange={(e) => setCheckOut(e.target.value)}
-                        style={{ fontSize: "13px", height: "48px" }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Field 3: Guests (Adults & Children) */}
-                  <div className="tp-booking-location tp-booking-col-3 tp-booking-nohide p-relative flex-grow-1">
-                    <span className="tp-booking-6-title fw-600 d-inline-block mb-2 text-dark" style={{ fontSize: "13px" }}>
-                      Guests
-                    </span>
-                    <div
-                      className="tp-booking-location-input tp-booking-toggle p-relative d-flex align-items-center gap-1 bg-white rounded-3 border ps-5 pe-2"
-                      style={{ height: "48px" }}
-                    >
-                      <span className="tp-booking-input-icon text-muted">
-                        <Users size={16} />
-                      </span>
-                      <select
-                        className="tp-input w-50 bg-transparent border-0 font-medium text-xs cursor-pointer p-0"
-                        value={adults}
-                        onChange={(e) => setAdults(Number(e.target.value))}
-                        style={{ fontSize: "13px" }}
-                      >
-                        <option value={1}>1 Adult</option>
-                        <option value={2}>2 Adults</option>
-                        <option value={3}>3 Adults</option>
-                        <option value={4}>4 Adults</option>
-                        <option value={5}>5 Adults</option>
-                        <option value={6}>6 Adults</option>
-                      </select>
-                      <span className="text-muted">,</span>
-                      <select
-                        className="tp-input w-50 bg-transparent border-0 font-medium text-xs cursor-pointer p-0"
-                        value={childrenCount}
-                        onChange={(e) => setChildrenCount(Number(e.target.value))}
-                        style={{ fontSize: "13px" }}
-                      >
-                        <option value={0}>0 Child</option>
-                        <option value={1}>1 Child</option>
-                        <option value={2}>2 Children</option>
-                        <option value={3}>3 Children</option>
-                        <option value={4}>4 Children</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Search Submit CTA Button */}
-                  <div className="tp-booking-submit-btn">
-                    <button
-                      type="submit"
-                      className="tp-btn w-100 d-inline-flex align-items-center justify-content-center gap-2 fw-600 text-white rounded-3 px-4 shadow-sm"
-                      disabled={loading}
-                      style={{ height: "48px", minWidth: "140px", fontSize: "14px" }}
-                    >
-                      {loading ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" /> Searching...
-                        </>
-                      ) : (
-                        <>
-                          <Search size={16} /> Search
-                        </>
+                  {/* Field 2: Dates (Check-In & Check-Out: Defaults to Today & Tomorrow) */}
+                  <div className={activeTab === "flights" ? "col-xl-3 col-lg-3 col-md-6" : "col-xl-4 col-lg-4 col-md-6"}>
+                    <label className="form-label text-dark fw-bold mb-1" style={{ fontSize: "12.5px" }}>
+                      {activeTab === "flights" ? "Departure Date" : "Check-in & Check-out"}
+                    </label>
+                    <div className="position-relative d-flex align-items-center gap-2">
+                      <div className="position-relative flex-grow-1">
+                        <span className="position-absolute text-muted" style={{ left: "12px", top: "50%", transform: "translateY(-50%)" }}>
+                          <Calendar size={15} />
+                        </span>
+                        <input
+                          type="date"
+                          className="form-control bg-light border-0 ps-5 fw-semibold"
+                          value={checkIn}
+                          onChange={(e) => setCheckIn(e.target.value)}
+                          style={{ height: "48px", borderRadius: "14px", fontSize: "13px" }}
+                        />
+                      </div>
+                      {activeTab !== "flights" && (
+                        <div className="position-relative flex-grow-1">
+                          <input
+                            type="date"
+                            className="form-control bg-light border-0 ps-3 fw-semibold"
+                            value={checkOut}
+                            onChange={(e) => setCheckOut(e.target.value)}
+                            style={{ height: "48px", borderRadius: "14px", fontSize: "13px" }}
+                          />
+                        </div>
                       )}
-                    </button>
+                    </div>
+                  </div>
+
+                  {/* Field 3: Interactive Luxury Guest & Room Selector */}
+                  <div className={activeTab === "flights" ? "col-xl-2 col-lg-2 col-md-6" : "col-xl-2 col-lg-2 col-md-6"}>
+                    <label className="form-label text-dark fw-bold mb-1" style={{ fontSize: "12.5px" }}>
+                      Guests & Rooms
+                    </label>
+                    <div className="position-relative" ref={guestsRef}>
+                      <button
+                        type="button"
+                        onClick={() => setShowGuestsPopover(!showGuestsPopover)}
+                        className="btn bg-light border-0 w-100 d-flex align-items-center text-start px-3 fw-semibold text-dark position-relative"
+                        style={{ height: "48px", borderRadius: "14px", fontSize: "13px" }}
+                      >
+                        <span className="text-muted me-2">
+                          <Users size={15} />
+                        </span>
+                        <span className="text-truncate">
+                          {adults + childrenCount} Guests{rooms > 1 ? `, ${rooms} R` : ""}
+                        </span>
+                      </button>
+
+                      {/* Interactive Guests Popover Dropdown */}
+                      {showGuestsPopover && (
+                        <div
+                          className="position-absolute bg-white shadow-lg border rounded-4 p-3 z-3"
+                          style={{
+                            top: "calc(100% + 8px)",
+                            left: 0,
+                            minWidth: "260px",
+                            boxShadow: "0 20px 40px -10px rgba(15, 23, 42, 0.16)",
+                          }}
+                        >
+                          {/* Adults */}
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                              <div className="fw-bold text-dark" style={{ fontSize: "13px" }}>Adults</div>
+                              <div className="text-muted" style={{ fontSize: "11px" }}>Ages 13 or above</div>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setAdults(Math.max(1, adults - 1))}
+                                disabled={adults <= 1}
+                                className="btn btn-sm btn-light rounded-circle border p-0 d-flex align-items-center justify-content-center"
+                                style={{ width: "28px", height: "28px" }}
+                              >
+                                <Minus size={12} />
+                              </button>
+                              <span className="fw-bold text-dark" style={{ width: "16px", textAlign: "center" }}>
+                                {adults}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setAdults(adults + 1)}
+                                className="btn btn-sm btn-light rounded-circle border p-0 d-flex align-items-center justify-content-center"
+                                style={{ width: "28px", height: "28px" }}
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Children */}
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                              <div className="fw-bold text-dark" style={{ fontSize: "13px" }}>Children</div>
+                              <div className="text-muted" style={{ fontSize: "11px" }}>Ages 0 to 12</div>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setChildrenCount(Math.max(0, childrenCount - 1))}
+                                disabled={childrenCount <= 0}
+                                className="btn btn-sm btn-light rounded-circle border p-0 d-flex align-items-center justify-content-center"
+                                style={{ width: "28px", height: "28px" }}
+                              >
+                                <Minus size={12} />
+                              </button>
+                              <span className="fw-bold text-dark" style={{ width: "16px", textAlign: "center" }}>
+                                {childrenCount}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setChildrenCount(childrenCount + 1)}
+                                className="btn btn-sm btn-light rounded-circle border p-0 d-flex align-items-center justify-content-center"
+                                style={{ width: "28px", height: "28px" }}
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Rooms */}
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                              <div className="fw-bold text-dark" style={{ fontSize: "13px" }}>Rooms</div>
+                              <div className="text-muted" style={{ fontSize: "11px" }}>Rooms count</div>
+                            </div>
+                            <div className="d-flex align-items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setRooms(Math.max(1, rooms - 1))}
+                                disabled={rooms <= 1}
+                                className="btn btn-sm btn-light rounded-circle border p-0 d-flex align-items-center justify-content-center"
+                                style={{ width: "28px", height: "28px" }}
+                              >
+                                <Minus size={12} />
+                              </button>
+                              <span className="fw-bold text-dark" style={{ width: "16px", textAlign: "center" }}>
+                                {rooms}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setRooms(rooms + 1)}
+                                className="btn btn-sm btn-light rounded-circle border p-0 d-flex align-items-center justify-content-center"
+                                style={{ width: "28px", height: "28px" }}
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
+                          </div>
+
+                          <Button
+                            variant="background"
+                            size="sm"
+                            fullWidth
+                            onClick={() => setShowGuestsPopover(false)}
+                            icon={<Check size={14} />}
+                            iconPosition="left"
+                          >
+                            Apply Selection
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Field 4: Search CTA Button */}
+                  <div className={activeTab === "flights" ? "col-xl-12 col-lg-auto" : "col-xl-2 col-lg-2 col-md-12"}>
+                    <Button
+                      variant="background"
+                      size="md"
+                      type="submit"
+                      loading={loading}
+                      icon={<Search size={16} />}
+                      iconPosition="left"
+                      fullWidth
+                      style={{ height: "48px", borderRadius: "14px", fontSize: "14px" }}
+                    >
+                      Search
+                    </Button>
                   </div>
                 </div>
               </form>
 
               {/* Real-time SerpApi Live Results Display */}
               {searched && (
-                <div className="tp-booking-results mt-4 pt-3 border-top">
+                <div className="tp-booking-results mt-4 pt-4 border-top">
                   <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                    <h5 className="fw-700 text-dark mb-0 d-inline-flex align-items-center gap-2" style={{ fontSize: "18px" }}>
-                      <Sparkles size={18} className="text-primary" />
-                      Live {activeTab.toUpperCase()} Results {location ? `for "${location}"` : ""}
-                    </h5>
-                    <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-1 font-monospace small">
-                      Powered by Google Search
-                    </span>
+                    <div>
+                      <h5 className="fw-bold text-dark mb-0 d-inline-flex align-items-center gap-2" style={{ fontSize: "17px" }}>
+                        <Sparkles size={17} className="text-success" />
+                        Live {activeTab.toUpperCase()} Results {location ? `for "${location}"` : ""}
+                      </h5>
+                      {location && (
+                        <div className="text-muted small mt-1">
+                          Check-in: <strong>{checkIn}</strong> • Check-out: <strong>{checkOut}</strong> • {adults + childrenCount} Guests
+                        </div>
+                      )}
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      {location && (
+                        <button
+                          type="button"
+                          onClick={() => navigateToDestination(location)}
+                          className="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1"
+                          style={{ fontSize: "12px" }}
+                        >
+                          <Compass size={13} /> View All {location} Tours
+                        </button>
+                      )}
+                      <span className="badge bg-success bg-opacity-10 text-success px-3 py-1 font-monospace small">
+                        Powered by Google Search
+                      </span>
+                    </div>
                   </div>
 
                   {loading ? (
                     <div className="text-center py-5 text-muted">
-                      <Loader2 size={32} className="animate-spin mb-2 d-inline-block text-primary" />
-                      <p className="small mb-0">Fetching real-time {activeTab} information & pricing from SerpApi...</p>
+                      <Loader2 size={30} className="animate-spin mb-2 d-inline-block text-success" />
+                      <p className="small mb-0">Fetching real-time {activeTab} rates & options from SerpApi...</p>
                     </div>
                   ) : searchResults.length === 0 ? (
-                    <div className="p-4 bg-light rounded-3 text-center text-muted">
-                      <p className="mb-0">No direct results found for this search. Please try another destination or check your spelling.</p>
+                    <div className="text-center py-4 text-muted">
+                      <p className="mb-0">No live {activeTab} results found. Try a different destination or date.</p>
                     </div>
                   ) : (
                     <div className="row g-3">
@@ -429,22 +566,22 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                       {activeTab === "hotels" &&
                         searchResults.map((item: SerpHotelResult, idx: number) => (
                           <div key={idx} className="col-lg-4 col-md-6">
-                            <div className="card h-100 border rounded-3 overflow-hidden shadow-sm hover-shadow transition-all bg-white">
+                            <div className="card h-100 border-0 rounded-4 overflow-hidden shadow-sm hover-shadow transition-all bg-white">
                               {item.thumbnail ? (
                                 <img
                                   src={item.thumbnail}
                                   className="card-img-top"
                                   alt={item.name}
-                                  style={{ height: "150px", objectFit: "cover" }}
+                                  style={{ height: "160px", objectFit: "cover" }}
                                 />
                               ) : (
-                                <div className="bg-light d-flex align-items-center justify-content-center" style={{ height: "150px" }}>
+                                <div className="bg-light d-flex align-items-center justify-content-center" style={{ height: "160px" }}>
                                   <Building size={32} className="text-muted" />
                                 </div>
                               )}
                               <div className="card-body p-3 d-flex flex-column justify-content-between">
                                 <div>
-                                  <h6 className="fw-700 text-dark text-truncate mb-1" style={{ fontSize: "14px" }}>
+                                  <h6 className="fw-bold text-dark text-truncate mb-1" style={{ fontSize: "14.5px" }}>
                                     {item.name}
                                   </h6>
                                   {item.rating > 0 && (
@@ -452,70 +589,19 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                                       <Star size={13} fill="currentColor" /> {item.rating} ({item.reviews} reviews)
                                     </div>
                                   )}
-                                  <div className="fw-800 text-primary mb-3" style={{ fontSize: "16px" }}>
+                                  <div className="fw-bold text-dark mb-3" style={{ fontSize: "16px" }}>
                                     {item.price || "Check Live Rate"}{" "}
                                     <span className="text-muted small fw-normal">/ night</span>
                                   </div>
                                 </div>
-                                <button
-                                  type="button"
+                                <Button
+                                  variant="background"
+                                  size="sm"
                                   onClick={() => navigateToTour(item.name, location || "Hotel", item.price)}
-                                  className="tp-btn-sm tp-btn text-white w-100 text-center rounded-2 py-2"
-                                  style={{ fontSize: "12.5px" }}
+                                  fullWidth
                                 >
                                   View Hotel Details
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-
-                      {/* Packages View (Google Search Live Results) */}
-                      {activeTab === "packages" &&
-                        searchResults.map((item: SerpOrganicResult, idx: number) => (
-                          <div key={idx} className="col-lg-4 col-md-6">
-                            <div className="card h-100 border rounded-3 overflow-hidden shadow-sm hover-shadow transition-all bg-white">
-                              {item.thumbnail && (
-                                <img
-                                  src={item.thumbnail}
-                                  className="card-img-top"
-                                  alt=""
-                                  style={{ height: "140px", objectFit: "cover" }}
-                                />
-                              )}
-                              <div className="card-body p-3 d-flex flex-column justify-content-between">
-                                <div>
-                                  <span className="badge bg-success bg-opacity-10 text-success font-monospace mb-2" style={{ fontSize: "11px" }}>
-                                    <CheckCircle2 size={11} className="me-1" /> Holiday Package
-                                  </span>
-                                  <h6 className="fw-700 text-dark mb-1 line-clamp-1" style={{ fontSize: "14px" }}>
-                                    {item.title}
-                                  </h6>
-                                  <p className="text-muted small line-clamp-2 mb-3" style={{ fontSize: "12.5px", lineHeight: 1.5 }}>
-                                    {item.snippet}
-                                  </p>
-                                </div>
-                                <div className="d-flex gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => navigateToTour(item.title, location || "India")}
-                                    className="tp-btn-sm tp-btn text-white flex-grow-1 text-center rounded-2 py-2"
-                                    style={{ fontSize: "12px" }}
-                                  >
-                                    Explore Package
-                                  </button>
-                                  {item.link && (
-                                    <a
-                                      href={item.link}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="btn btn-sm btn-light border px-2 py-2 rounded-2"
-                                      title="Open Source Link"
-                                    >
-                                      <ArrowUpRight size={14} />
-                                    </a>
-                                  )}
-                                </div>
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -523,31 +609,37 @@ export const BookingForm: React.FC<BookingFormProps> = ({
 
                       {/* Flights View */}
                       {activeTab === "flights" &&
-                        searchResults.map((item, idx) => (
+                        searchResults.map((item: SerpFlightResult, idx: number) => (
                           <div key={idx} className="col-md-6">
-                            <div className="p-3 border rounded-3 bg-white shadow-sm d-flex justify-content-between align-items-center">
+                            <div className="p-3 border-0 rounded-4 bg-white shadow-sm d-flex justify-content-between align-items-center">
                               <div>
-                                <h6 className="fw-700 text-dark mb-1 d-flex align-items-center gap-2" style={{ fontSize: "14px" }}>
-                                  <Plane size={15} className="text-primary" /> {item.airline}
+                                <h6 className="fw-bold text-dark mb-1 d-flex align-items-center gap-2" style={{ fontSize: "14.5px" }}>
+                                  <Plane size={15} className="text-success" /> {item.airline}
                                 </h6>
                                 <p className="text-muted small mb-1">
                                   {item.from} → {item.to}
                                 </p>
-                                <span className="badge bg-secondary bg-opacity-10 text-secondary small">
-                                  {item.stops === 0 ? "Non-stop Flight" : `${item.stops} Stop(s)`}
-                                </span>
+                                <div className="d-flex align-items-center gap-2">
+                                  <span className="badge bg-secondary bg-opacity-10 text-secondary small">
+                                    {item.stops === 0 ? "Non-stop Flight" : `${item.stops} Stop(s)`}
+                                  </span>
+                                  {item.duration > 0 && (
+                                    <span className="text-muted small d-inline-flex align-items-center gap-1">
+                                      <Clock size={12} /> {Math.floor(item.duration / 60)}h {item.duration % 60}m
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div className="text-end">
-                                <div className="fw-800 text-primary fs-6 mb-1">{item.price}</div>
-                                <a
+                                <div className="fw-bold text-dark fs-6 mb-2">{item.price}</div>
+                                <Button
+                                  variant="background"
+                                  size="sm"
                                   href={`https://www.google.com/travel/flights?q=flights+from+${originIata}+to+${destIata}`}
                                   target="_blank"
-                                  rel="noreferrer"
-                                  className="tp-btn-sm tp-btn text-white rounded-2 px-3 py-1"
-                                  style={{ fontSize: "11.5px" }}
                                 >
                                   Book Flight
-                                </a>
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -557,9 +649,9 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                       {activeTab === "travels" &&
                         searchResults.map((item: SerpOrganicResult, idx: number) => (
                           <div key={idx} className="col-md-6">
-                            <div className="p-3 border rounded-3 bg-white shadow-sm h-100 d-flex flex-column justify-content-between">
+                            <div className="p-3 border-0 rounded-4 bg-white shadow-sm h-100 d-flex flex-column justify-content-between">
                               <div>
-                                <h6 className="fw-700 text-dark mb-1 text-truncate" style={{ fontSize: "14px" }}>
+                                <h6 className="fw-bold text-dark mb-1 text-truncate" style={{ fontSize: "14.5px" }}>
                                   {item.title}
                                 </h6>
                                 <p className="text-muted small line-clamp-2 mb-3" style={{ fontSize: "12.5px" }}>
@@ -568,15 +660,15 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                               </div>
                               <div className="d-flex justify-content-between align-items-center">
                                 <span className="badge bg-info bg-opacity-10 text-info small">Travel Guide</span>
-                                <a
-                                  href={item.link}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="btn btn-sm btn-outline-primary rounded-pill px-3"
-                                  style={{ fontSize: "12px" }}
+                                <Button
+                                  variant="stroke"
+                                  size="sm"
+                                  icon={<ArrowUpRight size={13} />}
+                                  iconPosition="right"
+                                  onClick={() => navigateToTour(item.title, location || "Travel Guide")}
                                 >
-                                  Read Guide <ArrowUpRight size={13} className="ms-1" />
-                                </a>
+                                  Read Guide
+                                </Button>
                               </div>
                             </div>
                           </div>
@@ -585,14 +677,6 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                   )}
                 </div>
               )}
-
-              {/* Footer Note */}
-              <p className="tp-booking-6-dec mt-3 text-muted small mb-0">
-                Can't find what you're looking for? Create your{" "}
-                <a href="#" onClick={(e) => e.preventDefault()} className="common-underline fw-600 text-primary">
-                  Custom Itinerary
-                </a>
-              </p>
             </div>
           </div>
         </div>

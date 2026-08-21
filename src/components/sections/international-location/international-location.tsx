@@ -81,8 +81,8 @@ export const InternationalLocation: React.FC<InternationalLocationSettings> = ({
         <div className="p-relative">
           <Swiper
             modules={[Navigation, Pagination, Autoplay]}
-            spaceBetween={24}
-            slidesPerView={1}
+            spaceBetween={20}
+            slidesPerView={1.3}
             navigation={{
               prevEl: ".tp-international-slider-arrow-prev",
               nextEl: ".tp-international-slider-arrow-next",
@@ -90,10 +90,12 @@ export const InternationalLocation: React.FC<InternationalLocationSettings> = ({
             pagination={{ clickable: true }}
             autoplay={{ delay: 4000, disableOnInteraction: false }}
             breakpoints={{
-              576: { slidesPerView: 1 },
-              768: { slidesPerView: 2 },
-              992: { slidesPerView: 3 },
-              1400: { slidesPerView: 4 },
+              0: { slidesPerView: 1.3, spaceBetween: 16 },
+              480: { slidesPerView: 1.3, spaceBetween: 16 },
+              576: { slidesPerView: 1.3, spaceBetween: 16 },
+              768: { slidesPerView: 2, spaceBetween: 20 },
+              992: { slidesPerView: 3, spaceBetween: 24 },
+              1400: { slidesPerView: 4, spaceBetween: 24 },
             }}
             className="tp-tour-swiper"
           >

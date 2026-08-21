@@ -15,6 +15,8 @@ const INSTAGRAM_PEXELS_QUERIES = [
   "dubai desert safari luxury camp",
 ];
 
+import SeoDirectorySection from "../seo-directory/seo-directory";
+
 export default function Footer() {
   const footerRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +28,9 @@ export default function Footer() {
 
   return (
     <>
+      {/* ── SEO Directory & Quick Links Section ────────────────────── */}
+      <SeoDirectorySection />
+
       {/* tp-footer-area-start */}
       <footer
         ref={footerRef}

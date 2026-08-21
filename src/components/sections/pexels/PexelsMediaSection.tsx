@@ -43,11 +43,17 @@ export async function fetchPexelsVideo(query: string, orientation?: string | nul
 /**
  * Pick correct image URL by quality/size key with support for 1000px resolution
  */
+/**
+ * Pick correct image URL by quality/size key with support for 1000px resolution
+ */
 export function pickImageUrl(photo: any, quality: string) {
   const src = photo.src || {};
   if (quality === "1000x" || quality === "1000x1000" || quality === "1000") {
     // Generate high quality 1000px wide image from Pexels
     return src.original ? `${src.original}?auto=compress&cs=tinysrgb&w=1000&fit=crop` : (src.large2x || src.large || "");
+  }
+  if (quality === "1920" || quality === "large" || quality === "original" || quality === "full") {
+    return src.original ? `${src.original}?auto=compress&cs=tinysrgb&w=1920` : (src.large2x || src.large || "");
   }
   return src[quality] || src.large2x || src.original || src.large || "";
 }
@@ -67,11 +73,13 @@ export function pickVideoUrl(video: any, quality: string) {
 /**
  * Apply loaded media to the target element
  */
-export function applyMedia(el: HTMLImageElement | HTMLVideoElement, type: string, url: string) {
+export function applyMedia(el: HTMLElement, type: string, url: string) {
   if (!url) return;
   if (type === "video") {
     (el as HTMLVideoElement).src = url;
     (el as HTMLVideoElement).load?.();
+  } else if (type === "background" || !(el instanceof HTMLImageElement)) {
+    el.style.backgroundImage = `url("${url}")`;
   } else {
     (el as HTMLImageElement).src = url;
   }
@@ -95,7 +103,7 @@ export async function processElement(el: HTMLElement) {
       if (videos && videos.length > 0) {
         const index = rawIndex !== null ? parseInt(rawIndex, 10) : Math.floor(Math.random() * videos.length);
         const video = videos[index] || videos[0];
-        if (video) applyMedia(el as HTMLVideoElement, "video", pickVideoUrl(video, quality));
+        if (video) applyMedia(el, "video", pickVideoUrl(video, quality));
       }
     } else {
       const photos = await fetchPexelsImage(query, orientation);
@@ -103,7 +111,7 @@ export async function processElement(el: HTMLElement) {
         // Pick random photo or specific index if data-index provided to prevent duplicates
         const index = rawIndex !== null ? parseInt(rawIndex, 10) : Math.floor(Math.random() * photos.length);
         const photo = photos[index] || photos[0];
-        if (photo) applyMedia(el as HTMLImageElement, "image", pickImageUrl(photo, quality));
+        if (photo) applyMedia(el, type, pickImageUrl(photo, quality));
       }
     }
   } catch (err) {

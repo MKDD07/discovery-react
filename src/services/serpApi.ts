@@ -139,7 +139,7 @@ function generateFallbackData(params: Record<string, string>): any {
         reviews: 248,
         rate_per_night: { extracted_lowest: 7499 },
         link: "https://www.google.com/travel/hotels",
-        images: [{ original_image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80" }]
+        images: [{ original_image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80" }]
       },
       {
         name: `The Grand Palace Hotel, ${q}`,
@@ -147,7 +147,7 @@ function generateFallbackData(params: Record<string, string>): any {
         reviews: 189,
         rate_per_night: { extracted_lowest: 8999 },
         link: "https://www.google.com/travel/hotels",
-        images: [{ original_image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80" }]
+        images: [{ original_image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=400&q=80" }]
       },
       {
         name: `Nature Vista Eco Resort, ${q}`,
@@ -155,7 +155,7 @@ function generateFallbackData(params: Record<string, string>): any {
         reviews: 312,
         rate_per_night: { extracted_lowest: 6499 },
         link: "https://www.google.com/travel/hotels",
-        images: [{ original_image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80" }]
+        images: [{ original_image: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400&q=80" }]
       },
       {
         name: `Royal View Suites & Retreat, ${q}`,
@@ -163,7 +163,7 @@ function generateFallbackData(params: Record<string, string>): any {
         reviews: 145,
         rate_per_night: { extracted_lowest: 5799 },
         link: "https://www.google.com/travel/hotels",
-        images: [{ original_image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&q=80" }]
+        images: [{ original_image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=400&q=80" }]
       }
     ]
   };
@@ -338,18 +338,61 @@ export function extractFlights(data: any, max = 8): SerpFlightResult[] {
 
 
 /**
- * Resize a Google hotel image (lh3.googleusercontent.com) to a card-safe
- * intrinsic width by rewriting the `=s{N}` size suffix.
- * Any other CDN URL is returned unchanged.
+ * Resize image URLs (Google, Agoda, Booking.com, Tripadvisor, Unsplash, Pexels, etc.)
+ * to an intrinsic width of 400px max to optimize bandwidth, prevent layout shifts, and enforce clean sizing.
  */
-function resizeGoogleImage(url: string, size = 600): string {
+export function resizeImage(url: string, size = 400): string {
   if (!url) return url;
-  // lh3.googleusercontent.com encodes size as `=s{N}` at the end
-  if (url.includes("googleusercontent.com") || url.includes("lh3.google")) {
-    return url.replace(/=s\d+$/, `=s${size}`);
+  try {
+    // Google User Content (lh3.googleusercontent.com, googleusercontent.com)
+    if (url.includes("googleusercontent.com") || url.includes("lh3.google") || url.includes("google.com/travel")) {
+      if (/=[sw]\d+/i.test(url)) {
+        return url.replace(/=([sw])\d+([^\/]*)$/i, `=$1${size}$2`);
+      }
+      return `${url}=w${size}-h${Math.round(size * 0.67)}-n-k-no`;
+    }
+
+    // Agoda (e.g. https://pix8.agoda.net/hotelImages/54008436/0/...jpg?ce=2)
+    if (url.includes("agoda.net")) {
+      let cleanUrl = url.replace(/([?&])ce=\d+/i, "$1ce=0");
+      if (/[?&]s=\d+x/i.test(cleanUrl)) {
+        return cleanUrl.replace(/([?&]s=)\d+x/i, `$1${size}x`);
+      }
+      return cleanUrl.includes("?") ? `${cleanUrl}&s=${size}x` : `${cleanUrl}?s=${size}x`;
+    }
+
+    // Booking.com (cf.bstatic.com, bstatic.com)
+    if (url.includes("bstatic.com")) {
+      return url.replace(/\/max\d+(?:x\d+)?\//i, `/max${size}/`).replace(/\/square\d+\//i, `/square${size}/`);
+    }
+
+    // Tripadvisor (media-cdn.tripadvisor.com)
+    if (url.includes("tripadvisor.com")) {
+      return url.replace(/\/photo-[a-z0-9]+\//i, `/photo-w/`);
+    }
+
+    // Unsplash
+    if (url.includes("images.unsplash.com")) {
+      if (/[?&]w=\d+/i.test(url)) {
+        return url.replace(/([?&]w=)\d+/i, `$1${size}`);
+      }
+      return url.includes("?") ? `${url}&w=${size}&q=80` : `${url}?w=${size}&q=80`;
+    }
+
+    // Pexels
+    if (url.includes("images.pexels.com")) {
+      if (/[?&]w=\d+/i.test(url)) {
+        return url.replace(/([?&]w=)\d+/i, `$1${size}`);
+      }
+      return url.includes("?") ? `${url}&w=${size}` : `${url}?w=${size}`;
+    }
+  } catch {
+    return url;
   }
   return url;
 }
+
+const resizeGoogleImage = resizeImage;
 
 export function extractHotels(data: any, max = 4): SerpHotelResult[] {
   const properties = data?.properties || [];
@@ -584,6 +627,7 @@ const SerpAPI = {
   extractFlights,
   extractHotels,
   extractHotelDetail,
+  resizeImage,
 };
 
 export default SerpAPI;

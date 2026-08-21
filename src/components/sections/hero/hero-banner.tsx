@@ -14,14 +14,6 @@ const TAB_VIDEO_CONFIG: Record<
     description: string;
   }
 > = {
-  packages: {
-    query: "tropical island resort travel drone",
-    fallbackVideo: "https://html.aqlova.com/videos/turie/video-4.mp4",
-    fallbackPoster: "https://images.pexels.com/photos/1450360/pexels-photo-1450360.jpeg?auto=compress&cs=tinysrgb&w=1920",
-    subtitle: "Popular Packages",
-    title: "Turn Every Destination\nInto Pure Wonder",
-    description: "Explore 10,300+ Curated Holiday Packages",
-  },
   hotels: {
     query: "luxury hotel resort swimming pool",
     fallbackVideo: "https://player.vimeo.com/external/371842426.sd.mp4?s=d7e366a7b744005b451ec9496a7962ef9ea09a16&profile_id=164&oauth2_token_id=57447761",
@@ -52,8 +44,8 @@ interface HeroBannerProps {
   activeTab?: BookingTab;
 }
 
-export const HeroBanner: React.FC<HeroBannerProps> = ({ activeTab = "packages" }) => {
-  const currentConfig = TAB_VIDEO_CONFIG[activeTab] || TAB_VIDEO_CONFIG.packages;
+export const HeroBanner: React.FC<HeroBannerProps> = ({ activeTab = "hotels" }) => {
+  const currentConfig = TAB_VIDEO_CONFIG[activeTab] || TAB_VIDEO_CONFIG.hotels;
 
   const [videoUrl, setVideoUrl] = useState<string>(currentConfig.fallbackVideo);
   const [posterUrl, setPosterUrl] = useState<string>(currentConfig.fallbackPoster);

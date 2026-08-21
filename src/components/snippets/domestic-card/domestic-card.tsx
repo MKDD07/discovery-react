@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { SerpHotelResult } from "../../../services/serpApi";
+import { SerpHotelResult, resizeImage } from "../../../services/serpApi";
 
 export interface DomesticCardProps {
   hotel: SerpHotelResult;
@@ -106,10 +106,19 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
               {currentCardSrc && (
                 <img
                   alt={hotel.name || "tour"}
-                  src={currentCardSrc}
+                  src={resizeImage(currentCardSrc, 400)}
+                  width={400}
+                  height={233}
                   loading="lazy"
                   decoding="async"
-                  style={{ opacity: mainImgLoaded ? 1 : 0, transition: "opacity 0.3s ease" }}
+                  style={{
+                    opacity: mainImgLoaded ? 1 : 0,
+                    transition: "opacity 0.3s ease",
+                    maxWidth: "400px",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
                   onLoad={() => setMainImgLoaded(true)}
                   onError={() => {
                     // Try next candidate image

@@ -14,9 +14,16 @@ export const FlightCard: React.FC<FlightCardProps> = ({ flight, onBook }) => {
   };
 
   return (
-    <div className="tp-tour-item h-100 d-flex flex-column justify-content-between">
+    <div
+      className="tp-tour-item tp-flight-card w-100 h-100 d-flex flex-column justify-content-between py-2"
+      style={{
+        width: "100%",
+        transform: "none",
+        transition: "none",
+      }}
+    >
       <div>
-        {/* Top Airline Header & Badge */}
+        {/* Top Airline Header & Badge & Price */}
         <div className="d-flex align-items-center justify-content-between p-3 border-bottom">
           <div className="d-flex align-items-center gap-2">
             <div
@@ -57,11 +64,20 @@ export const FlightCard: React.FC<FlightCardProps> = ({ flight, onBook }) => {
             </div>
           </div>
 
-
+          {/* Top Right Corner Price */}
+          <div className="tp-tour-price text-end flex-shrink-0">
+            <div className="tp-tour-top-price d-flex align-items-center justify-content-end gap-2">
+              <span className="tp-tour-prefix">From:</span>
+            </div>
+            <div className="tp-tour-bottom-price">
+              <span className="tp-tour-new-price fw-700">{flight.price}</span>
+              <span className="tp-tour-suffix">/passenger</span>
+            </div>
+          </div>
         </div>
 
         {/* Route Details Content */}
-        <div className="tp-tour-content pt-20">
+        <div className="tp-tour-content pt-20 pb-25">
           <div className="d-flex align-items-center justify-content-between text-center mb-15">
             {/* Departure */}
             <div className="text-start">
@@ -119,40 +135,6 @@ export const FlightCard: React.FC<FlightCardProps> = ({ flight, onBook }) => {
               <i className="fa-solid fa-suitcase-rolling mr-5"></i>
               Cabin + Check-in
             </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Footer Price & Booking Button */}
-      <div className="tp-tour-content pt-0">
-        <div className="tp-tour-footer d-flex justify-content-between gap-2 align-items-center pt-15 border-top">
-          <div className="tp-tour-price">
-            <div className="tp-tour-top-price d-flex align-items-center gap-2">
-              <span className="tp-tour-prefix">From:</span>
-            </div>
-            <div className="tp-tour-bottom-price">
-              <span className="tp-tour-new-price fw-700">{flight.price}</span>
-              <span className="tp-tour-suffix">/passenger</span>
-            </div>
-          </div>
-          <div className="tp-tour-btn">
-            <a
-              href={`https://www.google.com/travel/flights?q=flights+from+${encodeURIComponent(
-                flight.from.split(" ")[0]
-              )}+to+${encodeURIComponent(flight.to.split(" ")[0])}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => {
-                if (onBook) {
-                  e.preventDefault();
-                  onBook(flight);
-                }
-              }}
-              className="tp-btn-sm fw-500 tp-ff-inter border-0 d-inline-block text-center"
-              style={{ cursor: "pointer", textDecoration: "none" }}
-            >
-              Book Flight
-            </a>
           </div>
         </div>
       </div>

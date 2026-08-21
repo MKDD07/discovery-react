@@ -108,7 +108,6 @@ export const BlogCard: React.FC<BlogCardProps> = ({ item, loading = false, onNav
               <div className="tp-custom-meta-info">
                 <span>{item.date}</span>
                 <span className="tp-custom-meta-dot"></span>
-                <span className="tp-custom-meta-author">{item.author}</span>
               </div>
             </div>
             <h3 className="tp-blog-title fw-600">
