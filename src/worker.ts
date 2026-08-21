@@ -57,6 +57,83 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
+    // ── 0. Dynamic /sitemap.xml — Reads all blogs from D1 in real time ──────
+    if (url.pathname === "/sitemap.xml") {
+      const BASE = "https://discoveryconvoy.com";
+      const today = new Date().toISOString().split("T")[0];
+
+      // Static pages
+      const staticUrls = [
+        { loc: `${BASE}/`, changefreq: "daily", priority: "1.0" },
+        { loc: `${BASE}/luxury`, changefreq: "daily", priority: "0.9" },
+        { loc: `${BASE}/blog`, changefreq: "daily", priority: "0.9" },
+        { loc: `${BASE}/about`, changefreq: "weekly", priority: "0.8" },
+        { loc: `${BASE}/contact`, changefreq: "weekly", priority: "0.8" },
+        { loc: `${BASE}/faq`, changefreq: "weekly", priority: "0.8" },
+        // Destination hubs
+        { loc: `${BASE}/destination/paris`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/dubai`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/goa`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/maldives`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/bali`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/switzerland`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/kashmir`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/london`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/tokyo`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/kerala`, changefreq: "weekly", priority: "0.85" },
+        { loc: `${BASE}/destination/rajasthan`, changefreq: "weekly", priority: "0.85" },
+        // Collection hubs
+        { loc: `${BASE}/collection/luxury-palaces-villas`, changefreq: "weekly", priority: "0.8" },
+        { loc: `${BASE}/collection/honeymoon-getaways`, changefreq: "weekly", priority: "0.8" },
+        { loc: `${BASE}/collection/mountain-wilderness-retreats`, changefreq: "weekly", priority: "0.8" },
+        { loc: `${BASE}/collection/beachfront-private-islands`, changefreq: "weekly", priority: "0.8" },
+        { loc: `${BASE}/collection/heritage-cultural-odysseys`, changefreq: "weekly", priority: "0.8" },
+      ];
+
+      // Fetch all blog slugs + dates from D1
+      let blogRows: { slug: string; created_at?: string }[] = [];
+      if (env?.BLOGS_DB) {
+        try {
+          const result = await env.BLOGS_DB.prepare(
+            `SELECT slug, created_at FROM blogs ORDER BY created_at DESC LIMIT 2000`
+          ).all();
+          blogRows = (result?.results || []) as { slug: string; created_at?: string }[];
+        } catch {
+          // If D1 unavailable, sitemap still works with static pages
+        }
+      }
+
+      const toXmlDate = (raw?: string): string => {
+        if (!raw) return today;
+        try {
+          return new Date(raw).toISOString().split("T")[0];
+        } catch {
+          return today;
+        }
+      };
+
+      const urlTags = [
+        ...staticUrls.map(
+          (u) => `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
+        ),
+        ...blogRows.map(
+          (b) =>
+            `  <url>\n    <loc>${BASE}/blog/${b.slug}</loc>\n    <lastmod>${toXmlDate(b.created_at)}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.75</priority>\n  </url>`
+        ),
+      ].join("\n");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urlTags}\n</urlset>`;
+
+      return new Response(xml, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600",
+          ...corsHeaders,
+        },
+      });
+    }
+
     // ── 1. Intercept /api/register & /api/signup requests ────────────────
     if (url.pathname === "/api/register" || url.pathname === "/api/signup") {
       if (request.method !== "POST") {
