@@ -341,7 +341,7 @@ export default {
               params.push(`%${location}%`);
             }
 
-            query += ` ORDER BY created_at DESC LIMIT 50`;
+            query += ` ORDER BY created_at DESC LIMIT 500`;
 
             const stmt = blogsDb.prepare(query);
             const res = params.length > 0 ? await stmt.bind(...params).all() : await stmt.all();

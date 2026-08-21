@@ -17,7 +17,7 @@ const CATEGORIES = [
   "Travel Tips",
 ];
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 20;
 
 interface BlogPageProps {
   onBackHome?: () => void;
