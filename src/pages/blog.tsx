@@ -85,13 +85,11 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
     };
   }, [selectedCategory]);
 
-  // Filter posts by category (capped at max 30 items per category)
-  const categoryMatched =
+  // Filter posts by category — no artificial cap, show all from DB
+  const filteredPosts =
     selectedCategory === "All"
       ? blogs
       : blogs.filter((post) => post.category.toLowerCase() === selectedCategory.toLowerCase());
-
-  const filteredPosts = categoryMatched.slice(0, 30);
 
   const totalPages = Math.ceil(filteredPosts.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
