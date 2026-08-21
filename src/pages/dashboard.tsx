@@ -232,6 +232,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
         prev.map((item, idx) => (idx === i ? { ...item, status: "generating" } : item))
       );
 
+      let itemHadError = false;
       try {
         // Call AI generator
         const genRes = await fetch("/api/generate-blog", {
@@ -320,6 +321,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
           );
         }
       } catch (err: any) {
+        itemHadError = true;
         setBatchQueue((prev) =>
           prev.map((item, idx) =>
             idx === i
@@ -333,9 +335,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
         );
       }
 
-      // 30-second gap/cooldown before next blog generation to ensure smooth rate limits
+      // 10-second gap/cooldown before next blog generation (15s if error occurred)
       if (i < initialQueue.length - 1 && !isCancelledRef.current) {
-        for (let sec = 30; sec > 0; sec--) {
+        const cooldownTime = itemHadError ? 15 : 10;
+        for (let sec = cooldownTime; sec > 0; sec--) {
           if (isCancelledRef.current) break;
           setCooldownSeconds(sec);
           await new Promise((r) => setTimeout(r, 1000));
@@ -983,7 +986,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                                   <strong className="text-danger fw-bold fs-6">{cooldownSeconds}s</strong>...
                                 </span>
                               </div>
-                              <span className="badge bg-white text-dark border font-monospace small">30s Gap Interval</span>
+                              <span className="badge bg-white text-dark border font-monospace small">10s Safety Gap</span>
                             </div>
                           )}
 
