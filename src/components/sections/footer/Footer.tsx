@@ -221,19 +221,19 @@ export default function Footer() {
                         <a href="/">Home</a>
                       </li>
                       <li>
-                        <a href="#about">About Us</a>
+                        <a href="/about">About Us</a>
                       </li>
                       <li>
-                        <a href="#domestic">Domestic Packages</a>
+                        <a href="/luxury">Luxe Selections</a>
                       </li>
                       <li>
-                        <a href="#international">International Tours</a>
+                        <a href="/blog">Travel Blog</a>
                       </li>
                       <li>
-                        <a href="#privacy">Privacy Policy</a>
+                        <a href="/faq">FAQ &amp; Help Center</a>
                       </li>
                       <li>
-                        <a href="#terms">Terms &amp; Conditions</a>
+                        <a href="/contact">Contact Concierge</a>
                       </li>
                     </ul>
                   </div>

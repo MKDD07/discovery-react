@@ -885,6 +885,17 @@ export default function Header() {
             <span>Contact Concierge</span>
             <i className="fa-solid fa-chevron-right opacity-25" style={{ fontSize: "10px" }}></i>
           </a>
+          <a
+            href="/faq"
+            onClick={(e) => {
+              e.preventDefault();
+              navigateTo("/faq");
+            }}
+            className="tp-mobile-nav-link"
+          >
+            <span>FAQ & Help Center</span>
+            <i className="fa-solid fa-chevron-right opacity-25" style={{ fontSize: "10px" }}></i>
+          </a>
         </div>
 
         {/* Mobile Auth Bottom Section */}

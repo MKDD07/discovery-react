@@ -28,6 +28,9 @@ import BlogPage from "./pages/blog";
 import BlogDetailsPage from "./pages/blog-details";
 import LuxuryPage from "./pages/luxury";
 import CollectionPage from "./pages/collection";
+import AboutPage from "./pages/about";
+import ContactPage from "./pages/contact";
+import FaqPage from "./pages/faq";
 
 function App() {
   const [bookingTab, setBookingTab] = useState<BookingTab>("hotels");
@@ -83,6 +86,12 @@ function App() {
       setCurrentPage("luxury");
     } else if (path.startsWith("/collection/") || path.startsWith("/collections")) {
       setCurrentPage(path);
+    } else if (path === "/about" || path === "/about-us") {
+      setCurrentPage("about");
+    } else if (path === "/contact" || path === "/contact-us") {
+      setCurrentPage("contact");
+    } else if (path === "/faq" || path === "/faqs" || path === "/help") {
+      setCurrentPage("faq");
     }
 
     const handlePopState = () => {
@@ -138,6 +147,18 @@ function App() {
         setSelectedTour(null);
       } else if (currentPath.startsWith("/collection/") || currentPath.startsWith("/collections")) {
         setCurrentPage(currentPath);
+        setSelectedDestination(null);
+        setSelectedTour(null);
+      } else if (currentPath === "/about" || currentPath === "/about-us") {
+        setCurrentPage("about");
+        setSelectedDestination(null);
+        setSelectedTour(null);
+      } else if (currentPath === "/contact" || currentPath === "/contact-us") {
+        setCurrentPage("contact");
+        setSelectedDestination(null);
+        setSelectedTour(null);
+      } else if (currentPath === "/faq" || currentPath === "/faqs" || currentPath === "/help") {
+        setCurrentPage("faq");
         setSelectedDestination(null);
         setSelectedTour(null);
       } else {
@@ -241,6 +262,39 @@ function App() {
           setCurrentPage(null);
           const tourUrl = `/tour/${encodeURIComponent(tour.name)}?loc=${encodeURIComponent(tour.location)}${tour.price ? `&price=${encodeURIComponent(tour.price)}` : ""}`;
           window.history.pushState({ hotel: tour.initialHotel }, "", tourUrl);
+        }}
+      />
+    );
+  }
+
+  if (currentPage === "about") {
+    return (
+      <AboutPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+      />
+    );
+  }
+
+  if (currentPage === "contact") {
+    return (
+      <ContactPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+      />
+    );
+  }
+
+  if (currentPage === "faq") {
+    return (
+      <FaqPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
         }}
       />
     );

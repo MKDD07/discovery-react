@@ -1,0 +1,21 @@
+# Discovery Convoy - robots.txt
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/*
+Allow: /destination/*
+Allow: /tour/*
+Allow: /luxury
+Allow: /collections/*
+Allow: /about
+Allow: /contact
+Allow: /faq
+Allow: /llms.txt
+
+# Disallow private user portals
+Disallow: /dashboard
+Disallow: /login
+Disallow: /register
+
+# Sitemaps & LLM documentation
+Sitemap: https://discoveryconvoy.com/sitemap.xml

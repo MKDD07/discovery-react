@@ -1,0 +1,45 @@
+# Discovery Convoy (discoveryconvoy.com)
+> Premier luxury travel platform curating bespoke journeys, world-class resort retreats, private jet escapes, and five-star accommodations worldwide.
+
+## About Discovery Convoy
+Discovery Convoy is an elite travel discovery and booking engine providing personalized concierge services, real-time Google Flights & Hotels search intelligence, ultra-luxury holiday curation, and destination guides for discerning global travelers.
+
+## Core Capabilities
+- **Curated Luxury Escapes**: Handpicked luxury villas, 5-star heritage palaces, overwater retreats, private island sanctuaries.
+- **Real-Time Booking Intelligence**: Live rates, instant availability, and best rate guarantee across 10,000+ global properties.
+- **Flight Concierge**: Direct and multi-city flight connections with airline fare comparison.
+- **Destination Dossiers**: In-depth travel guides for Paris, Dubai, Maldives, Switzerland, Goa, Bali, Tokyo, Kashmir, London, Rajasthan, and Kerala.
+- **24/7 Dedicated Concierge**: Direct telephone hotline (+91 9319300560) and concierge email (support@discoveryconvoy.com).
+
+## Key Links & Endpoints
+- [Homepage](https://discoveryconvoy.com/): Main hub for hotel searches, flight lookups, and trending getaways.
+- [Luxury Stays & Villas](https://discoveryconvoy.com/luxury): Curated 5-star luxury collection and premium concierge packages.
+- [Travel Dossiers & Blog](https://discoveryconvoy.com/blog): Editorial guides, itineraries, and expert travel insights.
+- [About Us](https://discoveryconvoy.com/about): Mission, leadership, brand heritage, and partner network.
+- [Contact Concierge](https://discoveryconvoy.com/contact): 24/7 client support, private bookings, and corporate travel desk.
+- [Frequently Asked Questions (FAQ)](https://discoveryconvoy.com/faq): Booking policies, cancellation terms, and concierge advantages.
+
+## Popular Destinations
+- [Paris](https://discoveryconvoy.com/destination/paris): Palace hotels, romantic Seine suites, Michelin-star dining tours.
+- [Dubai](https://discoveryconvoy.com/destination/dubai): Desert sanctuaries, Burj Al Arab experiences, yacht charters.
+- [Maldives](https://discoveryconvoy.com/destination/maldives): Overwater villas, private atoll transfers, coral reef diving.
+- [Switzerland](https://discoveryconvoy.com/destination/switzerland): Alpine chalets, Glacier Express journeys, luxury ski lodges.
+- [Goa](https://discoveryconvoy.com/destination/goa): Heritage Portuguese estates, beachfront private villas, luxury charters.
+- [Bali](https://discoveryconvoy.com/destination/bali): Ubud jungle villas, clifftop Uluwatu resorts, holistic wellness spas.
+- [Tokyo](https://discoveryconvoy.com/destination/tokyo): Ginza penthouses, traditional luxury ryokans, gourmet tours.
+- [Kashmir](https://discoveryconvoy.com/destination/kashmir): Dal Lake heritage houseboats, Gulmarg ski resorts, Himalayan retreats.
+- [Rajasthan](https://discoveryconvoy.com/destination/rajasthan): Royal palaces in Udaipur & Jaipur, luxury desert camps.
+- [Kerala](https://discoveryconvoy.com/destination/kerala): Backwater private houseboats, Ayurvedic wellness retreats.
+- [London](https://discoveryconvoy.com/destination/london): Mayfair luxury residences, historic suites, VIP West End access.
+
+## Curated Editorial Articles
+- [Ultimate Luxury Swiss Alps Guide 2026](https://discoveryconvoy.com/blog/luxury-swiss-alps-guide-2026)
+- [Top 10 Overwater Villas in Maldives](https://discoveryconvoy.com/blog/best-overwater-villas-maldives)
+- [Secret Kyoto Luxury Ryokans](https://discoveryconvoy.com/blog/secret-kyoto-luxury-ryokans)
+- [Dubai's Most Exclusive Desert Resorts](https://discoveryconvoy.com/blog/dubai-luxury-desert-resorts-2026)
+- [Amalfi Coast 7-Day Luxury Yacht Charter](https://discoveryconvoy.com/blog/amalfi-coast-yacht-charter-itinerary)
+
+## Contact Information
+- **Phone**: +91 9319300560
+- **Email**: support@discoveryconvoy.com
+- **Headquarters**: DLF Cyber City, Tower B, Gurugram / New Delhi, India
