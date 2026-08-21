@@ -82,10 +82,6 @@ export const VideoArea: React.FC = () => {
                   </h4>
                 </div>
                 <div className="tp-video-content-wrap">
-                  <div className="d-flex align-items-center justify-content-center mb-20">
-                    <span className="mr-10 text-white fw-600">Presented By :</span>
-                    <img width="110px" src="/src/logo-white.png" alt="Discovery Convoy Logo" />
-                  </div>
                   <p className="fw-500 text-white">
                     We transform your travel dreams into unforgettable realities.
                     <br /> From serene beaches to bustling cities.
