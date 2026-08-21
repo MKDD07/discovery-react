@@ -495,13 +495,12 @@ Generate a high quality, well-structured travel blog article in clean JSON forma
 
 CRITICAL RULES FOR HEADINGS & CONTENT:
 - Main title MUST be strictly 4 to 6 words maximum (e.g., "Complete Insider Guide To Bali"). NEVER exceed 6 words.
-- Each section subheading MUST be strictly 3 to 6 words maximum (e.g., "1. Sunrise Over Mount Batur", "2. Hidden Tropical Waterfalls"). NEVER exceed 6 words.
-- Each section has 2 engaging, high-quality paragraphs.
+- Each section has 5 engaging, high-quality, immersive paragraphs.
 - Provide a clean 3-5 word Pexels visual query per section (e.g. "bali sunrise mountain trekking").
 - Provide 4 to 10 structured sections (each with: subheading, 5 paragraphs, pexelsQuery, highlights).
 - Provide 5 to 10 clear FAQ items (question & answer).
 - CATEGORY & LOCATION AUTO-DETECTION:
-  * Category: ${category && category !== "Auto-Detect" ? `Use "${category}"` : 'Automatically pick the best matching category from ["Adventure", "Art and culture", "Nature", "Beach Trips", "Food & Travel", "Travel Tips"] based on the topic.'}
+  * Category: ${category && category !== "Auto-Detect" ? `Use "${category}"` : 'Automatically pick the best matching category from ["Adventure", "Luxury Escapes", "Beach Trips", "Nature", "Art and culture", "Honeymoon & Romance", "Food & Travel", "Heritage & History", "Mountain Treks", "Wellness & Spa", "Wildlife & Safari", "Cruise & Island Hopping", "Travel Tips", "Budget & Solo Travel", "City Breaks"] based on the topic.'}
   * Location: ${location && location !== "Auto-Detect" ? `Use "${location}"` : 'Automatically detect and extract the precise destination/country/city (e.g. "Bali, Indonesia", "Goa, India", "Kyoto, Japan", "Swiss Alps, Switzerland") from the topic.'}
 
 Return ONLY valid JSON with this exact schema:

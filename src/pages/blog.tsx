@@ -10,11 +10,20 @@ import SEO from "../components/snippets/seo/SEO";
 const CATEGORIES = [
   "All",
   "Adventure",
-  "Art and culture",
-  "Nature",
+  "Luxury Escapes",
   "Beach Trips",
+  "Nature",
+  "Art and culture",
+  "Honeymoon & Romance",
   "Food & Travel",
+  "Heritage & History",
+  "Mountain Treks",
+  "Wellness & Spa",
+  "Wildlife & Safari",
+  "Cruise & Island Hopping",
   "Travel Tips",
+  "Budget & Solo Travel",
+  "City Breaks",
 ];
 
 const ITEMS_PER_PAGE = 20;
@@ -76,11 +85,13 @@ export const BlogPage: React.FC<BlogPageProps> = ({ onBackHome }) => {
     };
   }, [selectedCategory]);
 
-  // Filter posts by category
-  const filteredPosts =
+  // Filter posts by category (capped at max 30 items per category)
+  const categoryMatched =
     selectedCategory === "All"
       ? blogs
       : blogs.filter((post) => post.category.toLowerCase() === selectedCategory.toLowerCase());
+
+  const filteredPosts = categoryMatched.slice(0, 30);
 
   const totalPages = Math.ceil(filteredPosts.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;

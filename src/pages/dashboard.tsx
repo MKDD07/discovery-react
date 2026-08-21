@@ -88,6 +88,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
   const [batchQueue, setBatchQueue] = useState<BatchBlogItem[]>([]);
   const [batchRunning, setBatchRunning] = useState<boolean>(false);
   const [batchAutoPublish, setBatchAutoPublish] = useState<boolean>(true);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number>(0);
   const isCancelledRef = useRef<boolean>(false);
 
   // SQLite Console State
@@ -332,15 +333,24 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
         );
       }
 
-      // Small delay between calls to be gentle with rate limits
-      await new Promise((r) => setTimeout(r, 600));
+      // 30-second gap/cooldown before next blog generation to ensure smooth rate limits
+      if (i < initialQueue.length - 1 && !isCancelledRef.current) {
+        for (let sec = 30; sec > 0; sec--) {
+          if (isCancelledRef.current) break;
+          setCooldownSeconds(sec);
+          await new Promise((r) => setTimeout(r, 1000));
+        }
+        setCooldownSeconds(0);
+      }
     }
 
+    setCooldownSeconds(0);
     setBatchRunning(false);
   };
 
   const handleStopBatch = () => {
     isCancelledRef.current = true;
+    setCooldownSeconds(0);
     setBatchRunning(false);
   };
 
@@ -743,11 +753,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                           >
                             <option value="Auto-Detect">✨ Auto-Detect by AI</option>
                             <option value="Adventure">Adventure</option>
-                            <option value="Art and culture">Art and culture</option>
-                            <option value="Nature">Nature</option>
+                            <option value="Luxury Escapes">Luxury Escapes</option>
                             <option value="Beach Trips">Beach Trips</option>
+                            <option value="Nature">Nature</option>
+                            <option value="Art and culture">Art and culture</option>
+                            <option value="Honeymoon & Romance">Honeymoon & Romance</option>
                             <option value="Food & Travel">Food & Travel</option>
+                            <option value="Heritage & History">Heritage & History</option>
+                            <option value="Mountain Treks">Mountain Treks</option>
+                            <option value="Wellness & Spa">Wellness & Spa</option>
+                            <option value="Wildlife & Safari">Wildlife & Safari</option>
+                            <option value="Cruise & Island Hopping">Cruise & Island Hopping</option>
                             <option value="Travel Tips">Travel Tips</option>
+                            <option value="Budget & Solo Travel">Budget & Solo Travel</option>
+                            <option value="City Breaks">City Breaks</option>
                           </select>
                         </div>
 
@@ -953,6 +972,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
                               {batchRunning ? "⚡ Batch Processing Active" : "✓ Batch Finished"}
                             </span>
                           </div>
+
+                          {/* Cooldown Alert Countdown */}
+                          {cooldownSeconds > 0 && (
+                            <div className="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center justify-content-between rounded-3 border shadow-sm">
+                              <div className="d-flex align-items-center gap-2 small fw-semibold text-dark">
+                                <Loader2 size={14} className="animate-spin text-warning" />
+                                <span>
+                                  Rate-Limit Safety Cooldown: Next article generating in{" "}
+                                  <strong className="text-danger fw-bold fs-6">{cooldownSeconds}s</strong>...
+                                </span>
+                              </div>
+                              <span className="badge bg-white text-dark border font-monospace small">30s Gap Interval</span>
+                            </div>
+                          )}
 
                           {/* Progress Bar */}
                           <div className="progress mb-3" style={{ height: "8px" }}>
