@@ -498,7 +498,7 @@ CRITICAL RULES FOR HEADINGS & CONTENT:
 - Each section subheading MUST be strictly 3 to 6 words maximum (e.g., "1. Sunrise Over Mount Batur", "2. Hidden Tropical Waterfalls"). NEVER exceed 6 words.
 - Each section has 2 engaging, high-quality paragraphs.
 - Provide a clean 3-5 word Pexels visual query per section (e.g. "bali sunrise mountain trekking").
-- Provide 4 to 10 structured sections (each with: subheading, 2 paragraphs, pexelsQuery, highlights).
+- Provide 4 to 10 structured sections (each with: subheading, 5 paragraphs, pexelsQuery, highlights).
 - Provide 5 to 10 clear FAQ items (question & answer).
 - CATEGORY & LOCATION AUTO-DETECTION:
   * Category: ${category && category !== "Auto-Detect" ? `Use "${category}"` : 'Automatically pick the best matching category from ["Adventure", "Art and culture", "Nature", "Beach Trips", "Food & Travel", "Travel Tips"] based on the topic.'}
