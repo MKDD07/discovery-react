@@ -96,21 +96,23 @@ export default function Header() {
       {/* ── 1. Slim Luxury Announcement / Helpline Topbar ────────────────── */}
       <div className="tp-header-topbar">
         <div className="container">
-          <div className="d-flex align-items-center justify-content-between">
-            <div className="d-flex align-items-center gap-3">
-              <span className="d-none d-md-inline-flex align-items-center gap-1 opacity-75">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div className="d-flex align-items-center gap-2">
+              <span className="d-inline-flex align-items-center gap-1 opacity-90">
                 <i className="fa-solid fa-headset" style={{ fontSize: "11px" }}></i>
-                <span>24/7 Concierge:</span>
+                <span className="d-none d-sm-inline">24/7 Concierge:</span>
                 <a href="tel:+919319300560" className="fw-bold text-white">
                   +91 9319300560
                 </a>
               </span>
             </div>
 
-            <div className="d-flex align-items-center gap-3">
-              <span className="d-none d-sm-inline-flex align-items-center gap-1 opacity-75">
+            <div className="d-flex align-items-center gap-2">
+              <span className="d-inline-flex align-items-center gap-1 opacity-90">
                 <i className="fa-regular fa-envelope" style={{ fontSize: "11px" }}></i>
-                <a href="mailto:support@discoveryconvoy.com">support@discoveryconvoy.com</a>
+                <a href="mailto:support@discoveryconvoy.com" className="text-white">
+                  support@discoveryconvoy.com
+                </a>
               </span>
             </div>
           </div>
