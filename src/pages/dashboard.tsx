@@ -246,7 +246,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
           }),
         });
 
-        const genData = await genRes.json();
+        const genText = await genRes.text();
+        if (!genText || genText.trim().length === 0) {
+          throw new Error("Server returned an empty response. Please check your API key and try again.");
+        }
+        let genData: any;
+        try {
+          genData = JSON.parse(genText);
+        } catch {
+          throw new Error(`Server returned invalid data: ${genText.slice(0, 100)}`);
+        }
         if (!genRes.ok || !genData.success || !genData.data) {
           throw new Error(genData.error || "Failed to generate blog content.");
         }

@@ -569,9 +569,35 @@ Output ONLY valid JSON matching this schema:
           );
         }
 
-        let aiData = (await aiResponse.json()) as any;
+        // Safely parse the AI response body — empty body causes "Unexpected end of JSON input"
+        const aiRawText = await aiResponse.text();
+        if (!aiRawText || aiRawText.trim().length === 0) {
+          return new Response(
+            JSON.stringify({ error: "AI returned an empty response. Please try again." }),
+            { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
+        let aiData: any;
+        try {
+          aiData = JSON.parse(aiRawText);
+        } catch {
+          return new Response(
+            JSON.stringify({ error: `AI returned invalid JSON. Raw: ${aiRawText.slice(0, 200)}` }),
+            { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
+
         let rawContent = aiData.choices?.[0]?.message?.content || "";
         let finishReason = aiData.choices?.[0]?.finish_reason;
+
+        if (!rawContent) {
+          const apiErr = aiData.error?.message || aiData.message || "No content in AI response.";
+          return new Response(
+            JSON.stringify({ error: apiErr }),
+            { status: 502, headers: { "Content-Type": "application/json", ...corsHeaders } }
+          );
+        }
 
         // Repair truncated JSON helper
         const repairTruncatedJson = (str: string): string => {
