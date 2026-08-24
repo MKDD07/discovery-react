@@ -275,14 +275,25 @@ export default {
       const BASE = "https://discoveryconvoy.com";
       const d1Db = env?.BLOGS_DB || env?.DB;
       const today = new Date().toISOString().split("T")[0];
-      let results: any[] = [];
 
+      const toSafeDate = (val?: string | number | null): string => {
+        if (!val) return today;
+        try {
+          const d = new Date(val);
+          if (isNaN(d.getTime())) return today;
+          return d.toISOString().split("T")[0];
+        } catch {
+          return today;
+        }
+      };
+
+      let results: any[] = [];
       if (d1Db) {
         try {
           const locRes = await d1Db
             .prepare(
-              `SELECT slug, updated_at FROM locations
-               WHERE is_active = 1 AND content_status IN ('published', 'completed')
+              `SELECT slug, updated_at, created_at FROM locations
+               WHERE is_active = 1
                ORDER BY updated_at DESC`
             )
             .all();
@@ -293,13 +304,12 @@ export default {
       }
 
       const urls = results
+        .filter((loc) => loc && loc.slug)
         .map((loc) => {
-          const lastmod = loc.updated_at
-            ? new Date(loc.updated_at.replace(" ", "T") + "Z").toISOString().split("T")[0]
-            : today;
+          const lastmod = toSafeDate(loc.updated_at || loc.created_at);
           return `
 <url>
-  <loc>${BASE}/location/${loc.slug}</loc>
+  <loc>${BASE}/destination/${loc.slug}</loc>
   <lastmod>${lastmod}</lastmod>
   <changefreq>weekly</changefreq>
   <priority>0.80</priority>
