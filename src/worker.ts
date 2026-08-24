@@ -150,126 +150,165 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // ── 0. Dynamic /sitemap.xml — Reads all blogs & locations from D1 in real time ──────
+    // ── 0. Dynamic Sitemap Index & Sub-Sitemaps ───────────────────────
     if (url.pathname === "/sitemap.xml") {
-      // Use actual request host so sitemap works on workers.dev AND custom domain
-      const BASE = `${url.protocol}//${url.host}`;
+      const BASE = "https://discoveryconvoy.com";
       const today = new Date().toISOString().split("T")[0];
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<sitemap>
+  <loc>${BASE}/sitemap-pages.xml</loc>
+  <lastmod>${today}</lastmod>
+</sitemap>
+<sitemap>
+  <loc>${BASE}/sitemap-blogs.xml</loc>
+  <lastmod>${today}</lastmod>
+</sitemap>
+<sitemap>
+  <loc>${BASE}/sitemap-locations.xml</loc>
+  <lastmod>${today}</lastmod>
+</sitemap>
+</sitemapindex>`;
 
-      // Static core pages
-      const staticUrls = [
-        { loc: `${BASE}/`, changefreq: "daily", priority: "1.0" },
-        { loc: `${BASE}/luxury`, changefreq: "daily", priority: "0.95" },
-        { loc: `${BASE}/blog`, changefreq: "daily", priority: "0.90" },
-        { loc: `${BASE}/about`, changefreq: "monthly", priority: "0.80" },
-        { loc: `${BASE}/contact`, changefreq: "monthly", priority: "0.80" },
-        { loc: `${BASE}/faq`, changefreq: "monthly", priority: "0.80" },
-        // Curated Collection Hubs
-        { loc: `${BASE}/collection/luxury-palaces-villas`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/collection/honeymoon-getaways`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/collection/mountain-wilderness-retreats`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/collection/beachfront-private-islands`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/collection/heritage-cultural-odysseys`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/collection/wellness-ayurveda-sanctuaries`, changefreq: "weekly", priority: "0.85" },
-        { loc: `${BASE}/collection/safari-wildlife-expeditions`, changefreq: "weekly", priority: "0.85" },
-      ];
-
-      // Destination Hubs (Guaranteed Fallback + Database Enriched)
-      const defaultDestinations = [
-        "swiss-alps", "switzerland", "paris", "dubai", "maldives", "bali", "london", "tokyo",
-        "goa", "delhi", "mumbai", "jaipur", "udaipur", "ooty", "manali", "rishikesh", "kerala",
-        "kashmir", "taj-mahal", "varanasi", "ladakh", "darjeeling", "amritsar", "hampi", "munnar",
-        "shimla", "coorg", "andaman", "meghalaya", "singapore", "thailand", "vietnam", "sri-lanka",
-        "mauritius", "greece", "italy", "austria", "germany", "spain", "egypt", "south-africa",
-        "nepal", "bhutan", "bangkok", "phuket", "rome", "amsterdam"
-      ];
-
-      const d1Db = env?.BLOGS_DB || env?.DB;
-
-      // Fetch all locations from D1
-      const destinationMap = new Map<string, { slug: string; name?: string; image_url?: string; heading?: string; updated_at?: string }>();
-      
-      // Seed default destination links
-      defaultDestinations.forEach((slug) => {
-        destinationMap.set(slug, {
-          slug,
-          name: slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-          updated_at: today,
-        });
+      return new Response(xml, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600, s-maxage=3600",
+          ...corsHeaders,
+        },
       });
+    }
+
+    if (url.pathname === "/sitemap-pages.xml") {
+      const BASE = "https://discoveryconvoy.com";
+      const today = new Date().toISOString().split("T")[0];
+      const staticUrls = [
+        { loc: `${BASE}/`, priority: "1.0", changefreq: "daily" },
+        { loc: `${BASE}/luxury`, priority: "0.95", changefreq: "daily" },
+        { loc: `${BASE}/blog`, priority: "0.90", changefreq: "daily" },
+        { loc: `${BASE}/about`, priority: "0.80", changefreq: "monthly" },
+        { loc: `${BASE}/contact`, priority: "0.80", changefreq: "monthly" },
+        { loc: `${BASE}/faq`, priority: "0.80", changefreq: "monthly" },
+        { loc: `${BASE}/collection/luxury-palaces-villas`, priority: "0.85", changefreq: "weekly" },
+        { loc: `${BASE}/collection/honeymoon-getaways`, priority: "0.85", changefreq: "weekly" },
+        { loc: `${BASE}/collection/mountain-wilderness-retreats`, priority: "0.85", changefreq: "weekly" },
+        { loc: `${BASE}/collection/beachfront-private-islands`, priority: "0.85", changefreq: "weekly" },
+        { loc: `${BASE}/collection/heritage-cultural-odysseys`, priority: "0.85", changefreq: "weekly" },
+        { loc: `${BASE}/collection/wellness-ayurveda-sanctuaries`, priority: "0.85", changefreq: "weekly" },
+        { loc: `${BASE}/collection/safari-wildlife-expeditions`, priority: "0.85", changefreq: "weekly" },
+      ];
+
+      const urls = staticUrls
+        .map(
+          (page) => `
+<url>
+  <loc>${page.loc}</loc>
+  <lastmod>${today}</lastmod>
+  <changefreq>${page.changefreq}</changefreq>
+  <priority>${page.priority}</priority>
+</url>`
+        )
+        .join("");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}
+</urlset>`;
+
+      return new Response(xml, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600, s-maxage=3600",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    if (url.pathname === "/sitemap-blogs.xml") {
+      const BASE = "https://discoveryconvoy.com";
+      const d1Db = env?.BLOGS_DB || env?.DB;
+      const today = new Date().toISOString().split("T")[0];
+      let results: any[] = [];
 
       if (d1Db) {
         try {
-          const locRes = await d1Db.prepare(
-            `SELECT slug, name, image_url, heading, updated_at FROM locations WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 2000`
-          ).all();
-          const locs = (locRes?.results || []) as any[];
-          locs.forEach((loc) => {
-            if (loc.slug) {
-              destinationMap.set(loc.slug, { ...destinationMap.get(loc.slug), ...loc });
-            }
-          });
-        } catch (e) {
-          console.warn("D1 locations sitemap query error:", e);
-        }
-      }
-
-      // Fetch all blog slugs + dates from D1
-      let blogRows: { slug: string; title?: string; cover_query?: string; updated_at?: string; created_at?: string }[] = [];
-      if (d1Db) {
-        try {
-          const blogRes = await d1Db.prepare(
-            `SELECT slug, title, cover_query, updated_at, created_at FROM blogs ORDER BY created_at DESC LIMIT 2000`
-          ).all();
-          blogRows = (blogRes?.results || []) as any[];
+          const blogRes = await d1Db
+            .prepare("SELECT slug, updated_at FROM blogs ORDER BY updated_at DESC")
+            .all();
+          results = (blogRes?.results || []) as any[];
         } catch (e) {
           console.warn("D1 blogs sitemap query error:", e);
         }
       }
 
-      const toXmlDate = (raw?: string | number): string => {
-        if (!raw) return today;
+      const urls = results
+        .map((post) => {
+          const ts = post.updated_at > 10000000000 ? post.updated_at : post.updated_at * 1000;
+          const lastmod = ts ? new Date(ts).toISOString().split("T")[0] : today;
+          return `
+<url>
+  <loc>${BASE}/blog/${post.slug}</loc>
+  <lastmod>${lastmod}</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.75</priority>
+</url>`;
+        })
+        .join("");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}
+</urlset>`;
+
+      return new Response(xml, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/xml; charset=utf-8",
+          "Cache-Control": "public, max-age=3600, s-maxage=3600",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    if (url.pathname === "/sitemap-locations.xml") {
+      const BASE = "https://discoveryconvoy.com";
+      const d1Db = env?.BLOGS_DB || env?.DB;
+      const today = new Date().toISOString().split("T")[0];
+      let results: any[] = [];
+
+      if (d1Db) {
         try {
-          if (typeof raw === "number") return new Date(raw).toISOString().split("T")[0];
-          return new Date(raw).toISOString().split("T")[0];
-        } catch {
-          return today;
+          const locRes = await d1Db
+            .prepare(
+              `SELECT slug, updated_at FROM locations
+               WHERE is_active = 1 AND content_status IN ('published', 'completed')
+               ORDER BY updated_at DESC`
+            )
+            .all();
+          results = (locRes?.results || []) as any[];
+        } catch (e) {
+          console.warn("D1 locations sitemap query error:", e);
         }
-      };
+      }
 
-      const escapeXml = (str?: string): string => {
-        if (!str) return "";
-        return str
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&apos;");
-      };
+      const urls = results
+        .map((loc) => {
+          const lastmod = loc.updated_at
+            ? new Date(loc.updated_at.replace(" ", "T") + "Z").toISOString().split("T")[0]
+            : today;
+          return `
+<url>
+  <loc>${BASE}/location/${loc.slug}</loc>
+  <lastmod>${lastmod}</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.80</priority>
+</url>`;
+        })
+        .join("");
 
-      const locationRows = Array.from(destinationMap.values());
-
-      const urlTags = [
-        ...staticUrls.map(
-          (u) => `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
-        ),
-        ...locationRows.map((loc) => {
-          const locUrl = `${BASE}/destination/${loc.slug}`;
-          const lastMod = toXmlDate(loc.updated_at);
-          let imgTag = "";
-          if (loc.image_url) {
-            imgTag = `\n    <image:image>\n      <image:loc>${escapeXml(loc.image_url)}</image:loc>\n      <image:title>${escapeXml(loc.heading || loc.name)}</image:title>\n    </image:image>`;
-          }
-          return `  <url>\n    <loc>${locUrl}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.90</priority>${imgTag}\n  </url>`;
-        }),
-        ...blogRows.map((b) => {
-          const blogUrl = `${BASE}/blog/${b.slug}`;
-          const lastMod = toXmlDate(b.updated_at || b.created_at);
-          return `  <url>\n    <loc>${blogUrl}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.85</priority>\n  </url>`;
-        }),
-      ].join("\n");
-
-      const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urlTags}\n</urlset>`;
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}
+</urlset>`;
 
       return new Response(xml, {
         status: 200,
