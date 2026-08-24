@@ -4,7 +4,7 @@ export async function onRequest(context) {
 
   const { results } = await env.BLOGS_DB.prepare(
     `SELECT slug, updated_at FROM locations
-     WHERE is_active = 1 AND content_status IN ('published', 'completed')
+     WHERE is_active = 1 AND content_status = 'published'
      ORDER BY updated_at DESC`
   ).all();
 
