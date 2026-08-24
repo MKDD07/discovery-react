@@ -696,7 +696,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                               e.preventDefault();
                               handleNavigate(loc);
                             }}
-                            className="btn btn-sm btn-outline-primary rounded-pill w-100 fw-600 d-flex align-items-center justify-content-center gap-2 py-2"
+                            className="tp-btn-sm fw-500 tp-ff-inter"
                             style={{ fontSize: "13px" }}
                           >
                             <span>Explore Guide &amp; Stays</span>
