@@ -800,6 +800,29 @@ Sitemap: ${BASE}/sitemap.xml
       }
     }
 
+    // ── 3.4 Intercept /api/debug-locations ──────────────────────────────
+    if (url.pathname === "/api/debug-locations") {
+      const locationsDb = env?.BLOGS_DB || env?.DB;
+      if (!locationsDb) {
+        return new Response(JSON.stringify({ error: "BLOGS_DB binding not found" }, null, 2), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      try {
+        const result = await locationsDb.prepare("SELECT * FROM locations LIMIT 5").all();
+        return new Response(JSON.stringify(result, null, 2), {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: String(err) }, null, 2), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+    }
+
     // ── 3.5 Intercept /api/locations (CRUD & List Operations) ────────
     if (url.pathname === "/api/locations" || url.pathname.startsWith("/api/locations/")) {
       const locationsDb = env?.BLOGS_DB || env?.DB;
