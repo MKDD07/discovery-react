@@ -555,7 +555,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                   {[1, 2, 3, 4, 5, 6].map((n) => (
                     <div key={n} className="col-xl-4 col-lg-6 col-md-6">
                       <div className="tp-blog-item tp-blog-3-item mb-30 h-100 d-flex flex-column justify-content-between bg-white border rounded-4 p-3 shadow-sm">
-                        <div className="tp-skeleton-thumb rounded-3 mb-3" style={{ height: "240px" }}></div>
+                        <div className="tp-skeleton-thumb rounded-3 mb-3 w-100" style={{ aspectRatio: "4 / 5" }}></div>
                         <div className="tp-skeleton mb-2" style={{ width: "80px", height: "16px" }}></div>
                         <div className="tp-skeleton mb-2" style={{ width: "90%", height: "24px" }}></div>
                         <div className="tp-skeleton mb-1" style={{ width: "100%", height: "14px" }}></div>
@@ -581,12 +581,20 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
 
                   return (
                     <div key={loc.id || loc.slug} className="col-xl-4 col-lg-6 col-md-6">
-                      <div className="tp-blog-item tp-blog-3-item mb-30 h-100 d-flex flex-column justify-content-between bg-white border rounded-4 overflow-hidden shadow-sm transition-all hover-shadow">
+                      <a
+                        href={`/destination/${loc.slug}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleNavigate(loc);
+                        }}
+                        className="tp-blog-item tp-blog-3-item mb-30 h-100 d-flex flex-column justify-content-between bg-white border rounded-4 overflow-hidden shadow-sm transition-all hover-shadow text-decoration-none"
+                        style={{ cursor: "pointer", display: "flex" }}
+                      >
                         <div>
-                          {/* Image Thumbnail with Pexels & Badges */}
+                          {/* Image Thumbnail with 4:5 Aspect Ratio */}
                           <div
-                            className="tp-blog-thumb fix p-relative"
-                            style={{ minHeight: "240px", maxHeight: "240px" }}
+                            className="tp-blog-thumb fix p-relative w-100 overflow-hidden"
+                            style={{ aspectRatio: "4 / 5" }}
                           >
                             <span
                               className="tp-blog-thumb-badge"
@@ -601,38 +609,35 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                                 padding: "4px 12px",
                                 borderRadius: "20px",
                                 zIndex: 2,
+                                position: "absolute",
+                                top: "16px",
+                                left: "16px",
                               }}
                             >
                               {locationBadge}
                             </span>
 
-                            <a
-                              href={`/destination/${loc.slug}`}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleNavigate(loc);
+                            <img
+                              className="w-100 h-100"
+                              src={fallbackImg}
+                              data-pexels={pexelsQuery}
+                              data-type="image"
+                              data-quality="large"
+                              alt={loc.name}
+                              loading="lazy"
+                              decoding="async"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                                aspectRatio: "4 / 5",
+                                transition: "transform 0.5s ease",
                               }}
-                              className="d-block h-100"
-                            >
-                              <img
-                                className="w-100 h-100"
-                                src={fallbackImg}
-                                data-pexels={pexelsQuery}
-                                data-type="image"
-                                data-quality="large"
-                                alt={loc.name}
-                                loading="lazy"
-                                decoding="async"
-                                style={{
-                                  height: "240px",
-                                  objectFit: "cover",
-                                }}
-                              />
-                            </a>
+                            />
                           </div>
 
                           {/* Card Content Body */}
-                          <div className="tp-blog-content px-4 pt-3 pb-2">
+                          <div className="tp-blog-content px-4 pt-3 pb-4">
                             {/* Location Meta */}
                             <div className="tp-custom-blog-meta-bar mb-2 d-flex align-items-center justify-content-between">
                               <div
@@ -656,22 +661,13 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                             </div>
 
                             {/* Destination Name */}
-                            <h3 className="tp-blog-title fw-600 mb-2">
-                              <a
-                                href={`/destination/${loc.slug}`}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleNavigate(loc);
-                                }}
-                                className="text-dark hover-primary text-decoration-none"
-                              >
-                                {loc.name}
-                              </a>
+                            <h3 className="tp-blog-title fw-600 mb-2 text-dark">
+                              {loc.name}
                             </h3>
 
                             {/* Description Excerpt */}
                             <p
-                              className="text-muted small mt-2 mb-3"
+                              className="text-muted small mt-2 mb-0"
                               style={{
                                 display: "-webkit-box",
                                 WebkitLineClamp: 2,
@@ -687,23 +683,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                             </p>
                           </div>
                         </div>
-
-                        {/* Footer Action Button */}
-                        <div className="px-4 pb-4 pt-0">
-                          <a
-                            href={`/destination/${loc.slug}`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleNavigate(loc);
-                            }}
-                            className="tp-btn-sm fw-500 tp-ff-inter"
-                            style={{ fontSize: "13px" }}
-                          >
-                            <span>Explore Guide &amp; Stays</span>
-                            <ArrowRight size={14} />
-                          </a>
-                        </div>
-                      </div>
+                      </a>
                     </div>
                   );
                 })
