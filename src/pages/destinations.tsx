@@ -3,7 +3,7 @@ import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
 import { loadAllPexelsMedia, fetchPexelsVideo, pickVideoUrl } from "../components/sections/pexels/PexelsMediaSection";
 import Pagination from "../components/snippets/pagination/pagination";
-import { MapPin, Search, Globe, Compass, ArrowRight, Video, Sparkles, Filter } from "lucide-react";
+import { MapPin, Compass } from "lucide-react";
 import SEO from "../components/snippets/seo/SEO";
 
 export interface LocationItem {
@@ -277,17 +277,22 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
       />
       <Header />
       <main ref={containerRef}>
-        {/* ── Dynamic Hero Banner with Aerial Drone Video ────────────────── */}
+        {/* ── Dynamic Hero Banner with Luxury Aerial Video ────────────────── */}
         <div
-          className="tp-breadcrumb-area tp-breadcrumb-ptb p-relative fix"
+          className="tp-breadcrumb-area p-relative fix"
           style={{
             position: "relative",
-            minHeight: "480px",
+            height: "500px",
+            minHeight: "500px",
+            maxHeight: "500px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             overflow: "hidden",
-            backgroundColor: "#0d131f",
+            backgroundColor: "var(--tp-common-black, #071516)",
+            borderBottomLeftRadius: "32px",
+            borderBottomRightRadius: "32px",
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.18)",
           }}
         >
           {/* Background Video Player */}
@@ -307,21 +312,21 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
               objectFit: "cover",
               transform: "translate(-50%, -50%)",
               zIndex: 1,
-              opacity: 0.85,
-              transition: "opacity 0.7s ease",
+              opacity: 0.82,
+              transition: "opacity 0.8s ease",
             }}
           >
             <source src={heroVideoUrl} type="video/mp4" />
           </video>
 
-          {/* Dark luxury gradient overlay */}
+          {/* Luxury dark gradient overlay */}
           <div
             style={{
               position: "absolute",
               inset: 0,
               zIndex: 2,
               background:
-                "linear-gradient(180deg, rgba(13, 19, 31, 0.45) 0%, rgba(13, 19, 31, 0.75) 60%, rgba(13, 19, 31, 0.95) 100%)",
+                "linear-gradient(180deg, rgba(7, 21, 22, 0.4) 0%, rgba(7, 21, 22, 0.65) 55%, rgba(7, 21, 22, 0.96) 100%)",
             }}
           ></div>
 
@@ -329,134 +334,142 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
           <div className="container p-relative" style={{ zIndex: 3 }}>
             <div className="row justify-content-center text-center">
               <div className="col-xl-9 col-lg-10">
-                {/* Aerial Live View Badge */}
-                <div className="mb-3 d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill"
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.16)",
-                    backdropFilter: "blur(10px)",
-                    border: "1px solid rgba(255, 255, 255, 0.25)",
-                    color: "#fff",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    letterSpacing: "1px",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  <Video size={14} className="text-warning animate-pulse" />
-                  <span>
+                {/* Subheading using .tp-ff-dancing */}
+                <div className="mb-2">
+                  <span
+                    className="tp-ff-dancing d-inline-block"
+                    style={{
+                      fontFamily: "var(--tp-ff-dancing)",
+                      fontSize: "clamp(28px, 4.5vw, 44px)",
+                      color: "var(--tp-common-yellow, #ffa33b)",
+                      lineHeight: "1.2",
+                      letterSpacing: "0.5px",
+                      textShadow: "0 2px 12px rgba(0, 0, 0, 0.6)",
+                    }}
+                  >
                     {scopeFilter === "india"
-                      ? "🇮🇳 Live Aerial View • India Destinations"
+                      ? "Incredible Royalty & Heritage"
                       : scopeFilter === "international"
-                      ? "🌍 Live Aerial View • Global Destinations"
-                      : "✨ Live Aerial View • World Atlas"}
+                      ? "Exquisite Global Sanctuaries"
+                      : "Curated World Atlas & Escapes"}
                   </span>
                 </div>
 
+                {/* Main Heading */}
                 <h1
-                  className="tp-breadcrumb-title fs-112 text-white mb-3 fw-bold"
+                  className="text-white mb-3 fw-bold"
                   style={{
-                    fontSize: "clamp(32px, 5.5vw, 68px)",
+                    fontFamily: "var(--tp-ff-heading)",
+                    fontSize: "clamp(30px, 5vw, 54px)",
                     letterSpacing: "-0.5px",
                     lineHeight: 1.15,
+                    textShadow: "0 2px 20px rgba(0, 0, 0, 0.7)",
                   }}
                 >
                   {scopeFilter === "india"
-                    ? "Explore Incredible India"
+                    ? "Explore India Destinations"
                     : scopeFilter === "international"
-                    ? "Global & International Escapes"
-                    : "Curated World Destinations"}
+                    ? "International Destinations"
+                    : "Explore Destinations"}
                 </h1>
 
-                <p
-                  className="text-white opacity-90 mx-auto mb-4"
-                  style={{ maxWidth: "680px", fontSize: "16px", lineHeight: "1.6" }}
-                >
-                  {scopeFilter === "india"
-                    ? "Discover royal palaces, snowcapped Himalayan peaks, golden coastlines, and spiritual heritage across India with real-time flight and 5-star hotel search."
-                    : scopeFilter === "international"
-                    ? "Browse world-famous metropolitan capitals, overwater private island resorts, European alpine chalets, and tropical paradises."
-                    : "Seamlessly search and plan your next journey with curated guides, local insights, 5-star resort portfolios, and live airfare intelligence."}
-                </p>
-
-                {/* Hero Scope Toggle Buttons (All / India / International) */}
+                {/* Scope Filters (All / India / International) - Pure Luxury Typography */}
                 <div className="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-4">
                   <button
                     type="button"
-                    className={`btn px-4 py-2 rounded-pill fw-bold border-0 transition-all ${
-                      scopeFilter === "all"
-                        ? "bg-white text-dark shadow-lg scale-105"
-                        : "btn-outline-light text-white"
-                    }`}
+                    className="btn px-4 py-2 rounded-pill fw-semibold border-0 transition-3"
                     style={{
-                      fontSize: "14px",
-                      backgroundColor: scopeFilter === "all" ? "#ffffff" : "rgba(255, 255, 255, 0.15)",
-                      backdropFilter: "blur(8px)",
+                      fontSize: "13.5px",
+                      fontFamily: "var(--tp-ff-inter)",
+                      backgroundColor:
+                        scopeFilter === "all"
+                          ? "var(--tp-common-white, #ffffff)"
+                          : "rgba(255, 255, 255, 0.16)",
+                      color:
+                        scopeFilter === "all"
+                          ? "var(--tp-common-black, #071516)"
+                          : "var(--tp-common-white, #ffffff)",
+                      backdropFilter: "blur(10px)",
+                      boxShadow:
+                        scopeFilter === "all" ? "0 4px 15px rgba(0, 0, 0, 0.25)" : "none",
                     }}
                     onClick={() => handleScopeChange("all")}
                   >
-                    <Globe size={15} className="me-2 d-inline" /> All Destinations ({locations.length})
+                    All Destinations ({locations.length})
                   </button>
 
                   <button
                     type="button"
-                    className={`btn px-4 py-2 rounded-pill fw-bold border-0 transition-all ${
-                      scopeFilter === "india"
-                        ? "bg-warning text-dark shadow-lg scale-105"
-                        : "btn-outline-light text-white"
-                    }`}
+                    className="btn px-4 py-2 rounded-pill fw-semibold border-0 transition-3"
                     style={{
-                      fontSize: "14px",
-                      backgroundColor: scopeFilter === "india" ? "#ffb703" : "rgba(255, 255, 255, 0.15)",
-                      backdropFilter: "blur(8px)",
+                      fontSize: "13.5px",
+                      fontFamily: "var(--tp-ff-inter)",
+                      backgroundColor:
+                        scopeFilter === "india"
+                          ? "var(--tp-theme-1, #84C418)"
+                          : "rgba(255, 255, 255, 0.16)",
+                      color: "var(--tp-common-white, #ffffff)",
+                      backdropFilter: "blur(10px)",
+                      boxShadow:
+                        scopeFilter === "india"
+                          ? "0 4px 15px rgba(132, 196, 24, 0.4)"
+                          : "none",
                     }}
                     onClick={() => handleScopeChange("india")}
                   >
-                    🇮🇳 India (Domestic)
+                    India Domestic
                   </button>
 
                   <button
                     type="button"
-                    className={`btn px-4 py-2 rounded-pill fw-bold border-0 transition-all ${
-                      scopeFilter === "international"
-                        ? "bg-primary text-white shadow-lg scale-105"
-                        : "btn-outline-light text-white"
-                    }`}
+                    className="btn px-4 py-2 rounded-pill fw-semibold border-0 transition-3"
                     style={{
-                      fontSize: "14px",
-                      backgroundColor: scopeFilter === "international" ? "#023e8a" : "rgba(255, 255, 255, 0.15)",
-                      backdropFilter: "blur(8px)",
+                      fontSize: "13.5px",
+                      fontFamily: "var(--tp-ff-inter)",
+                      backgroundColor:
+                        scopeFilter === "international"
+                          ? "var(--tp-theme-1, #84C418)"
+                          : "rgba(255, 255, 255, 0.16)",
+                      color: "var(--tp-common-white, #ffffff)",
+                      backdropFilter: "blur(10px)",
+                      boxShadow:
+                        scopeFilter === "international"
+                          ? "0 4px 15px rgba(132, 196, 24, 0.4)"
+                          : "none",
                     }}
                     onClick={() => handleScopeChange("international")}
                   >
-                    ✈️ International (Global)
+                    International
                   </button>
                 </div>
 
                 {/* Hero Search Box */}
-                <div className="mx-auto" style={{ maxWidth: "560px" }}>
+                <div className="mx-auto" style={{ maxWidth: "520px" }}>
                   <div
-                    className="input-group shadow-lg rounded-pill overflow-hidden p-1 border"
+                    className="input-group rounded-pill overflow-hidden p-1 border-0"
                     style={{
                       backgroundColor: "rgba(255, 255, 255, 0.95)",
-                      backdropFilter: "blur(12px)",
+                      backdropFilter: "blur(16px)",
+                      boxShadow: "0 8px 30px rgba(0, 0, 0, 0.3)",
                     }}
                   >
-                    <span className="input-group-text bg-transparent border-0 ps-3 text-muted">
-                      <Search size={19} className="text-primary" />
-                    </span>
                     <input
                       type="text"
-                      className="form-control border-0 shadow-none ps-2"
+                      className="form-control border-0 shadow-none ps-4"
                       placeholder={
                         scopeFilter === "india"
-                          ? "Search Indian cities, states (e.g. Kashmir, Jaipur, Goa, Kerala)..."
+                          ? "Search Indian destinations (e.g. Kashmir, Jaipur, Goa)..."
                           : scopeFilter === "international"
-                          ? "Search global cities, countries (e.g. Paris, Dubai, Maldives, Bali)..."
-                          : "Search any destination, country, or region worldwide..."
+                          ? "Search global destinations (e.g. Paris, Dubai, Maldives)..."
+                          : "Search any destination, country, or region..."
                       }
                       value={searchQuery}
                       onChange={handleSearchChange}
-                      style={{ fontSize: "14px" }}
+                      style={{
+                        fontSize: "14px",
+                        fontFamily: "var(--tp-ff-inter)",
+                        color: "var(--tp-common-black, #071516)",
+                      }}
                     />
                     {searchQuery && (
                       <button
@@ -466,6 +479,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                           setSearchQuery("");
                           setCurrentPage(1);
                         }}
+                        style={{ fontSize: "14px" }}
                       >
                         ✕
                       </button>
@@ -486,7 +500,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                 <div className="col-12 text-center">
                   <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-2">
                     <span className="text-muted small fw-bold me-1 d-none d-md-inline">
-                      <Filter size={13} className="me-1" /> Filter by Country:
+                      Filter by Country:
                     </span>
                     {countries.map((country) => (
                       <button
