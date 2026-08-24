@@ -569,7 +569,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                   {[1, 2, 3, 4, 5, 6].map((n) => (
                     <div key={n} className="col-xl-4 col-lg-6 col-md-6">
                       <div className="tp-blog-item tp-blog-3-item h-100 d-flex flex-column justify-content-between bg-white border rounded-4 p-3 shadow-sm">
-                        <div className="tp-skeleton-thumb rounded-3 mb-3 w-100" style={{ aspectRatio: "4 / 5" }}></div>
+                        <div className="tp-skeleton-thumb rounded-3 mb-3 w-100" style={{ aspectRatio: "1 / 1" }}></div>
                         <div className="tp-skeleton mb-2" style={{ width: "80px", height: "16px" }}></div>
                         <div className="tp-skeleton mb-2" style={{ width: "90%", height: "24px" }}></div>
                         <div className="tp-skeleton mb-1" style={{ width: "100%", height: "14px" }}></div>
@@ -605,10 +605,10 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                         style={{ cursor: "pointer", display: "flex" }}
                       >
                         <div>
-                          {/* Image Thumbnail with 4:5 Aspect Ratio */}
+                          {/* Image Thumbnail with 1:1 Aspect Ratio */}
                           <div
                             className="tp-blog-thumb fix p-relative w-100 overflow-hidden"
-                            style={{ aspectRatio: "4 / 5" }}
+                            style={{ aspectRatio: "1 / 1" }}
                           >
                             <span
                               className="tp-blog-thumb-badge"
