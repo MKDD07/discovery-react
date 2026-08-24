@@ -568,7 +568,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                 <>
                   {[1, 2, 3, 4, 5, 6].map((n) => (
                     <div key={n} className="col-xl-4 col-lg-6 col-md-6">
-                      <div className="tp-blog-item tp-blog-3-item mb-30 h-100 d-flex flex-column justify-content-between bg-white border rounded-4 p-3 shadow-sm">
+                      <div className="tp-blog-item tp-blog-3-item h-100 d-flex flex-column justify-content-between bg-white border rounded-4 p-3 shadow-sm">
                         <div className="tp-skeleton-thumb rounded-3 mb-3 w-100" style={{ aspectRatio: "4 / 5" }}></div>
                         <div className="tp-skeleton mb-2" style={{ width: "80px", height: "16px" }}></div>
                         <div className="tp-skeleton mb-2" style={{ width: "90%", height: "24px" }}></div>
@@ -601,7 +601,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                           e.preventDefault();
                           handleNavigate(loc);
                         }}
-                        className="tp-blog-item tp-blog-3-item mb-30 h-100 d-flex flex-column justify-content-between bg-white border rounded-4 overflow-hidden shadow-sm transition-all hover-shadow text-decoration-none"
+                        className="tp-blog-item tp-blog-3-item h-100 d-flex flex-column justify-content-between bg-white border rounded-4 overflow-hidden shadow-sm transition-all hover-shadow text-decoration-none"
                         style={{ cursor: "pointer", display: "flex" }}
                       >
                         <div>
