@@ -1,6 +1,7 @@
 export async function onRequest(context) {
   const staticUrls = [
     { loc: "https://discoveryconvoy.com/", priority: "1.0", changefreq: "daily" },
+    { loc: "https://discoveryconvoy.com/destinations", priority: "0.95", changefreq: "daily" },
     { loc: "https://discoveryconvoy.com/luxury", priority: "0.95", changefreq: "daily" },
     { loc: "https://discoveryconvoy.com/blog", priority: "0.90", changefreq: "daily" },
     { loc: "https://discoveryconvoy.com/about", priority: "0.80", changefreq: "monthly" },

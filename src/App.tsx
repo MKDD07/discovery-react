@@ -31,6 +31,7 @@ import CollectionPage from "./pages/collection";
 import AboutPage from "./pages/about";
 import ContactPage from "./pages/contact";
 import FaqPage from "./pages/faq";
+import DestinationsPage from "./pages/destinations";
 import SEO from "./components/snippets/seo/SEO";
 
 function App() {
@@ -52,8 +53,8 @@ function App() {
   // Check URL pathname for initial load
   useEffect(() => {
     const path = window.location.pathname;
-    if (path.startsWith("/destination/")) {
-      const citySlug = path.replace("/destination/", "").replace(/\/$/, "");
+    if (path.startsWith("/destination/") || path.startsWith("/location/")) {
+      const citySlug = path.replace(/^\/(destination|location)\//, "").replace(/\/$/, "");
       const cityName = decodeURIComponent(citySlug)
         .replace(/-/g, " ")
         .replace(/\b\w/g, (l) => l.toUpperCase());
@@ -77,6 +78,8 @@ function App() {
         originalPrice: mrp,
         initialHotel: historyState,
       });
+    } else if (path === "/destinations" || path === "/locations") {
+      setCurrentPage("destinations");
     } else if (path === "/login") {
       setCurrentPage("login");
     } else if (path === "/register") {
@@ -101,8 +104,8 @@ function App() {
 
     const handlePopState = () => {
       const currentPath = window.location.pathname;
-      if (currentPath.startsWith("/destination/")) {
-        const citySlug = currentPath.replace("/destination/", "").replace(/\/$/, "");
+      if (currentPath.startsWith("/destination/") || currentPath.startsWith("/location/")) {
+        const citySlug = currentPath.replace(/^\/(destination|location)\//, "").replace(/\/$/, "");
         const cityName = decodeURIComponent(citySlug)
           .replace(/-/g, " ")
           .replace(/\b\w/g, (l) => l.toUpperCase());
@@ -112,6 +115,7 @@ function App() {
           query: `${cityName} landscape travel scenery`,
         });
         setSelectedTour(null);
+        setCurrentPage(null);
       } else if (currentPath.startsWith("/tour/")) {
         const tourSlug = currentPath.replace("/tour/", "");
         const tourName = decodeURIComponent(tourSlug);
@@ -129,6 +133,10 @@ function App() {
         });
         setSelectedDestination(null);
         setCurrentPage(null);
+      } else if (currentPath === "/destinations" || currentPath === "/locations") {
+        setCurrentPage("destinations");
+        setSelectedDestination(null);
+        setSelectedTour(null);
       } else if (currentPath === "/login") {
         setCurrentPage("login");
         setSelectedDestination(null);
@@ -179,6 +187,23 @@ function App() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
+
+  if (currentPage === "destinations") {
+    return (
+      <DestinationsPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+        onSelectDestination={(loc) => {
+          setSelectedDestination(loc);
+          setSelectedTour(null);
+          setCurrentPage(null);
+          window.history.pushState({}, "", `/destination/${loc.slug}`);
+        }}
+      />
+    );
+  }
 
   if (currentPage === "blog") {
     return (

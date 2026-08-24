@@ -1,6 +1,7 @@
 # Discovery Convoy - robots.txt
 User-agent: *
 Allow: /
+Allow: /destinations
 Allow: /blog
 Allow: /blog/*
 Allow: /destination/

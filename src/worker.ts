@@ -185,6 +185,7 @@ export default {
       const today = new Date().toISOString().split("T")[0];
       const staticUrls = [
         { loc: `${BASE}/`, priority: "1.0", changefreq: "daily" },
+        { loc: `${BASE}/destinations`, priority: "0.95", changefreq: "daily" },
         { loc: `${BASE}/luxury`, priority: "0.95", changefreq: "daily" },
         { loc: `${BASE}/blog`, priority: "0.90", changefreq: "daily" },
         { loc: `${BASE}/about`, priority: "0.80", changefreq: "monthly" },
@@ -326,6 +327,7 @@ export default {
       const robotsContent = `# Discovery Convoy - robots.txt
 User-agent: *
 Allow: /
+Allow: /destinations
 Allow: /blog
 Allow: /blog/*
 Allow: /destination/
