@@ -1,16 +1,13 @@
 // Cloudflare Pages Function: /api/serp
-// Proxies requests to SerpApi, keeping keys server-side, with CORS headers.
-//
-// Usage from frontend:
-//   /api/serp?engine=google_hotels&...&slot=1   -> uses SERP_API_KEY_1 first
-//   /api/serp?engine=google_flights&...&slot=2  -> uses SERP_API_KEY_2 first
-// This spreads quota across keys per-section instead of all sections
-// racing for the same key. Each slot still falls back to the other key
-// if its primary is exhausted or errors.
+// Proxies requests to SerpApi with sequential fallback across key 1 -> 2 -> 3 -> 4 -> 5.
+// If any key is exhausted or errors, it immediately falls back to the next key in the array.
 
 interface Env {
   SERP_API_KEY_1?: string;
   SERP_API_KEY_2?: string;
+  SERP_API_KEY_3?: string;
+  SERP_API_KEY_4?: string;
+  SERP_API_KEY_5?: string;
 }
 
 interface PagesContext<T = Env> {
@@ -37,35 +34,37 @@ export const onRequest = async (context: PagesContext<Env>): Promise<Response> =
     });
   }
 
-  const key1 = context.env?.SERP_API_KEY_1;
-  const key2 = context.env?.SERP_API_KEY_2;
   const clientKey = searchParams.get("api_key");
-  const slot = searchParams.get("slot");
   searchParams.delete("slot");
   searchParams.delete("api_key");
 
-  const keysToTry: string[] = [];
-  if (slot === "2" && key2) {
-    keysToTry.push(key2);
-    if (key1) keysToTry.push(key1);
-  } else {
-    if (key1) keysToTry.push(key1);
-    if (key2) keysToTry.push(key2);
-  }
-
-  // Fallback to client key or default key if env vars are missing
-  if (clientKey && !keysToTry.includes(clientKey)) {
-    keysToTry.push(clientKey);
-  }
   const DEFAULT_KEY = "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
-  if (!keysToTry.includes(DEFAULT_KEY)) {
-    keysToTry.push(DEFAULT_KEY);
+
+  // Build sequential key array: KEY_1 -> KEY_2 -> KEY_3 -> KEY_4 -> KEY_5 -> clientKey -> DEFAULT_KEY
+  const rawKeys = [
+    context.env?.SERP_API_KEY_1,
+    context.env?.SERP_API_KEY_2,
+    context.env?.SERP_API_KEY_3,
+    context.env?.SERP_API_KEY_4,
+    context.env?.SERP_API_KEY_5,
+    clientKey,
+    DEFAULT_KEY,
+  ];
+
+  // Deduplicate and filter out empty keys
+  const keysToTry: string[] = [];
+  for (const k of rawKeys) {
+    if (k && k.trim() && !keysToTry.includes(k.trim())) {
+      keysToTry.push(k.trim());
+    }
   }
 
   let lastStatus = 502;
-  let lastErrorText = "All SerpApi keys failed";
+  let lastErrorText = "All SerpApi keys exhausted or failed";
 
-  for (const apiKey of keysToTry) {
+  // Try each key in sequence: if exhausted/fails, use next
+  for (let i = 0; i < keysToTry.length; i++) {
+    const apiKey = keysToTry[i];
     searchParams.set("api_key", apiKey);
     const targetUrl = `https://serpapi.com/search.json?${searchParams.toString()}`;
 
@@ -92,9 +91,10 @@ export const onRequest = async (context: PagesContext<Env>): Promise<Response> =
 
       lastStatus = response.status;
       lastErrorText = await response.text();
-      console.warn(`SerpApi key failed with status ${response.status}, trying next key if available.`);
+      console.warn(`SerpApi key #${i + 1} exhausted/failed with status ${response.status}. Trying next key in array...`);
     } catch (err: any) {
       lastErrorText = err.message || "Failed to fetch from SerpApi";
+      console.warn(`SerpApi key #${i + 1} network error. Trying next key in array...`, err);
     }
   }
 

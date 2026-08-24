@@ -1,6 +1,9 @@
 export interface Env {
   SERP_API_KEY_1?: string;
   SERP_API_KEY_2?: string;
+  SERP_API_KEY_3?: string;
+  SERP_API_KEY_4?: string;
+  SERP_API_KEY_5?: string;
   VITE_PEXELS_API_KEY?: string;
   GROQ_API_KEY?: string;
   OPENAI_API_KEY?: string;
@@ -82,13 +85,25 @@ async function ensureLocationsTable(db: any) {
 }
 
 async function fetchWebSnippets(query: string, env: Env): Promise<string> {
-  const keysToTry: string[] = [];
-  if (env?.SERP_API_KEY_1) keysToTry.push(env.SERP_API_KEY_1);
-  if (env?.SERP_API_KEY_2) keysToTry.push(env.SERP_API_KEY_2);
   const DEFAULT_KEY = "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
-  if (!keysToTry.includes(DEFAULT_KEY)) keysToTry.push(DEFAULT_KEY);
+  const rawKeys = [
+    env?.SERP_API_KEY_1,
+    env?.SERP_API_KEY_2,
+    env?.SERP_API_KEY_3,
+    env?.SERP_API_KEY_4,
+    env?.SERP_API_KEY_5,
+    DEFAULT_KEY,
+  ];
 
-  for (const key of keysToTry) {
+  const keysToTry: string[] = [];
+  for (const k of rawKeys) {
+    if (k && k.trim() && !keysToTry.includes(k.trim())) {
+      keysToTry.push(k.trim());
+    }
+  }
+
+  for (let i = 0; i < keysToTry.length; i++) {
+    const key = keysToTry[i];
     try {
       const url = `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&engine=google&api_key=${key}`;
       const res = await fetch(url, { headers: { Accept: "application/json" } });
@@ -159,16 +174,41 @@ export default {
         { loc: `${BASE}/collection/safari-wildlife-expeditions`, changefreq: "weekly", priority: "0.85" },
       ];
 
+      // Destination Hubs (Guaranteed Fallback + Database Enriched)
+      const defaultDestinations = [
+        "swiss-alps", "switzerland", "paris", "dubai", "maldives", "bali", "london", "tokyo",
+        "goa", "delhi", "mumbai", "jaipur", "udaipur", "ooty", "manali", "rishikesh", "kerala",
+        "kashmir", "taj-mahal", "varanasi", "ladakh", "darjeeling", "amritsar", "hampi", "munnar",
+        "shimla", "coorg", "andaman", "meghalaya", "singapore", "thailand", "vietnam", "sri-lanka",
+        "mauritius", "greece", "italy", "austria", "germany", "spain", "egypt", "south-africa",
+        "nepal", "bhutan", "bangkok", "phuket", "rome", "amsterdam"
+      ];
+
       const d1Db = env?.BLOGS_DB || env?.DB;
 
       // Fetch all locations from D1
-      let locationRows: { slug: string; name?: string; image_url?: string; heading?: string; updated_at?: string }[] = [];
+      const destinationMap = new Map<string, { slug: string; name?: string; image_url?: string; heading?: string; updated_at?: string }>();
+      
+      // Seed default destination links
+      defaultDestinations.forEach((slug) => {
+        destinationMap.set(slug, {
+          slug,
+          name: slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+          updated_at: today,
+        });
+      });
+
       if (d1Db) {
         try {
           const locRes = await d1Db.prepare(
             `SELECT slug, name, image_url, heading, updated_at FROM locations WHERE is_active = 1 ORDER BY updated_at DESC LIMIT 2000`
           ).all();
-          locationRows = (locRes?.results || []) as any[];
+          const locs = (locRes?.results || []) as any[];
+          locs.forEach((loc) => {
+            if (loc.slug) {
+              destinationMap.set(loc.slug, { ...destinationMap.get(loc.slug), ...loc });
+            }
+          });
         } catch (e) {
           console.warn("D1 locations sitemap query error:", e);
         }
@@ -207,6 +247,8 @@ export default {
           .replace(/'/g, "&apos;");
       };
 
+      const locationRows = Array.from(destinationMap.values());
+
       const urlTags = [
         ...staticUrls.map(
           (u) => `  <url>\n    <loc>${u.loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
@@ -234,6 +276,81 @@ export default {
         headers: {
           "Content-Type": "application/xml; charset=utf-8",
           "Cache-Control": "public, max-age=3600, s-maxage=3600",
+          ...corsHeaders,
+        },
+      });
+    }
+
+    // ── 0.1 Dynamic /robots.txt ─────────────────────────────────────────
+    if (url.pathname === "/robots.txt") {
+      const BASE = `${url.protocol}//${url.host}`;
+      const robotsContent = `# Discovery Convoy - robots.txt
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/*
+Allow: /destination/
+Allow: /destination/*
+Allow: /tour/
+Allow: /tour/*
+Allow: /luxury
+Allow: /collection/
+Allow: /collection/*
+Allow: /collections/*
+Allow: /about
+Allow: /contact
+Allow: /faq
+Allow: /llms.txt
+
+# Disallow private user portals
+Disallow: /dashboard
+Disallow: /login
+Disallow: /register
+Disallow: /api/login
+Disallow: /api/register
+Disallow: /api/signup
+
+# Search Engines & AI Crawlers
+User-agent: Googlebot
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+
+User-agent: Bingbot
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+
+User-agent: Applebot
+Allow: /
+Allow: /destination/*
+
+User-agent: GPTBot
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+Allow: /llms.txt
+
+User-agent: Claude-Web
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+Allow: /llms.txt
+
+# Sitemaps & LLM documentation
+Sitemap: ${BASE}/sitemap.xml
+`;
+      return new Response(robotsContent, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
           ...corsHeaders,
         },
       });
@@ -1691,34 +1808,37 @@ Output ONLY valid JSON matching this schema:
     if (url.pathname.startsWith("/api/serp")) {
       const searchParams = new URLSearchParams(url.search);
 
-      const key1 = env?.SERP_API_KEY_1;
-      const key2 = env?.SERP_API_KEY_2;
       const clientKey = searchParams.get("api_key");
-      const slot = searchParams.get("slot");
       searchParams.delete("slot");
       searchParams.delete("api_key");
 
-      const keysToTry: string[] = [];
-      if (slot === "2" && key2) {
-        keysToTry.push(key2);
-        if (key1) keysToTry.push(key1);
-      } else {
-        if (key1) keysToTry.push(key1);
-        if (key2) keysToTry.push(key2);
-      }
-
-      if (clientKey && !keysToTry.includes(clientKey)) {
-        keysToTry.push(clientKey);
-      }
       const DEFAULT_KEY = "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
-      if (!keysToTry.includes(DEFAULT_KEY)) {
-        keysToTry.push(DEFAULT_KEY);
+
+      // Build sequential key array: KEY_1 -> KEY_2 -> KEY_3 -> KEY_4 -> KEY_5 -> clientKey -> DEFAULT_KEY
+      const rawKeys = [
+        env?.SERP_API_KEY_1,
+        env?.SERP_API_KEY_2,
+        env?.SERP_API_KEY_3,
+        env?.SERP_API_KEY_4,
+        env?.SERP_API_KEY_5,
+        clientKey,
+        DEFAULT_KEY,
+      ];
+
+      // Deduplicate and filter out empty keys
+      const keysToTry: string[] = [];
+      for (const k of rawKeys) {
+        if (k && k.trim() && !keysToTry.includes(k.trim())) {
+          keysToTry.push(k.trim());
+        }
       }
 
       let lastStatus = 502;
-      let lastErrorText = "All SerpApi keys failed";
+      let lastErrorText = "All SerpApi keys exhausted or failed";
 
-      for (const apiKey of keysToTry) {
+      // Try each key in sequence: if exhausted/fails, use next
+      for (let i = 0; i < keysToTry.length; i++) {
+        const apiKey = keysToTry[i];
         searchParams.set("api_key", apiKey);
         const targetUrl = `https://serpapi.com/search.json?${searchParams.toString()}`;
 
@@ -1745,8 +1865,10 @@ Output ONLY valid JSON matching this schema:
 
           lastStatus = response.status;
           lastErrorText = await response.text();
+          console.warn(`SerpApi key #${i + 1} exhausted/failed with status ${response.status}. Trying next key...`);
         } catch (err: any) {
           lastErrorText = err.message || "Failed to fetch from SerpApi";
+          console.warn(`SerpApi key #${i + 1} error:`, err);
         }
       }
 

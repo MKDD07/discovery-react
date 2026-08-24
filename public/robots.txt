@@ -3,9 +3,13 @@ User-agent: *
 Allow: /
 Allow: /blog
 Allow: /blog/*
+Allow: /destination/
 Allow: /destination/*
+Allow: /tour/
 Allow: /tour/*
 Allow: /luxury
+Allow: /collection/
+Allow: /collection/*
 Allow: /collections/*
 Allow: /about
 Allow: /contact
@@ -16,6 +20,43 @@ Allow: /llms.txt
 Disallow: /dashboard
 Disallow: /login
 Disallow: /register
+Disallow: /api/login
+Disallow: /api/register
+Disallow: /api/signup
+
+# Search Engines & AI Crawlers
+User-agent: Googlebot
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+
+User-agent: Bingbot
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+
+User-agent: Applebot
+Allow: /
+Allow: /destination/*
+
+User-agent: GPTBot
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+Allow: /llms.txt
+
+User-agent: Claude-Web
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /destination/*
+Allow: /blog/*
+Allow: /llms.txt
 
 # Sitemaps & LLM documentation
 Sitemap: https://discoveryconvoy.com/sitemap.xml
+

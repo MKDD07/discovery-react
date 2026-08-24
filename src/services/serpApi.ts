@@ -1,5 +1,5 @@
-// API keys are stored server-side in Cloudflare Worker env vars (SERP_API_KEY_1, SERP_API_KEY_2).
-// The frontend sends requests to /api/serp — no keys are exposed in the browser bundle.
+// API keys are stored server-side in Cloudflare Worker env vars (SERP_API_KEY_1 .. SERP_API_KEY_5).
+// The frontend sends requests to /api/serp with sequential array-based fallback across all keys.
 
 export interface SerpOrganicResult {
   title: string;
