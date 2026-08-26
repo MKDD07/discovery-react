@@ -1,9 +1,10 @@
 export interface Env {
-  SERP_API_KEY_2?: string;
   SERP_API_KEY_1?: string;
+  SERP_API_KEY_2?: string;
   SERP_API_KEY_3?: string;
   SERP_API_KEY_4?: string;
   SERP_API_KEY_5?: string;
+  PEXELS_API_KEY?: string;
   VITE_PEXELS_API_KEY?: string;
   GROQ_API_KEY?: string;
   OPENAI_API_KEY?: string;
