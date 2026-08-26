@@ -1891,8 +1891,8 @@ Output ONLY valid JSON matching this schema:
 
       // Build sequential key array: KEY_1 -> KEY_2 -> KEY_3 -> KEY_4 -> KEY_5 -> clientKey -> DEFAULT_KEY
       const rawKeys = [
-        env?.SERP_API_KEY_2,
         env?.SERP_API_KEY_1,
+        env?.SERP_API_KEY_2,
         env?.SERP_API_KEY_3,
         env?.SERP_API_KEY_4,
         env?.SERP_API_KEY_5,

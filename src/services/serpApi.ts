@@ -65,12 +65,7 @@ async function fetchSerp(params: Record<string, string>): Promise<any> {
   const { slot, ...serpParams } = params as Record<string, string>;
   const query = new URLSearchParams(serpParams);
 
-  // If running locally (Vite proxy to serpapi.com), ensure api_key is attached if not already present
-  if (!query.has("api_key") && LOCAL_SERP_KEY) {
-    query.set("api_key", LOCAL_SERP_KEY);
-  }
-
-  // Only include slot if present (worker uses it to pick key, then drops it)
+  // Only include slot if present
   if (slot) query.set("slot", slot);
 
   try {

@@ -12,11 +12,6 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      "/api/serp": {
-        target: "https://serpapi.com",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/serp/, "/search.json"),
-      },
       "/api": {
         target: "https://discovery.mkmkataria07.workers.dev",
         changeOrigin: true,
