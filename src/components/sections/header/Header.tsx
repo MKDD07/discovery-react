@@ -3,14 +3,63 @@ import logo from "../../../logo.png";
 import { loadAllPexelsMedia } from "../pexels/PexelsMediaSection";
 import { getStoredUser, logoutUser, UserProfile } from "../../../services/auth";
 
+interface LocationItem {
+  id: number;
+  name: string;
+  slug: string;
+  image_url: string;
+  short_description: string;
+  header_order: number;
+  show_in_header: number;
+}
+
+// Fallback static destinations in case API is unavailable
+const FALLBACK_DOMESTIC: LocationItem[] = [
+  { id: 1, name: "Kashmir & Ladakh", slug: "kashmir-ladakh", image_url: "https://images.pexels.com/photos/25786566/pexels-photo-25786566.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Dal Lake & Snowpeaks", header_order: 1, show_in_header: 1 },
+  { id: 2, name: "Goa", slug: "goa", image_url: "https://images.pexels.com/photos/8037061/pexels-photo-8037061.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Villas & Beach Parties", header_order: 2, show_in_header: 1 },
+  { id: 3, name: "Royal Rajasthan", slug: "rajasthan", image_url: "https://images.pexels.com/photos/12931430/pexels-photo-12931430.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Forts, Palaces & Haveli", header_order: 3, show_in_header: 1 },
+  { id: 4, name: "Kerala", slug: "kerala", image_url: "https://images.pexels.com/photos/962464/pexels-photo-962464.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "God's Own Country", header_order: 4, show_in_header: 1 },
+  { id: 5, name: "Manali & Himachal", slug: "manali-himachal", image_url: "https://images.pexels.com/photos/1591361/pexels-photo-1591361.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Mountain Escape", header_order: 5, show_in_header: 1 },
+];
+const FALLBACK_INTL: LocationItem[] = [
+  { id: 21, name: "Dubai & UAE", slug: "dubai", image_url: "https://images.pexels.com/photos/10579166/pexels-photo-10579166.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Burj Khalifa & Desert", header_order: 1, show_in_header: 1 },
+  { id: 22, name: "Maldives Islands", slug: "maldives", image_url: "https://images.pexels.com/photos/9394274/pexels-photo-9394274.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Overwater Ocean Villas", header_order: 2, show_in_header: 1 },
+  { id: 23, name: "Bali, Indonesia", slug: "bali", image_url: "https://images.pexels.com/photos/34674858/pexels-photo-34674858.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Ubud Forest & Beaches", header_order: 3, show_in_header: 1 },
+  { id: 24, name: "Thailand", slug: "thailand", image_url: "https://images.pexels.com/photos/1659438/pexels-photo-1659438.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Land of Smiles", header_order: 4, show_in_header: 1 },
+  { id: 25, name: "Vietnam", slug: "vietnam", image_url: "https://images.pexels.com/photos/1566417/pexels-photo-1566417.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Ancient Landscapes", header_order: 5, show_in_header: 1 },
+];
+const FALLBACK_EU: LocationItem[] = [
+  { id: 31, name: "Swiss Alps", slug: "switzerland", image_url: "https://images.pexels.com/photos/792167/pexels-photo-792167.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Matterhorn & Lakes", header_order: 1, show_in_header: 1 },
+  { id: 32, name: "Singapore City", slug: "singapore", image_url: "https://images.pexels.com/photos/2880607/pexels-photo-2880607.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Marina Bay & Sentosa", header_order: 2, show_in_header: 1 },
+  { id: 33, name: "Turkey & Cappadocia", slug: "turkey", image_url: "https://images.pexels.com/photos/36936167/pexels-photo-36936167.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Hot Air Balloons", header_order: 3, show_in_header: 1 },
+  { id: 34, name: "Japan", slug: "japan", image_url: "https://images.pexels.com/photos/161401/fushimi-inari-taisha-shrine-kyoto-japan-161401.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Tradition Meets Tomorrow", header_order: 4, show_in_header: 1 },
+  { id: 35, name: "Santorini, Greece", slug: "greece-santorini", image_url: "https://images.pexels.com/photos/1010657/pexels-photo-1010657.jpeg?auto=compress&cs=tinysrgb&h=130", short_description: "Sunsets & Blue Domes", header_order: 5, show_in_header: 1 },
+];
+
 export default function Header() {
   const headerRef = useRef<HTMLElement>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(getStoredUser());
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
+  const [megaMenuDomestic, setMegaMenuDomestic] = useState<LocationItem[]>(FALLBACK_DOMESTIC);
+  const [megaMenuIntl, setMegaMenuIntl] = useState<LocationItem[]>(FALLBACK_INTL);
+  const [megaMenuEU, setMegaMenuEU] = useState<LocationItem[]>(FALLBACK_EU);
 
   useEffect(() => {
+    // Fetch header destinations from D1
+    fetch("/api/locations/header")
+      .then((r) => r.json())
+      .then((data: any) => {
+        const dom = (data.domestic || []).filter((l: LocationItem) => l.show_in_header === 1).slice(0, 5);
+        const intl = (data.international || []).filter((l: LocationItem) => l.show_in_header === 1).slice(0, 5);
+        const eu = (data.europeAsia || []).filter((l: LocationItem) => l.show_in_header === 1).slice(0, 5);
+        if (dom.length > 0) setMegaMenuDomestic(dom);
+        if (intl.length > 0) setMegaMenuIntl(intl);
+        if (eu.length > 0) setMegaMenuEU(eu);
+      })
+      .catch(() => { /* silently use fallback */ });
+
     if (headerRef.current) {
       loadAllPexelsMedia(headerRef.current);
     }
@@ -365,207 +414,78 @@ export default function Header() {
 
                   <div className="tp-nav-megamenu">
                     <div className="row g-3">
-                      {/* Column 1 - Domestic Highlights */}
+                      {/* Column 1 — Domestic Wonders (from D1) */}
                       <div className="col-4">
                         <div className="tp-megamenu-header mb-2 pb-1 border-bottom">
                           <span className="tp-megamenu-sub">DOMESTIC WONDERS</span>
                         </div>
                         <div className="d-flex flex-column gap-2">
-                          <a
-                            href="/destination/kashmir"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/kashmir");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/25786566/pexels-photo-25786566.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Kashmir"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Kashmir & Ladakh</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Dal Lake & Snowpeaks</span>
-                            </div>
-                          </a>
-
-                          <a
-                            href="/destination/goa"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/goa");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/8037061/pexels-photo-8037061.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Goa"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Goa Sun & Coast</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Villas & Beach Parties</span>
-                            </div>
-                          </a>
-
-                          <a
-                            href="/destination/rajasthan"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/rajasthan");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/12931430/pexels-photo-12931430.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Rajasthan"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Royal Rajasthan</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Forts, Palaces & Haveli</span>
-                            </div>
-                          </a>
+                          {megaMenuDomestic.map((loc) => (
+                            <a
+                              key={loc.id}
+                              href={`/destination/${loc.slug}`}
+                              onClick={(e) => { e.preventDefault(); navigateTo(`/destination/${loc.slug}`); }}
+                              className="tp-megamenu-card"
+                            >
+                              <div className="tp-megamenu-thumb">
+                                <img src={loc.image_url.replace(/&w=\d+/, "&h=130")} alt={loc.name} loading="lazy" />
+                              </div>
+                              <div>
+                                <span className="tp-megamenu-title">{loc.name}</span>
+                                <span className="text-muted" style={{ fontSize: "11.5px" }}>{loc.short_description}</span>
+                              </div>
+                            </a>
+                          ))}
                         </div>
                       </div>
 
-                      {/* Column 2 - Popular International */}
+                      {/* Column 2 — Iconic International (from D1) */}
                       <div className="col-4">
                         <div className="tp-megamenu-header mb-2 pb-1 border-bottom">
                           <span className="tp-megamenu-sub">ICONIC INTERNATIONAL</span>
                         </div>
                         <div className="d-flex flex-column gap-2">
-                          <a
-                            href="/destination/dubai"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/dubai");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/10579166/pexels-photo-10579166.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Dubai"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Dubai & UAE</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Burj Khalifa & Desert</span>
-                            </div>
-                          </a>
-
-                          <a
-                            href="/destination/maldives"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/maldives");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/9394274/pexels-photo-9394274.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Maldives"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Maldives Islands</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Overwater Ocean Villas</span>
-                            </div>
-                          </a>
-
-                          <a
-                            href="/destination/bali"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/bali");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/34674858/pexels-photo-34674858.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Bali"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Bali, Indonesia</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Ubud Forest & Beaches</span>
-                            </div>
-                          </a>
+                          {megaMenuIntl.map((loc) => (
+                            <a
+                              key={loc.id}
+                              href={`/destination/${loc.slug}`}
+                              onClick={(e) => { e.preventDefault(); navigateTo(`/destination/${loc.slug}`); }}
+                              className="tp-megamenu-card"
+                            >
+                              <div className="tp-megamenu-thumb">
+                                <img src={loc.image_url.replace(/&w=\d+/, "&h=130")} alt={loc.name} loading="lazy" />
+                              </div>
+                              <div>
+                                <span className="tp-megamenu-title">{loc.name}</span>
+                                <span className="text-muted" style={{ fontSize: "11.5px" }}>{loc.short_description}</span>
+                              </div>
+                            </a>
+                          ))}
                         </div>
                       </div>
 
-                      {/* Column 3 - Europe & Global Escapes */}
+                      {/* Column 3 — Europe & Asia (from D1) */}
                       <div className="col-4">
                         <div className="tp-megamenu-header mb-2 pb-1 border-bottom">
-                          <span className="tp-megamenu-sub">EUROPE & ASIA</span>
+                          <span className="tp-megamenu-sub">EUROPE &amp; ASIA</span>
                         </div>
                         <div className="d-flex flex-column gap-2">
-                          <a
-                            href="/destination/switzerland"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/switzerland");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/792167/pexels-photo-792167.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Switzerland"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Swiss Alps</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Matterhorn & Lakes</span>
-                            </div>
-                          </a>
-
-                          <a
-                            href="/destination/singapore"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/singapore");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/2880607/pexels-photo-2880607.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Singapore"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Singapore City</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Marina Bay & Sentosa</span>
-                            </div>
-                          </a>
-
-                          <a
-                            href="/destination/turkey"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              navigateTo("/destination/turkey");
-                            }}
-                            className="tp-megamenu-card"
-                          >
-                            <div className="tp-megamenu-thumb">
-                              <img
-                                src="https://images.pexels.com/photos/36936167/pexels-photo-36936167.jpeg?auto=compress&cs=tinysrgb&h=130"
-                                alt="Turkey"
-                              />
-                            </div>
-                            <div>
-                              <span className="tp-megamenu-title">Turkey & Cappadocia</span>
-                              <span className="text-muted" style={{ fontSize: "11.5px" }}>Hot Air Balloons</span>
-                            </div>
-                          </a>
+                          {megaMenuEU.map((loc) => (
+                            <a
+                              key={loc.id}
+                              href={`/destination/${loc.slug}`}
+                              onClick={(e) => { e.preventDefault(); navigateTo(`/destination/${loc.slug}`); }}
+                              className="tp-megamenu-card"
+                            >
+                              <div className="tp-megamenu-thumb">
+                                <img src={loc.image_url.replace(/&w=\d+/, "&h=130")} alt={loc.name} loading="lazy" />
+                              </div>
+                              <div>
+                                <span className="tp-megamenu-title">{loc.name}</span>
+                                <span className="text-muted" style={{ fontSize: "11.5px" }}>{loc.short_description}</span>
+                              </div>
+                            </a>
+                          ))}
                         </div>
                       </div>
                     </div>

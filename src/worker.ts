@@ -1871,6 +1871,59 @@ Output ONLY valid JSON matching this schema:
       }
     }
 
+    // ── 7a. GET /api/locations/header — megamenu destinations ───────────
+    if (url.pathname === "/api/locations/header" && request.method === "GET") {
+      try {
+        const db = env.DB;
+        if (!db) return new Response(JSON.stringify({ domestic: [], international: [], europeAsia: [] }), {
+          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
+        });
+
+        const [domestic, international, europeAsia] = await Promise.all([
+          db.prepare(
+            "SELECT id, name, slug, image_url, short_description, header_order, show_in_header FROM locations WHERE is_active=1 AND header_group='domestic' ORDER BY header_order ASC, id ASC LIMIT 20"
+          ).all(),
+          db.prepare(
+            "SELECT id, name, slug, image_url, short_description, header_order, show_in_header FROM locations WHERE is_active=1 AND header_group='international' ORDER BY header_order ASC, id ASC LIMIT 20"
+          ).all(),
+          db.prepare(
+            "SELECT id, name, slug, image_url, short_description, header_order, show_in_header FROM locations WHERE is_active=1 AND header_group='europe-asia' ORDER BY header_order ASC, id ASC LIMIT 20"
+          ).all(),
+        ]);
+
+        return new Response(
+          JSON.stringify({
+            domestic: domestic.results || [],
+            international: international.results || [],
+            europeAsia: europeAsia.results || [],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60", ...corsHeaders } }
+        );
+      } catch (err: any) {
+        return new Response(JSON.stringify({ domestic: [], international: [], europeAsia: [], error: err.message }), {
+          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
+        });
+      }
+    }
+
+    // ── 7b. PATCH /api/locations/:id/header-toggle — admin on/off ───────
+    const headerToggleMatch = url.pathname.match(/^\/api\/locations\/(\d+)\/header-toggle$/);
+    if (headerToggleMatch && request.method === "PATCH") {
+      try {
+        const id = parseInt(headerToggleMatch[1]);
+        const body = await request.json() as { show_in_header: number };
+        const val = body.show_in_header === 1 ? 1 : 0;
+        await env.DB.prepare("UPDATE locations SET show_in_header=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(val, id).run();
+        return new Response(JSON.stringify({ success: true, id, show_in_header: val }), {
+          status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500, headers: { "Content-Type": "application/json", ...corsHeaders }
+        });
+      }
+    }
+
     // ── 7. Intercept /api/serp requests ────────────────────────────────
     if (url.pathname.startsWith("/api/serp")) {
       const searchParams = new URLSearchParams(url.search);
