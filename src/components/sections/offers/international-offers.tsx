@@ -4,10 +4,10 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 
 const INTERNATIONAL_OFFER_IMAGES = [
-  "/assets/img/offers-inter/internationa_001.png",
-  "/assets/img/offers-inter/internationa_002.png",
-  "/assets/img/offers-inter/internationa_003.png",
-  "/assets/img/offers-inter/internationa_004.png",
+  "/assets/img/offers-inter/internationa_001.webp",
+  "/assets/img/offers-inter/internationa_002.webp",
+  "/assets/img/offers-inter/internationa_003.webp",
+  "/assets/img/offers-inter/internationa_004.webp",
 ];
 
 export const InternationalOffersSection: React.FC = () => {

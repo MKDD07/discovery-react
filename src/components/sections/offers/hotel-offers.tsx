@@ -4,10 +4,10 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 
 const HOTEL_IMAGES = [
-  "/assets/img/offers-hotels/hotel_001.jpg",
-  "/assets/img/offers-hotels/hotel_002.jpg",
-  "/assets/img/offers-hotels/hotel_003.jpg",
-  "/assets/img/offers-hotels/hotel_004.jpg",
+  "/assets/img/offers-hotels/hotel_001.webp",
+  "/assets/img/offers-hotels/hotel_002.webp",
+  "/assets/img/offers-hotels/hotel_003.webp",
+  "/assets/img/offers-hotels/hotel_004.webp",
 ];
 
 interface HotelOffersSectionProps {

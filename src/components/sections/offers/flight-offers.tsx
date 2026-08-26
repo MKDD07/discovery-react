@@ -4,10 +4,10 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 
 const FLIGHT_OFFER_IMAGES = [
-  "/assets/img/offers-flight/0001.png",
-  "/assets/img/offers-flight/0002.png",
-  "/assets/img/offers-flight/0003.png",
-  "/assets/img/offers-flight/0004.png",
+  "/assets/img/offers-flight/0001.webp",
+  "/assets/img/offers-flight/0002.webp",
+  "/assets/img/offers-flight/0003.webp",
+  "/assets/img/offers-flight/0004.webp",
 ];
 
 export const FlightOffersSection: React.FC = () => {
