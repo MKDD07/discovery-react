@@ -162,90 +162,113 @@ export const SeoDirectorySection: React.FC = () => {
           ))}
         </div>
 
-        {/* SEO Directory Responsive Data Table */}
-        <div className="tp-seo-table-wrap mb-4 pb-3">
-          <div className="d-flex align-items-center justify-content-between mb-3">
-            <h4 className="tp-seo-directory-title mb-0 fs-15 fw-bold text-dark">
-              <i className="fa-solid fa-hotel me-2 text-primary"></i>
-              Curated Destination &amp; Hotel Directory Index
-            </h4>
-            <span className="badge bg-light text-muted border px-2.5 py-1.5 rounded-pill small">
-              Live Cloudflare D1 Directory
+        {/* Curated Theme-Aligned Directory & Hotel Query Streams (Comma-based editorial flow) */}
+        <div className="tp-seo-theme-stream mb-4 pt-2">
+          <div className="mb-3">
+            <span
+              className="tp-ff-dancing d-inline-block text-primary"
+              style={{
+                fontFamily: "var(--tp-ff-dancing, 'Dancing Script', cursive)",
+                fontSize: "24px",
+                lineHeight: "1.2",
+              }}
+            >
+              Curated Destination Atlas &amp; Luxury Stays
             </span>
           </div>
 
-          <div className="table-responsive rounded-3 border bg-white shadow-sm">
-            <table className="table table-hover align-middle mb-0" style={{ fontSize: "12.5px" }}>
-              <thead className="table-light">
-                <tr className="text-secondary fw-semibold border-bottom">
-                  <th scope="col" className="ps-3 py-3" style={{ minWidth: "160px" }}>Destination</th>
-                  <th scope="col" className="py-3" style={{ minWidth: "120px" }}>Country / Region</th>
-                  <th scope="col" className="py-3" style={{ minWidth: "180px" }}>Luxury Hotel Query</th>
-                  <th scope="col" className="py-3" style={{ minWidth: "150px" }}>TripAdvisor Intel</th>
-                  <th scope="col" className="text-end pe-3 py-3" style={{ minWidth: "130px" }}>Guide Portal</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {(d1Locations.length > 0 ? d1Locations.slice(0, 15) : [
-                  { name: "Goa", slug: "goa", country: "India", state_region: "Goa", hotel_search_query: "luxury beach resorts in Goa" },
-                  { name: "Kashmir", slug: "kashmir", country: "India", state_region: "Jammu & Kashmir", hotel_search_query: "heritage houseboats & luxury stays Srinagar Kashmir" },
-                  { name: "Dubai", slug: "dubai", country: "UAE", state_region: "Dubai", hotel_search_query: "5-star luxury hotels Dubai" },
-                  { name: "Maldives", slug: "maldives", country: "Maldives", state_region: "Male Atoll", hotel_search_query: "overwater luxury private villas Maldives" },
-                  { name: "Paris", slug: "paris", country: "France", state_region: "Île-de-France", hotel_search_query: "palace hotels Paris" },
-                  { name: "Switzerland", slug: "switzerland", country: "Switzerland", state_region: "Swiss Alps", hotel_search_query: "luxury alpine chalets Switzerland" },
-                  { name: "Jaipur", slug: "jaipur", country: "India", state_region: "Rajasthan", hotel_search_query: "heritage palace hotels Jaipur" },
-                  { name: "Udaipur", slug: "udaipur", country: "India", state_region: "Rajasthan", hotel_search_query: "lake view luxury palaces Udaipur" }
-                ]).map((loc, idx) => (
-                  <tr key={loc.slug || idx} className="transition-all">
-                    <td className="ps-3 py-2.5">
-                      <a
-                        href={`/destination/${loc.slug}`}
-                        onClick={(e) => handleLinkClick(e, `/destination/${loc.slug}`)}
-                        className="fw-bold text-dark text-decoration-none hover-primary d-inline-flex align-items-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-location-dot text-primary" style={{ fontSize: "11px" }}></i>
-                        {loc.name}
-                      </a>
-                    </td>
-                    <td className="py-2.5 text-secondary">
-                      {loc.country || "Global"}
-                      {loc.state_region ? ` (${loc.state_region})` : ""}
-                    </td>
-                    <td className="py-2.5">
-                      <a
-                        href={`/destination/${loc.slug}#hotel-offers-section`}
-                        onClick={(e) => handleLinkClick(e, `/destination/${loc.slug}#hotel-offers-section`)}
-                        className="text-secondary text-decoration-none hover-primary"
-                      >
-                        <i className="fa-solid fa-bed me-1 text-muted"></i>
-                        {loc.hotel_search_query || `Hotels in ${loc.name}`}
-                      </a>
-                    </td>
-                    <td className="py-2.5">
-                      <a
-                        href={`/guide/${loc.slug}`}
-                        onClick={(e) => handleLinkClick(e, `/guide/${loc.slug}`)}
-                        className="badge bg-primary-subtle text-primary border border-primary-subtle text-decoration-none px-2.5 py-1 rounded-pill"
-                      >
-                        <i className="fa-brands fa-tripadvisor me-1"></i>
-                        {loc.name} Guide
-                      </a>
-                    </td>
-                    <td className="text-end pe-3 py-2.5">
-                      <a
-                        href={`/destination/${loc.slug}`}
-                        onClick={(e) => handleLinkClick(e, `/destination/${loc.slug}`)}
-                        className="btn btn-sm btn-outline-secondary rounded-pill px-3 py-0.5 fw-semibold"
-                        style={{ fontSize: "11px" }}
-                        aria-label={`View ${loc.name} guide and hotel directory`}
-                      >
-                        Explore <i className="fa-solid fa-arrow-right ms-1"></i>
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* 1. Direct Destination Hotspots */}
+          <div className="tp-seo-directory-col mb-3">
+            <h4 className="tp-seo-directory-title">
+              Featured Luxury Destinations:
+            </h4>
+            <div className="tp-seo-directory-links">
+              {(d1Locations.length > 0 ? d1Locations : [
+                { name: "Goa", slug: "goa" },
+                { name: "Kashmir", slug: "kashmir" },
+                { name: "Dubai", slug: "dubai" },
+                { name: "Maldives", slug: "maldives" },
+                { name: "Paris", slug: "paris" },
+                { name: "Switzerland", slug: "switzerland" },
+                { name: "Jaipur", slug: "jaipur" },
+                { name: "Udaipur", slug: "udaipur" },
+                { name: "Kerala", slug: "kerala" },
+                { name: "Manali", slug: "manali" },
+                { name: "Shimla", slug: "shimla" },
+                { name: "Bali", slug: "bali" }
+              ]).map((loc, idx, arr) => (
+                <React.Fragment key={`dest-${loc.slug || idx}`}>
+                  <a
+                    href={`/destination/${loc.slug}`}
+                    onClick={(e) => handleLinkClick(e, `/destination/${loc.slug}`)}
+                    className="tp-seo-link"
+                  >
+                    Explore {loc.name}
+                  </a>
+                  {idx < arr.length - 1 && <span className="tp-seo-sep">, </span>}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Destination-Based Luxury Hotel Search Queries */}
+          <div className="tp-seo-directory-col mb-3">
+            <h4 className="tp-seo-directory-title">
+              Curated Hotel &amp; Resort Inquiries:
+            </h4>
+            <div className="tp-seo-directory-links">
+              {(d1Locations.length > 0 ? d1Locations : [
+                { name: "Goa", slug: "goa", hotel_search_query: "luxury beach resorts in Goa" },
+                { name: "Kashmir", slug: "kashmir", hotel_search_query: "heritage houseboats & luxury stays Srinagar Kashmir" },
+                { name: "Dubai", slug: "dubai", hotel_search_query: "5-star luxury hotels Dubai" },
+                { name: "Maldives", slug: "maldives", hotel_search_query: "overwater luxury private villas Maldives" },
+                { name: "Paris", slug: "paris", hotel_search_query: "palace hotels Paris" },
+                { name: "Switzerland", slug: "switzerland", hotel_search_query: "luxury alpine chalets Switzerland" },
+                { name: "Jaipur", slug: "jaipur", hotel_search_query: "heritage palace hotels Jaipur" },
+                { name: "Udaipur", slug: "udaipur", hotel_search_query: "lake view luxury palaces Udaipur" }
+              ]).map((loc, idx, arr) => (
+                <React.Fragment key={`hotel-${loc.slug || idx}`}>
+                  <a
+                    href={`/destination/${loc.slug}#hotel-offers-section`}
+                    onClick={(e) => handleLinkClick(e, `/destination/${loc.slug}#hotel-offers-section`)}
+                    className="tp-seo-link"
+                  >
+                    {loc.hotel_search_query || `Hotels in ${loc.name}`}
+                  </a>
+                  {idx < arr.length - 1 && <span className="tp-seo-sep">, </span>}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. TripAdvisor Travel Guide Intelligence */}
+          <div className="tp-seo-directory-col mb-3">
+            <h4 className="tp-seo-directory-title">
+              TripAdvisor Place &amp; Attraction Guides:
+            </h4>
+            <div className="tp-seo-directory-links">
+              {(d1Locations.length > 0 ? d1Locations : [
+                { name: "Paris", slug: "paris" },
+                { name: "Tokyo", slug: "tokyo" },
+                { name: "Dubai", slug: "dubai" },
+                { name: "Goa", slug: "goa" },
+                { name: "Maldives", slug: "maldives" },
+                { name: "Switzerland", slug: "switzerland" },
+                { name: "Rome", slug: "rome" },
+                { name: "Jaipur", slug: "jaipur" }
+              ]).map((loc, idx, arr) => (
+                <React.Fragment key={`guide-${loc.slug || idx}`}>
+                  <a
+                    href={`/guide/${loc.slug}`}
+                    onClick={(e) => handleLinkClick(e, `/guide/${loc.slug}`)}
+                    className="tp-seo-link"
+                  >
+                    {loc.name} Travel Guide
+                  </a>
+                  {idx < arr.length - 1 && <span className="tp-seo-sep">, </span>}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </div>
 
