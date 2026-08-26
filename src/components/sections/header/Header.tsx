@@ -428,7 +428,7 @@ export default function Header() {
                               className="tp-megamenu-card py-1 px-2"
                             >
                               <div>
-                                <span className="tp-megamenu-title" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.name}</span>
+                                <span className="tp-megamenu-title">{loc.name}</span>
                                 <span className="text-muted d-block" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.short_description}</span>
                               </div>
                             </a>
@@ -450,7 +450,7 @@ export default function Header() {
                               className="tp-megamenu-card py-1 px-2"
                             >
                               <div>
-                                <span className="tp-megamenu-title" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.name}</span>
+                                <span className="tp-megamenu-title">{loc.name}</span>
                                 <span className="text-muted d-block" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.short_description}</span>
                               </div>
                             </a>
@@ -472,7 +472,7 @@ export default function Header() {
                               className="tp-megamenu-card py-1 px-2"
                             >
                               <div>
-                                <span className="tp-megamenu-title" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.name}</span>
+                                <span className="tp-megamenu-title">{loc.name}</span>
                                 <span className="text-muted d-block" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.short_description}</span>
                               </div>
                             </a>
