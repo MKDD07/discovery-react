@@ -218,6 +218,21 @@ export async function searchFlights({
 }
 
 
+// ── SECTION: TRIPADVISOR PLACE ──────────────────────────────────────────────
+export async function searchTripAdvisorPlace(placeIdOrQuery: string, slot: "1" | "2" = "1") {
+  const isNumericId = /^\d+$/.test(placeIdOrQuery.trim());
+  const params: Record<string, string> = {
+    engine: "tripadvisor_place",
+    slot,
+  };
+  if (isNumericId) {
+    params.place_id = placeIdOrQuery.trim();
+  } else {
+    params.q = placeIdOrQuery.trim();
+  }
+  return fetchSerp(params);
+}
+
 // ── SECTION: INTERNATIONAL ─────────────────────────────────────────────────
 export async function searchInternational(destination: string, gl = "us", hl = "en") {
   return fetchSerp({
@@ -615,6 +630,7 @@ const SerpAPI = {
   searchHome,
   searchFlights,
   searchInternational,
+  searchTripAdvisorPlace,
   searchHotels,
   searchHotelByName,
   searchVacations,

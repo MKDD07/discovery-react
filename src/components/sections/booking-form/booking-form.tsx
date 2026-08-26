@@ -75,16 +75,50 @@ export const BookingForm: React.FC<BookingFormProps> = ({
   const [showGuestsPopover, setShowGuestsPopover] = useState(false);
   const guestsRef = useRef<HTMLDivElement>(null);
 
+  // Live SerpApi Search Autocomplete States
+  const [suggestions, setSuggestions] = useState<SerpOrganicResult[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const locationInputRef = useRef<HTMLDivElement>(null);
+
   // Search Results & Loading State
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  // Close guest popover on outside click
+  // Live SerpApi Google Search query debouncer for location input
+  useEffect(() => {
+    if (!location.trim() || location.trim().length < 2) {
+      setSuggestions([]);
+      setSuggestionsLoading(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setSuggestionsLoading(true);
+      try {
+        const query = `${location.trim()} travel tourism attractions`;
+        const data = await SerpAPI.searchHome(query);
+        const extracted = SerpAPI.extractOrganicResults(data, 5);
+        setSuggestions(extracted);
+      } catch (err) {
+        console.warn("SerpApi live suggestions error:", err);
+      } finally {
+        setSuggestionsLoading(false);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [location]);
+
+  // Close popovers on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (guestsRef.current && !guestsRef.current.contains(e.target as Node)) {
         setShowGuestsPopover(false);
+      }
+      if (locationInputRef.current && !locationInputRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -317,7 +351,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                           </button>
                         )}
                       </div>
-                      <div className="position-relative">
+                      <div className="position-relative" ref={locationInputRef}>
                         <span className="position-absolute text-muted" style={{ left: "14px", top: "50%", transform: "translateY(-50%)" }}>
                           <MapPin size={16} />
                         </span>
@@ -325,10 +359,79 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                           type="text"
                           className="form-control bg-light border-0 ps-5 fw-semibold"
                           value={location}
-                          onChange={(e) => setLocation(e.target.value)}
+                          onFocus={() => setShowSuggestions(true)}
+                          onChange={(e) => {
+                            setLocation(e.target.value);
+                            setShowSuggestions(true);
+                          }}
                           placeholder={activeTab === "hotels" ? "Where are you going? (e.g. Goa, Paris, Dubai)" : "Where to explore?"}
                           style={{ height: "48px", borderRadius: "14px", fontSize: "13.5px" }}
                         />
+                        {suggestionsLoading && (
+                          <span className="position-absolute text-muted" style={{ right: "14px", top: "50%", transform: "translateY(-50%)" }}>
+                            <Loader2 size={15} className="animate-spin text-success" />
+                          </span>
+                        )}
+
+                        {/* Live SerpApi Google Search Autocomplete Suggestions Popover */}
+                        {showSuggestions && (suggestions.length > 0 || suggestionsLoading) && (
+                          <div
+                            className="position-absolute bg-white shadow-lg border rounded-4 p-2 z-3 w-100"
+                            style={{
+                              top: "calc(100% + 8px)",
+                              left: 0,
+                              minWidth: "320px",
+                              maxHeight: "340px",
+                              overflowY: "auto",
+                              boxShadow: "0 20px 40px -10px rgba(15, 23, 42, 0.16)",
+                            }}
+                          >
+                            <div className="d-flex align-items-center justify-content-between px-2 py-1 mb-1 border-bottom">
+                              <span className="text-muted small fw-semibold d-flex align-items-center gap-1" style={{ fontSize: "11px" }}>
+                                <Sparkles size={11} className="text-success" /> Google Live Search via SerpApi
+                              </span>
+                              {suggestionsLoading && <span className="badge bg-light text-muted" style={{ fontSize: "10px" }}>Searching...</span>}
+                            </div>
+
+                            {suggestions.map((item, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => {
+                                  // Clean up title for location
+                                  const cleanName = item.title.split(/[-–|:•]/)[0].trim();
+                                  setLocation(cleanName || item.title);
+                                  setShowSuggestions(false);
+                                }}
+                                className="btn w-100 text-start p-2 rounded-3 border-0 bg-transparent hover-bg-light d-flex align-items-start gap-2 transition-all mb-1"
+                                style={{ textAlign: "left" }}
+                              >
+                                {item.thumbnail ? (
+                                  <img
+                                    src={item.thumbnail}
+                                    alt={item.title}
+                                    style={{ width: "38px", height: "38px", borderRadius: "8px", objectFit: "cover", flexShrink: 0 }}
+                                  />
+                                ) : (
+                                  <div
+                                    className="bg-light rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                    style={{ width: "38px", height: "38px" }}
+                                  >
+                                    <MapPin size={16} className="text-success" />
+                                  </div>
+                                )}
+                                <div className="overflow-hidden flex-grow-1">
+                                  <div className="fw-bold text-dark text-truncate" style={{ fontSize: "12.5px" }}>
+                                    {item.title}
+                                  </div>
+                                  <div className="text-muted text-truncate" style={{ fontSize: "11px" }}>
+                                    {item.snippet || "Explore destination details"}
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

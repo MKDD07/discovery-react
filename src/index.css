@@ -8882,6 +8882,11 @@ td.today.active.start-date.active.end-date.available {
   width: 101%;
   bottom: 10px;
 }
+@media (max-width: 767px) {
+  .tp-destination-3-navigation {
+    display: none !important;
+  }
+}
 .tp-destination-3-navigation.tp-testimonial-two-navigation button {
   width: 40px;
   height: 40px;

@@ -190,16 +190,26 @@ export default function Header() {
                 </div>
               </div>
 
-              {/* Center: Luxury Minimal Search Capsule with Real-time Auto-Find */}
+              {/* Center: Luxury Minimal Search Capsule with Real-time Auto-Find & Random Location Discovery */}
               <div className="col-xl-6 col-lg-5 d-none d-lg-block">
                 <div className="tp-header-center-search position-relative" ref={searchContainerRef}>
-                  <form action="#" onSubmit={(e) => e.preventDefault()} className="tp-luxe-search-form">
+                  <form
+                    action="#"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (searchQuery.trim()) {
+                        navigateTo(`/guide/${encodeURIComponent(searchQuery.trim().toLowerCase())}`);
+                        setIsSearchOpen(false);
+                      }
+                    }}
+                    className="tp-luxe-search-form"
+                  >
                     <span className="tp-luxe-search-icon-left">
                       <i className="fa-solid fa-magnifying-glass"></i>
                     </span>
                     <input
                       type="text"
-                      placeholder="Search luxury stays, destinations, flights..."
+                      placeholder="Search any destination guide (e.g. Paris, Tokyo, Dubai)..."
                       className="tp-luxe-search-input"
                       value={searchQuery}
                       onChange={(e) => {
@@ -208,7 +218,7 @@ export default function Header() {
                       }}
                       onFocus={() => setIsSearchOpen(true)}
                     />
-                    {searchQuery && (
+                    {searchQuery ? (
                       <button
                         type="button"
                         onClick={() => {
@@ -221,22 +231,57 @@ export default function Header() {
                       >
                         <i className="fa-solid fa-xmark"></i>
                       </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allPlaces = [
+                            ...megaMenuDomestic,
+                            ...megaMenuIntl,
+                            ...megaMenuEU,
+                          ];
+                          if (allPlaces.length > 0) {
+                            const randomLoc = allPlaces[Math.floor(Math.random() * allPlaces.length)];
+                            navigateTo(`/guide/${randomLoc.slug || randomLoc.name.toLowerCase()}`);
+                          } else {
+                            const defaults = ["paris", "tokyo", "dubai", "goa", "maldives", "switzerland", "rome"];
+                            const randomDef = defaults[Math.floor(Math.random() * defaults.length)];
+                            navigateTo(`/guide/${randomDef}`);
+                          }
+                        }}
+                        className="btn btn-sm btn-light border-0 py-1 px-2 rounded-pill d-inline-flex align-items-center gap-1 text-muted me-1"
+                        style={{ fontSize: "11px", fontWeight: 400 }}
+                        title="Explore a random destination guide"
+                      >
+                        <i className="fa-solid fa-dice text-success"></i>
+                        <span>Random Place</span>
+                      </button>
                     )}
                   </form>
 
                   {/* ── Auto-Find Floating Dropdown ────────────────────────── */}
                   {isSearchOpen && (
-                    <div className="tp-autofind-dropdown shadow-lg">
+                    <div className="tp-autofind-dropdown shadow-lg" style={{ borderRadius: "16px", overflow: "hidden" }}>
                       <div className="tp-autofind-header d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                        <span className="text-muted fw-bold" style={{ fontSize: "11px", letterSpacing: "0.5px" }}>
-                          {searchQuery.trim() ? "MATCHING SEARCH RESULTS" : "TRENDING & POPULAR SEARCHES"}
+                        <span className="text-muted" style={{ fontSize: "11px", fontWeight: 500, letterSpacing: "0.5px" }}>
+                          {searchQuery.trim() ? "MATCHING PLACES & GUIDES" : "TRENDING DESTINATIONS"}
                         </span>
-                        <span className="badge bg-light text-muted" style={{ fontSize: "10px" }}>
-                          Instant Search
-                        </span>
+                        {searchQuery.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigateTo(`/guide/${encodeURIComponent(searchQuery.trim().toLowerCase())}`);
+                              setIsSearchOpen(false);
+                            }}
+                            className="btn btn-sm text-success p-0 border-0 bg-transparent"
+                            style={{ fontSize: "11px", fontWeight: 400 }}
+                          >
+                            Explore "{searchQuery}" Guide →
+                          </button>
+                        )}
                       </div>
 
-                      <div className="tp-autofind-list">
+                      <div className="tp-autofind-list" style={{ maxHeight: "320px", overflowY: "auto" }}>
                         {filteredAutoFind.length > 0 ? (
                           filteredAutoFind.map((item, idx) => (
                             <div
@@ -249,16 +294,27 @@ export default function Header() {
                                   <i className={`fa-solid ${item.icon}`}></i>
                                 </div>
                                 <div className="text-truncate">
-                                  <div className="tp-autofind-title text-truncate fw-bold">{item.title}</div>
-                                  <div className="tp-autofind-sub text-truncate text-muted">{item.subtitle}</div>
+                                  <div className="tp-autofind-title text-truncate" style={{ fontSize: "13px", fontWeight: 400 }}>{item.title}</div>
+                                  <div className="tp-autofind-sub text-truncate text-muted" style={{ fontSize: "11.5px", fontWeight: 400 }}>{item.subtitle}</div>
                                 </div>
                               </div>
-                              <span className="tp-autofind-tag ms-2">{item.tag}</span>
+                              <span className="tp-autofind-tag ms-2" style={{ fontSize: "10.5px", fontWeight: 400 }}>{item.tag}</span>
                             </div>
                           ))
                         ) : (
                           <div className="p-3 text-center text-muted small">
-                            No direct matches for "{searchQuery}". Try "Goa", "Dubai", "Flight" or "Resort".
+                            <p className="mb-2" style={{ fontSize: "12px", fontWeight: 400 }}>Press enter to generate a live guide for "{searchQuery}".</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigateTo(`/guide/${encodeURIComponent(searchQuery.trim().toLowerCase())}`);
+                                setIsSearchOpen(false);
+                              }}
+                              className="btn btn-sm btn-success rounded-pill px-3 py-1 text-white"
+                              style={{ fontSize: "12px", fontWeight: 400 }}
+                            >
+                              View {searchQuery} Place Guide
+                            </button>
                           </div>
                         )}
                       </div>

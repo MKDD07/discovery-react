@@ -86,7 +86,7 @@ export const AboutArea: React.FC = () => {
                   <br />
                   hidden gems immerse yourself in unique cultures.
                 </p>
-                <div className="tp-about-help-wrap mb-190 d-flex flex-wrap align-items-center">
+                <div className="tp-about-help-wrap mb-60 d-flex flex-wrap align-items-center">
                   <div className="mr-15 mb-10">
                     <a href="#about" className="tp-btn">
                       More about us

@@ -32,6 +32,7 @@ import AboutPage from "./pages/about";
 import ContactPage from "./pages/contact";
 import FaqPage from "./pages/faq";
 import DestinationsPage from "./pages/destinations";
+import DestinationGuidePage from "./pages/destination-guide";
 import SEO from "./components/snippets/seo/SEO";
 
 function App() {
@@ -100,6 +101,8 @@ function App() {
       setCurrentPage("contact");
     } else if (path === "/faq" || path === "/faqs" || path === "/help") {
       setCurrentPage("faq");
+    } else if (path.startsWith("/guide/") || path.startsWith("/tripadvisor/")) {
+      setCurrentPage(path);
     }
 
     const handlePopState = () => {
@@ -175,6 +178,10 @@ function App() {
         setSelectedTour(null);
       } else if (currentPath === "/faq" || currentPath === "/faqs" || currentPath === "/help") {
         setCurrentPage("faq");
+        setSelectedDestination(null);
+        setSelectedTour(null);
+      } else if (currentPath.startsWith("/guide/") || currentPath.startsWith("/tripadvisor/")) {
+        setCurrentPage(currentPath);
         setSelectedDestination(null);
         setSelectedTour(null);
       } else {
@@ -325,6 +332,20 @@ function App() {
   if (currentPage === "faq") {
     return (
       <FaqPage
+        onBackHome={() => {
+          window.history.pushState({}, "", "/");
+          setCurrentPage(null);
+        }}
+      />
+    );
+  }
+
+  if (currentPage && (currentPage.startsWith("/guide/") || currentPage.startsWith("/tripadvisor/"))) {
+    const rawParam = currentPage.replace(/^\/(guide|tripadvisor)\//, "");
+    const query = decodeURIComponent(rawParam).replace(/-/g, " ");
+    return (
+      <DestinationGuidePage
+        destinationQuery={query || "Paris, France"}
         onBackHome={() => {
           window.history.pushState({}, "", "/");
           setCurrentPage(null);
