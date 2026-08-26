@@ -193,8 +193,9 @@ export const BlogArea: React.FC = () => {
                       href={`/blog/${featuredBlog.slug}`}
                       onClick={(e) => navigateToBlog(e, featuredBlog.slug)}
                       className="tp-btn-solid"
+                      aria-label={`Read article: ${featuredBlog.title}`}
                     >
-                      Learn more <i className="fa-solid fa-arrow-right ml-5"></i>
+                      Read full article <i className="fa-solid fa-arrow-right ml-5"></i>
                     </a>
                   </div>
                 </div>
@@ -215,6 +216,7 @@ export const BlogArea: React.FC = () => {
                       href={`/blog/${b.slug}`}
                       onClick={(e) => navigateToBlog(e, b.slug)}
                       className="d-inline-block"
+                      aria-label={`View article: ${b.title}`}
                     >
                       <img
                         src={`assets/img/blog/thumb-sm${idx > 0 ? `-${idx + 1}` : ""}.jpg`}
@@ -244,8 +246,9 @@ export const BlogArea: React.FC = () => {
                       href={`/blog/${b.slug}`}
                       onClick={(e) => navigateToBlog(e, b.slug)}
                       className="tp-btn-solid"
+                      aria-label={`Read article: ${b.title}`}
                     >
-                      Learn more <i className="fa-solid fa-arrow-right ml-5"></i>
+                      Read full article <i className="fa-solid fa-arrow-right ml-5"></i>
                     </a>
                   </div>
                 </div>

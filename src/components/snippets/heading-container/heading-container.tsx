@@ -75,18 +75,23 @@ export const HeadingContainer: React.FC<HeadingContainerProps> = ({
             {hasTabs ? (
               <div className="tp-tour-tab">
                 <ul role="tablist">
-                  {tabs.map((tab) => (
-                    <li className="nav-tab-item" role="presentation" key={tab.id}>
-                      <a
-                        href={`#${tab.id}`}
-                        className={currentTab === tab.id ? "active" : ""}
-                        onClick={(e) => handleTabClick(tab.id, e)}
-                      >
-                        {tab.icon && <i className={`${tab.icon} mr-5`} />}
-                        {tab.label}
-                      </a>
-                    </li>
-                  ))}
+                  {tabs.map((tab) => {
+                    const isActive = currentTab === tab.id;
+                    return (
+                      <li className="nav-tab-item" role="presentation" key={tab.id}>
+                        <a
+                          href={`#${tab.id}`}
+                          role="tab"
+                          aria-selected={isActive}
+                          className={isActive ? "active" : ""}
+                          onClick={(e) => handleTabClick(tab.id, e)}
+                        >
+                          {tab.icon && <i className={`${tab.icon} mr-5`} />}
+                          {tab.label}
+                        </a>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             ) : (

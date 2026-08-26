@@ -46,8 +46,9 @@ export const ChoseArea: React.FC = () => {
                   className="tp-btn wow fadeInUp"
                   data-wow-duration=".9s"
                   data-wow-delay=".6s"
+                  aria-label="Learn more about our bespoke travel service"
                 >
-                  Learn more
+                  Explore services
                   <svg
                     width={13}
                     height={12}
@@ -91,8 +92,8 @@ export const ChoseArea: React.FC = () => {
                           We’re more than just a travel service, we’re your
                           <br /> trusted companion on every journey.
                         </p>
-                        <a href="#experts" className="tp-btn-solid">
-                          Learn more
+                        <a href="#experts" className="tp-btn-solid" aria-label="Learn more about our travel experts">
+                          Read more
                           <svg
                             width={13}
                             height={12}
@@ -148,8 +149,8 @@ export const ChoseArea: React.FC = () => {
                           Personalized routes crafted around your unique
                           <br /> preferences and travel wishlist.
                         </p>
-                        <a href="#customized" className="tp-btn-solid">
-                          Learn more
+                        <a href="#customized" className="tp-btn-solid" aria-label="Learn more about customized holiday packages">
+                          View packages
                           <svg
                             width={13}
                             height={12}
@@ -205,8 +206,8 @@ export const ChoseArea: React.FC = () => {
                           Seamless customer support standing by
                           <br /> before, during, and after every voyage.
                         </p>
-                        <a href="#support" className="tp-btn-solid">
-                          Learn more
+                        <a href="#support" className="tp-btn-solid" aria-label="Learn more about our 24/7 dedicated concierge assistance">
+                          Contact support
                           <svg
                             width={13}
                             height={12}

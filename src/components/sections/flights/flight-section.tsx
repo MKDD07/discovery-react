@@ -246,6 +246,8 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                   <li className="nav-tab-item" role="presentation" key={route.id}>
                     <a
                       href={`#${route.id}`}
+                      role="tab"
+                      aria-selected={isActive}
                       className={isActive ? "active" : ""}
                       onClick={(e) => {
                         e.preventDefault();

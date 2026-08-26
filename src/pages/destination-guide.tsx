@@ -491,6 +491,7 @@ export const DestinationGuidePage: React.FC<DestinationGuidePageProps> = ({
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + " " + (item.address || data.name))}`}
                           target="_blank"
                           rel="noreferrer"
+                          aria-label={`View ${item.name} on Google Maps`}
                         >
                           <i className="fa-solid fa-map-location-dot"></i>
                         </a>
@@ -585,6 +586,7 @@ export const DestinationGuidePage: React.FC<DestinationGuidePageProps> = ({
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + " " + (item.address || data.name))}`}
                           target="_blank"
                           rel="noreferrer"
+                          aria-label={`View ${item.name} on Google Maps`}
                         >
                           <i className="fa-solid fa-map-location-dot"></i>
                         </a>
@@ -683,6 +685,7 @@ export const DestinationGuidePage: React.FC<DestinationGuidePageProps> = ({
                           href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + " " + (item.address || data.name))}`}
                           target="_blank"
                           rel="noreferrer"
+                          aria-label={`View ${item.name} on Google Maps`}
                         >
                           <i className="fa-solid fa-map-location-dot"></i>
                         </a>

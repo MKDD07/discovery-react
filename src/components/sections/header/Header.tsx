@@ -749,8 +749,8 @@ export default function Header() {
         <div className="mb-3">
           <div className="tp-header-search-capsule w-100">
             <form action="#" onSubmit={(e) => e.preventDefault()}>
-              <input type="text" placeholder="Search destinations..." />
-              <button type="submit">
+              <input type="text" placeholder="Search destinations..." aria-label="Search destinations" />
+              <button type="submit" aria-label="Search destinations">
                 <i className="fa-solid fa-magnifying-glass"></i>
               </button>
             </form>

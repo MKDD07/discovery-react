@@ -448,6 +448,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                         </span>
                         <input
                           type="date"
+                          aria-label={activeTab === "flights" ? "Departure Date" : "Check-in Date"}
                           className="form-control bg-light border-0 ps-5 fw-semibold"
                           value={checkIn}
                           onChange={(e) => setCheckIn(e.target.value)}
@@ -458,6 +459,7 @@ export const BookingForm: React.FC<BookingFormProps> = ({
                         <div className="position-relative flex-grow-1">
                           <input
                             type="date"
+                            aria-label="Check-out Date"
                             className="form-control bg-light border-0 ps-3 fw-semibold"
                             value={checkOut}
                             onChange={(e) => setCheckOut(e.target.value)}

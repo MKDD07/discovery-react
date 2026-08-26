@@ -132,7 +132,7 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
               <i className="fa-regular fa-heart"></i>
             </span>
             <div className="tp-tour-media-meta">
-              <a href={mapsUrl} target="_blank" rel="noreferrer">
+              <a href={mapsUrl} target="_blank" rel="noreferrer" aria-label={`View ${hotel.name || 'location'} on Google Maps`}>
                 <i className="fa-solid fa-map-location-dot"></i>
               </a>
             </div>
