@@ -1,8 +1,4 @@
 export interface Env {
-  SERP_API_KEY_1?: string;
-  SERP_API_KEY_2?: string;
-  SERP_API_KEY_3?: string;
-  SERP_API_KEY_4?: string;
   SERP_API_KEY_5?: string;
   PEXELS_API_KEY?: string;
   VITE_PEXELS_API_KEY?: string;
@@ -88,10 +84,6 @@ async function ensureLocationsTable(db: any) {
 async function fetchWebSnippets(query: string, env: Env): Promise<string> {
   const DEFAULT_KEY = "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
   const rawKeys = [
-    env?.SERP_API_KEY_2,
-    env?.SERP_API_KEY_1,
-    env?.SERP_API_KEY_3,
-    env?.SERP_API_KEY_4,
     env?.SERP_API_KEY_5,
     DEFAULT_KEY,
   ];
@@ -1889,12 +1881,8 @@ Output ONLY valid JSON matching this schema:
 
       const DEFAULT_KEY = "7f83c49c4ab7a773e871e42237fd4775f124a8abb77e148899d0bbad6d307d69";
 
-      // Build sequential key array: KEY_1 -> KEY_2 -> KEY_3 -> KEY_4 -> KEY_5 -> clientKey -> DEFAULT_KEY
+      // Use SERP_API_KEY_5 as primary key, fall back to DEFAULT_KEY
       const rawKeys = [
-        env?.SERP_API_KEY_1,
-        env?.SERP_API_KEY_2,
-        env?.SERP_API_KEY_3,
-        env?.SERP_API_KEY_4,
         env?.SERP_API_KEY_5,
         clientKey,
         DEFAULT_KEY,
