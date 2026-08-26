@@ -417,22 +417,19 @@ export default function Header() {
                       {/* Column 1 — Domestic Wonders (from D1) */}
                       <div className="col-4">
                         <div className="tp-megamenu-header mb-2 pb-1 border-bottom">
-                          <span className="tp-megamenu-sub">DOMESTIC WONDERS</span>
+                          <span className="tp-megamenu-sub" style={{ fontSize: "10px", fontWeight: 500 }}>DOMESTIC WONDERS</span>
                         </div>
-                        <div className="d-flex flex-column gap-2">
+                        <div className="d-flex flex-column gap-1">
                           {megaMenuDomestic.map((loc) => (
                             <a
                               key={loc.id}
                               href={`/destination/${loc.slug}`}
                               onClick={(e) => { e.preventDefault(); navigateTo(`/destination/${loc.slug}`); }}
-                              className="tp-megamenu-card"
+                              className="tp-megamenu-card py-1 px-2"
                             >
-                              <div className="tp-megamenu-thumb">
-                                <img src={loc.image_url.replace(/&w=\d+/, "&h=130")} alt={loc.name} loading="lazy" />
-                              </div>
                               <div>
-                                <span className="tp-megamenu-title">{loc.name}</span>
-                                <span className="text-muted" style={{ fontSize: "11.5px" }}>{loc.short_description}</span>
+                                <span className="tp-megamenu-title" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.name}</span>
+                                <span className="text-muted d-block" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.short_description}</span>
                               </div>
                             </a>
                           ))}
@@ -442,22 +439,19 @@ export default function Header() {
                       {/* Column 2 — Iconic International (from D1) */}
                       <div className="col-4">
                         <div className="tp-megamenu-header mb-2 pb-1 border-bottom">
-                          <span className="tp-megamenu-sub">ICONIC INTERNATIONAL</span>
+                          <span className="tp-megamenu-sub" style={{ fontSize: "10px", fontWeight: 500 }}>ICONIC INTERNATIONAL</span>
                         </div>
-                        <div className="d-flex flex-column gap-2">
+                        <div className="d-flex flex-column gap-1">
                           {megaMenuIntl.map((loc) => (
                             <a
                               key={loc.id}
                               href={`/destination/${loc.slug}`}
                               onClick={(e) => { e.preventDefault(); navigateTo(`/destination/${loc.slug}`); }}
-                              className="tp-megamenu-card"
+                              className="tp-megamenu-card py-1 px-2"
                             >
-                              <div className="tp-megamenu-thumb">
-                                <img src={loc.image_url.replace(/&w=\d+/, "&h=130")} alt={loc.name} loading="lazy" />
-                              </div>
                               <div>
-                                <span className="tp-megamenu-title">{loc.name}</span>
-                                <span className="text-muted" style={{ fontSize: "11.5px" }}>{loc.short_description}</span>
+                                <span className="tp-megamenu-title" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.name}</span>
+                                <span className="text-muted d-block" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.short_description}</span>
                               </div>
                             </a>
                           ))}
@@ -467,22 +461,19 @@ export default function Header() {
                       {/* Column 3 — Europe & Asia (from D1) */}
                       <div className="col-4">
                         <div className="tp-megamenu-header mb-2 pb-1 border-bottom">
-                          <span className="tp-megamenu-sub">EUROPE &amp; ASIA</span>
+                          <span className="tp-megamenu-sub" style={{ fontSize: "10px", fontWeight: 500 }}>EUROPE &amp; ASIA</span>
                         </div>
-                        <div className="d-flex flex-column gap-2">
+                        <div className="d-flex flex-column gap-1">
                           {megaMenuEU.map((loc) => (
                             <a
                               key={loc.id}
                               href={`/destination/${loc.slug}`}
                               onClick={(e) => { e.preventDefault(); navigateTo(`/destination/${loc.slug}`); }}
-                              className="tp-megamenu-card"
+                              className="tp-megamenu-card py-1 px-2"
                             >
-                              <div className="tp-megamenu-thumb">
-                                <img src={loc.image_url.replace(/&w=\d+/, "&h=130")} alt={loc.name} loading="lazy" />
-                              </div>
                               <div>
-                                <span className="tp-megamenu-title">{loc.name}</span>
-                                <span className="text-muted" style={{ fontSize: "11.5px" }}>{loc.short_description}</span>
+                                <span className="tp-megamenu-title" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.name}</span>
+                                <span className="text-muted d-block" style={{ fontSize: "10px", fontWeight: 400 }}>{loc.short_description}</span>
                               </div>
                             </a>
                           ))}

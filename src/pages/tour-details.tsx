@@ -3,7 +3,7 @@ import Header from "../components/sections/header/Header";
 import Footer from "../components/sections/footer/Footer";
 import TourBreadcrumbs from "../components/sections/tour-details/tour-breadcrumbs";
 import TourDetails from "../components/sections/tour-details/tour-details";
-import TourArea from "../components/sections/tour-details/tour-details";
+import TourArea from "../components/sections/tour-details/tour-area";
 import SEO from "../components/snippets/seo/SEO";
 
 interface TourDetailsPageProps {
