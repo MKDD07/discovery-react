@@ -2000,7 +2000,153 @@ Output ONLY valid JSON matching this schema:
       });
     }
 
-    // ── 6. Serve static React assets from /dist ────────────────────────
-    return env.ASSETS.fetch(request);
+    // ── 6. Serve static React assets with Edge SEO HTMLRewriter ────────
+    const assetResponse = await env.ASSETS.fetch(request);
+    const contentType = assetResponse.headers.get("content-type") || "";
+
+    // Only transform HTML navigation requests
+    if (request.method === "GET" && contentType.includes("text/html")) {
+      let title = "Discovery Convoy | Luxury Stays, Flight Intelligence & Bespoke Escapes";
+      let description =
+        "Experience luxury travel with Discovery Convoy. Curated 5-star palace hotels, private overwater villas, real-time Google flight intelligence, and 24/7 dedicated concierge assistance.";
+      let canonicalUrl = `https://discoveryconvoy.com${url.pathname}`;
+      let ogImage =
+        "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=1200";
+
+      const locationsDb = env.DB;
+      const blogsDb = env.BLOGS_DB;
+
+      // 1. Dynamic D1 SEO for /destination/:slug
+      const destMatch = url.pathname.match(/^\/destination\/([a-zA-Z0-9_-]+)$/);
+      if (destMatch && locationsDb) {
+        const slug = destMatch[1];
+        try {
+          const loc: any = await locationsDb
+            .prepare(
+              "SELECT name, country, seo_title, seo_description, short_description, image_url FROM locations WHERE slug = ? LIMIT 1"
+            )
+            .bind(slug)
+            .first();
+
+          if (loc) {
+            title = loc.seo_title || `${loc.name} Luxury Stays & Travel Guide | Discovery Convoy`;
+            description =
+              loc.seo_description ||
+              loc.short_description ||
+              `Explore 5-star hotels, luxury resorts, and bespoke curated travel packages in ${loc.name}, ${loc.country || ""}.`;
+            if (loc.image_url) ogImage = loc.image_url;
+          }
+        } catch (e) {
+          console.warn("Edge SEO D1 location error:", e);
+        }
+      }
+
+      // 2. Dynamic D1 SEO for /guide/:slug or /tripadvisor/:slug
+      const guideMatch = url.pathname.match(/^\/(?:guide|tripadvisor)\/([a-zA-Z0-9_-]+)$/);
+      if (guideMatch && locationsDb) {
+        const slug = guideMatch[1];
+        try {
+          const loc: any = await locationsDb
+            .prepare(
+              "SELECT name, country, short_description, image_url FROM locations WHERE slug = ? LIMIT 1"
+            )
+            .bind(slug)
+            .first();
+
+          if (loc) {
+            title = `${loc.name} Travel Guide | Verified TripAdvisor Attractions & Hotels`;
+            description = `Discover top-rated attractions, luxury hotel guides, local dining, and itineraries for ${loc.name}. Verified TripAdvisor intelligence by Discovery Convoy.`;
+            if (loc.image_url) ogImage = loc.image_url;
+          }
+        } catch (e) {
+          console.warn("Edge SEO D1 guide error:", e);
+        }
+      }
+
+      // 3. Dynamic D1 SEO for /blog/:slug
+      const blogMatch = url.pathname.match(/^\/blog\/([a-zA-Z0-9_-]+)$/);
+      if (blogMatch && blogsDb) {
+        const slug = blogMatch[1];
+        try {
+          const b: any = await blogsDb
+            .prepare(
+              "SELECT title, summary, excerpt, image FROM blogs WHERE slug = ? LIMIT 1"
+            )
+            .bind(slug)
+            .first();
+
+          if (b) {
+            title = `${b.title} | Discovery Convoy Travel Journal`;
+            description =
+              b.summary || b.excerpt || `Read the complete luxury travel article on ${b.title}.`;
+            if (b.image) ogImage = b.image;
+          }
+        } catch (e) {
+          console.warn("Edge SEO D1 blog error:", e);
+        }
+      }
+
+      // 4. Static Top-Level Route Metadata
+      if (url.pathname === "/destinations") {
+        title = "Curated Global Destinations & Travel Atlas | Discovery Convoy";
+        description =
+          "Explore the world's finest destinations with Discovery Convoy. Filter domestic and international travel retreats with live hotel and flight intelligence.";
+      } else if (url.pathname === "/luxury") {
+        title = "Luxe Selections & Private Escapes | Discovery Convoy";
+        description =
+          "Indulge in ultra-luxury private villas, palatial heritage retreats, and bespoke experiential journeys hand-curated by Discovery Convoy.";
+      } else if (url.pathname === "/blog") {
+        title = "Travel Blog & Bespoke Journey Dossiers | Discovery Convoy";
+        description =
+          "Read curated travel stories, destination insights, luxury guides, and seasonal itineraries from Discovery Convoy editorial desk.";
+      } else if (url.pathname === "/about") {
+        title = "About Discovery Convoy | Redefining Bespoke Journeys";
+        description =
+          "Learn about Discovery Convoy, our bespoke travel philosophy, 24/7 dedicated concierge assistance, and 5-star travel services worldwide.";
+      } else if (url.pathname === "/contact" || url.pathname === "/faq") {
+        title = "Concierge Support & FAQ | Discovery Convoy";
+        description =
+          "Reach out to our 24/7 travel concierge team for flight bookings, luxury hotel reservations, and custom itinerary assistance.";
+      }
+
+      // Sanitize text for HTML injection
+      const safeTitle = title.replace(/"/g, "&quot;");
+      const safeDesc = description.replace(/"/g, "&quot;");
+      const safeUrl = canonicalUrl.replace(/"/g, "&quot;");
+      const safeImage = ogImage.replace(/"/g, "&quot;");
+
+      const Rewriter = (globalThis as any).HTMLRewriter;
+      if (Rewriter) {
+        return new Rewriter()
+          .on("title", {
+            element(e: any) {
+              e.setInnerContent(title);
+            },
+          })
+          .on('meta[name="description"]', {
+            element(e: any) {
+              e.setAttribute("content", description);
+            },
+          })
+          .on("head", {
+            element(e: any) {
+              // Ensure canonical and open-graph tags exist in raw server HTML
+              e.append(`<link rel="canonical" href="${safeUrl}" />`, { html: true });
+              e.append(`<meta property="og:title" content="${safeTitle}" />`, { html: true });
+              e.append(`<meta property="og:description" content="${safeDesc}" />`, { html: true });
+              e.append(`<meta property="og:url" content="${safeUrl}" />`, { html: true });
+              e.append(`<meta property="og:image" content="${safeImage}" />`, { html: true });
+              e.append(`<meta property="og:type" content="website" />`, { html: true });
+              e.append(`<meta name="twitter:card" content="summary_large_image" />`, { html: true });
+              e.append(`<meta name="twitter:title" content="${safeTitle}" />`, { html: true });
+              e.append(`<meta name="twitter:description" content="${safeDesc}" />`, { html: true });
+              e.append(`<meta name="twitter:image" content="${safeImage}" />`, { html: true });
+            },
+          })
+          .transform(assetResponse);
+      }
+    }
+
+    return assetResponse;
   },
 };
