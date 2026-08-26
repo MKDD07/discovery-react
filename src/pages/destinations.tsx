@@ -601,7 +601,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
                           e.preventDefault();
                           handleNavigate(loc);
                         }}
-                        className="tp-blog-item tp-blog-3-item h-100 d-flex flex-column justify-content-between bg-white border rounded-4 overflow-hidden shadow-sm transition-all hover-shadow text-decoration-none"
+                        className="tp-blog-item tp-blog-3-item h-100 d-flex flex-column justify-content-between bg-white rounded-4 overflow-hidden shadow-sm transition-all hover-shadow text-decoration-none"
                         style={{ cursor: "pointer", display: "flex" }}
                       >
                         <div>

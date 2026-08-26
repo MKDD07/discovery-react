@@ -89,6 +89,9 @@ export interface LocationItem {
   destination_content?: string | null;
   content_status?: "pending" | "completed" | string;
   is_active?: number;
+  show_in_header?: number;      // 1 = shown in nav megamenu, 0 = hidden
+  header_group?: string;        // 'domestic' | 'international' | 'europe-asia'
+  header_order?: number;        // sort order within column
   created_at?: string;
   updated_at?: string;
 }
@@ -695,6 +698,28 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onBackHome }) => {
       fetchLocations();
     }
   }, [activeTab, locationStatusFilter, locationCountryFilter]);
+
+  // Toggle show_in_header for a location
+  const handleHeaderToggle = async (loc: LocationItem) => {
+    if (!loc.id) return;
+    const newVal = loc.show_in_header === 1 ? 0 : 1;
+    try {
+      const res = await fetch(`/api/locations/${loc.id}/header-toggle`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ show_in_header: newVal }),
+      });
+      if (res.ok) {
+        setLocations((prev) =>
+          prev.map((l) =>
+            l.id === loc.id ? { ...l, show_in_header: newVal } : l
+          )
+        );
+      }
+    } catch (e) {
+      console.error("Header toggle failed:", e);
+    }
+  };
 
   // Fetch live web search snippets using SerpApi
   const fetchWebInfo = async (query: string): Promise<string> => {
@@ -2562,6 +2587,61 @@ Return valid JSON with accurate coordinates, timezone, currency, rich copy, and 
                                     <span className="text-muted small">—</span>
                                   )}
                                 </td>
+
+                                 {/* Show in Header Toggle */}
+                                 <td className="text-center">
+                                   <div
+                                     role="button"
+                                     title={loc.show_in_header === 1 ? "Shown in header — click to hide" : "Hidden from header — click to show"}
+                                     onClick={() => handleHeaderToggle(loc)}
+                                     style={{
+                                       display: "inline-flex",
+                                       alignItems: "center",
+                                       gap: "6px",
+                                       cursor: "pointer",
+                                       userSelect: "none",
+                                     }}
+                                   >
+                                     {/* pill track */}
+                                     <div
+                                       style={{
+                                         width: 36,
+                                         height: 20,
+                                         borderRadius: 10,
+                                         background: loc.show_in_header === 1 ? "#198754" : "#dee2e6",
+                                         position: "relative",
+                                         transition: "background 0.2s",
+                                         flexShrink: 0,
+                                       }}
+                                     >
+                                       {/* knob */}
+                                       <div
+                                         style={{
+                                           width: 14,
+                                           height: 14,
+                                           borderRadius: "50%",
+                                           background: "#fff",
+                                           position: "absolute",
+                                           top: 3,
+                                           left: loc.show_in_header === 1 ? 19 : 3,
+                                           transition: "left 0.2s",
+                                           boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
+                                         }}
+                                       />
+                                     </div>
+                                     <span
+                                       className={`small fw-semibold ${loc.show_in_header === 1 ? "text-success" : "text-muted"}`}
+                                       style={{ fontSize: "11px" }}
+                                     >
+                                       {loc.show_in_header === 1 ? "ON" : "OFF"}
+                                     </span>
+                                   </div>
+                                   {loc.header_group && (
+                                     <div className="text-muted font-monospace" style={{ fontSize: "10px", marginTop: 2 }}>
+                                       {loc.header_group}
+                                     </div>
+                                   )}
+                                 </td>
 
                                 {/* Actions */}
                                 <td className="text-end">
