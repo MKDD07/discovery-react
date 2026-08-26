@@ -342,9 +342,11 @@ function App() {
 
   if (currentPage && (currentPage.startsWith("/guide/") || currentPage.startsWith("/tripadvisor/"))) {
     const rawParam = currentPage.replace(/^\/(guide|tripadvisor)\//, "");
+    const citySlug = rawParam.replace(/\/$/, "").toLowerCase();
     const query = decodeURIComponent(rawParam).replace(/-/g, " ");
     return (
       <DestinationGuidePage
+        slug={citySlug}
         destinationQuery={query || "Paris, France"}
         onBackHome={() => {
           window.history.pushState({}, "", "/");

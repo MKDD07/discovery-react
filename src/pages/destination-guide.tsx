@@ -22,6 +22,7 @@ import { fetchPexelsVideo, pickVideoUrl } from "../components/sections/pexels/Pe
 export interface TripAdvisorPlaceData {
   type?: string;
   name: string;
+  description?: string;
   images?: string[];
   travel_advice?: Array<{ title: string; link: string }>;
   attraction_suggestions?: {
@@ -207,28 +208,74 @@ const DEFAULT_PLACE_DATA: TripAdvisorPlaceData = {
 
 interface DestinationGuidePageProps {
   destinationQuery?: string;
+  slug?: string;
   onBackHome?: () => void;
 }
 
 export const DestinationGuidePage: React.FC<DestinationGuidePageProps> = ({
   destinationQuery = "Paris, France",
+  slug,
 }) => {
   const [data, setData] = useState<TripAdvisorPlaceData>(DEFAULT_PLACE_DATA);
+  const [dbLocation, setDbLocation] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"attractions" | "hotels" | "restaurants" | "itineraries">("attractions");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoPoster, setVideoPoster] = useState<string | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
+  const effectiveSlug = (
+    slug ||
+    destinationQuery.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+  ).toLowerCase();
+
+  const effectiveName = dbLocation?.name || data.name || destinationQuery;
+
+  // 1. Fetch D1 Location metadata if available
+  useEffect(() => {
+    let isMounted = true;
+    const fetchD1Location = async () => {
+      try {
+        const res = await fetch(`/api/locations?slug=${encodeURIComponent(effectiveSlug)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (isMounted && json?.location) {
+            setDbLocation(json.location);
+          }
+        }
+      } catch (e) {
+        console.warn("D1 location fetch in guide page failed:", e);
+      }
+    };
+
+    fetchD1Location();
+    return () => {
+      isMounted = false;
+    };
+  }, [effectiveSlug]);
+
+  // 2. Fetch TripAdvisor Place Data from SerpAPI
   useEffect(() => {
     let isMounted = true;
     setLoading(true);
 
-    SerpAPI.searchTripAdvisorPlace(destinationQuery)
+    const queryToSearch = dbLocation
+      ? `${dbLocation.name}${dbLocation.country ? `, ${dbLocation.country}` : ""}`
+      : destinationQuery;
+
+    SerpAPI.searchTripAdvisorPlace(queryToSearch)
       .then((res: any) => {
         if (!isMounted) return;
         if (res?.place_result) {
           setData(res.place_result);
+        } else if (dbLocation) {
+          // Fallback metadata from D1 if TripAdvisor results are not indexed yet
+          setData((prev) => ({
+            ...prev,
+            name: dbLocation.name,
+            description: dbLocation.short_description || dbLocation.seo_description || prev.description,
+            images: dbLocation.image_url ? [dbLocation.image_url, ...(prev.images || [])] : prev.images,
+          }));
         }
       })
       .catch((err) => {
@@ -239,7 +286,7 @@ export const DestinationGuidePage: React.FC<DestinationGuidePageProps> = ({
       });
 
     // Fetch dynamic Pexels video based on destination query (same as blog & destination pages)
-    const pexelsVideoQuery = `${destinationQuery} travel landscape nature scenery`;
+    const pexelsVideoQuery = `${dbLocation?.name || destinationQuery} travel landscape nature scenery`;
     fetchPexelsVideo(pexelsVideoQuery, "landscape")
       .then((videos) => {
         if (!isMounted || !videos || videos.length === 0) return;
@@ -259,16 +306,22 @@ export const DestinationGuidePage: React.FC<DestinationGuidePageProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [destinationQuery]);
+  }, [destinationQuery, dbLocation]);
 
-  const heroImage = data.images?.[0] || videoPoster || DEFAULT_PLACE_DATA.images![0];
+  const heroImage = data.images?.[0] || dbLocation?.image_url || videoPoster || DEFAULT_PLACE_DATA.images![0];
 
   return (
     <>
       <SEO
-        title={`${data.name} Travel Guide | Live TripAdvisor Insights`}
-        description={`Explore verified attractions, handpicked hotels, top restaurants, and curated itineraries for ${data.name}.`}
-        keywords={[data.name, "travel guide", "top attractions", "hotels", "restaurants", "Discovery Convoy"]}
+        title={`${effectiveName} Travel Guide | Live TripAdvisor Insights`}
+        description={
+          dbLocation?.seo_description ||
+          dbLocation?.short_description ||
+          `Explore verified attractions, handpicked hotels, top restaurants, and curated itineraries for ${effectiveName}.`
+        }
+        keywords={[effectiveName, dbLocation?.country || "India", "travel guide", "top attractions", "hotels", "restaurants", "Discovery Convoy"]}
+        url={`https://discoveryconvoy.com/guide/${effectiveSlug}`}
+        image={heroImage}
       />
 
       <Header />
