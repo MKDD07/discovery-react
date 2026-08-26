@@ -166,7 +166,7 @@ export const SeoDirectorySection: React.FC = () => {
         <div className="tp-seo-theme-stream mb-4 pt-2">
           <div className="mb-3">
             <span
-              className="tp-ff-dancing d-inline-block text-primary"
+              className="tp-ff-dancing d-inline-block"
               style={{
                 fontFamily: "var(--tp-ff-dancing, 'Dancing Script', cursive)",
                 fontSize: "24px",

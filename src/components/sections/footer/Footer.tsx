@@ -108,7 +108,7 @@ export default function Footer() {
                 >
                   <h3 className="tp-footer-widget-title fw-600 mb-20">
                     <i className="fa-solid fa-compass mr-10"></i>
-                    About Convoy
+                    Discovery Convoy
                   </h3>
                   <p className="mb-20" style={{ fontSize: "14px", lineHeight: "1.7", color: "#555" }}>
                     Your trusted companion for domestic holidays, international escapes, flight bookings, and tailor-made packages worldwide.
@@ -291,19 +291,19 @@ export default function Footer() {
                   </h3>
                     <div className="tp-footer-contact">
                     <div className="d-flex align-items-start mb-15">
-                      <i className="fa-solid fa-phone mt-1 mr-10 text-primary"></i>
+                      <i className="fa-solid fa-phone mt-1 mr-10"></i>
                       <div>
-                        <span className="d-block fw-semibold" style={{ fontSize: "13px", color: "#334155" }}>Phone Support</span>
-                        <a href="tel:+919319300560" className="fw-bold d-inline-block text-dark" style={{ fontSize: "14px" }}>
+                        <span className="d-block fw-semibold">Phone Support</span>
+                        <a href="tel:+919319300560">
                           +91 9319300560
                         </a>
                       </div>
                     </div>
 
                     <div className="d-flex align-items-start mb-15">
-                      <i className="fa-solid fa-envelope mt-1 mr-10 text-primary"></i>
+                      <i className="fa-solid fa-envelope mt-1 mr-10"></i>
                       <div>
-                        <span className="d-block fw-semibold" style={{ fontSize: "13px", color: "#334155" }}>Email Support</span>
+                        <span className="d-block fw-semibold">Email Support</span>
                         <a href="mailto:support@discoveryconvoy.com" className="fw-bold d-inline-block text-dark" style={{ fontSize: "14px", wordBreak: "break-all" }}>
                           support@discoveryconvoy.com
                         </a>
@@ -311,20 +311,20 @@ export default function Footer() {
                     </div>
 
                     <div className="d-flex align-items-start mb-15">
-                      <i className="fa-solid fa-location-dot mt-1 mr-10 text-primary"></i>
+                      <i className="fa-solid fa-location-dot mt-1 mr-10"></i>
                       <div>
-                        <span className="d-block fw-semibold" style={{ fontSize: "13px", color: "#334155" }}>Office Location</span>
-                        <span className="fw-bold d-inline-block text-dark" style={{ fontSize: "14px" }}>
+                        <span className="d-block fw-semibold">Office Location</span>
+                        <span>
                           Discovery Convoy Travel Services
                         </span>
                       </div>
                     </div>
 
                     <div className="d-flex align-items-start">
-                      <i className="fa-solid fa-clock mt-1 mr-10 text-primary"></i>
+                      <i className="fa-solid fa-clock mt-1 mr-10"></i>
                       <div>
-                        <span className="d-block fw-semibold" style={{ fontSize: "13px", color: "#334155" }}>Working Hours</span>
-                        <span className="fw-bold d-inline-block text-dark" style={{ fontSize: "14px" }}>
+                        <span className="d-block fw-semibold">Working Hours</span>
+                        <span>
                           Mon – Sat: 09:00 AM – 08:00 PM
                         </span>
                       </div>
