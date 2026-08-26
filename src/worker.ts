@@ -305,6 +305,12 @@ export default {
   <loc>${BASE}/destination/${loc.slug}</loc>
   <lastmod>${lastmod}</lastmod>
   <changefreq>weekly</changefreq>
+  <priority>0.85</priority>
+</url>
+<url>
+  <loc>${BASE}/guide/${loc.slug}</loc>
+  <lastmod>${lastmod}</lastmod>
+  <changefreq>weekly</changefreq>
   <priority>0.80</priority>
 </url>`;
         })
