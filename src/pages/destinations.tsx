@@ -317,6 +317,7 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
             }}
           >
             <source src={heroVideoUrl} type="video/mp4" />
+            <track kind="captions" srcLang="en" label="English" default />
           </video>
 
           {/* Luxury dark gradient overlay */}
@@ -494,6 +495,16 @@ export const DestinationsPage: React.FC<DestinationsPageProps> = ({
         {/* ── Main Destination Cards Section ────────────────────────────── */}
         <div className="tp-blog-area tp-tour-ptb tp-animate-tab pt-70 pb-120 bg-light-subtle">
           <div className="container">
+            {/* Semantic Section Heading for Screen Readers & Heading Hierarchy */}
+            <div className="text-center mb-35">
+              <h2 className="tp-section-title fs-36 fw-bold text-dark mb-2">
+                {scopeFilter === "india"
+                  ? "Featured Indian Cities & Escapes"
+                  : scopeFilter === "international"
+                  ? "Popular International Sanctuaries"
+                  : "All Curated Travel Destinations"}
+              </h2>
+            </div>
             {/* Country Sub-filter Pills (If more than 1 country) */}
             {countries.length > 2 && (
               <div className="row mb-40">

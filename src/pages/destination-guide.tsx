@@ -308,6 +308,7 @@ export const DestinationGuidePage: React.FC<DestinationGuidePageProps> = ({
                   }}
                 >
                   <source src={videoUrl} type="video/mp4" />
+                  <track kind="captions" srcLang="en" label="English" default />
                 </video>
               ) : (
                 <div
