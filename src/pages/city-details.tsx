@@ -183,8 +183,8 @@ export const CityDetailsPage: React.FC<CityDetailsPageProps> = ({
 
               {dbLocation?.country && (
                 <div className="d-none d-md-flex align-items-center gap-2">
-                  <span className="badge bg-white text-dark border px-3 py-1 rounded-pill small font-monospace">
-                    <Globe size={12} className="text-primary me-1" />
+                  <span className="badge bg-white text-dark">
+                    <Globe size={12} className=" me-1" />
                     {dbLocation.country}
                     {dbLocation.state_region ? ` • ${dbLocation.state_region}` : ""}
                   </span>
