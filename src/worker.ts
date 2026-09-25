@@ -7,7 +7,7 @@ export interface Env {
   SESSION_SECRET?: string;
   DB?: any; // Cloudflare D1 Database binding (Users)
   BLOGS_DB?: any; // Cloudflare D1 Database binding (Blogs: b15e9273-0279-42e7-b909-5cee71b871c0)
-  HOTELS_DB?: any; // Cloudflare D1 Database binding (Hotels: 22be03d2-ab66-43c1-ba63-35a0da3fa7fe)
+  HOTELS_DB?: any; // Cloudflare D1 Database binding (Hotels: 8d45fbed-8243-4fae-9d8a-b15ef0c2f42e)
   USERS_KV?: any; // Cloudflare KV binding
   ASSETS: {
     fetch: (request: Request) => Promise<Response>;

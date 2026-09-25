@@ -11,18 +11,18 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "discovery_convoy_auth",
+      "database_name": "discoveryconvoy-login",
       "database_id": "85ee9b2f-ba0e-4146-8d8f-94c062cc6bf0"
     },
     {
       "binding": "BLOGS_DB",
-      "database_name": "discovery_convoy_blogs",
+      "database_name": "discoveryconvoy-blogs",
       "database_id": "b15e9273-0279-42e7-b909-5cee71b871c0"
     },
     {
       "binding": "HOTELS_DB",
-      "database_name": "discovery_convoy_hotels",
-      "database_id": "22be03d2-ab66-43c1-ba63-35a0da3fa7fe"
+      "database_name": "discoveryconvoy-hotels",
+      "database_id": "8d45fbed-8243-4fae-9d8a-b15ef0c2f42e"
     }
   ],
   "observability": {
