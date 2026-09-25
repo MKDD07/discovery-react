@@ -6,38 +6,157 @@ const PEXELS_API_KEY =
 const PEXELS_IMAGE_ENDPOINT = "https://api.pexels.com/v1/search";
 const PEXELS_VIDEO_ENDPOINT = "https://api.pexels.com/videos/search";
 
+// In-memory cache to prevent redundant fetches and 429 rate limit errors
+const imageCache = new Map<string, any[]>();
+const videoCache = new Map<string, any[]>();
+
+const CURATED_FALLBACK_IMAGES = [
+  {
+    id: 1285625,
+    src: {
+      original: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
+      large2x: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=1200",
+      large: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=800",
+      medium: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+  },
+  {
+    id: 1271619,
+    src: {
+      original: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg",
+      large2x: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=1200",
+      large: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800",
+      medium: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+  },
+  {
+    id: 258154,
+    src: {
+      original: "https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg",
+      large2x: "https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=1200",
+      large: "https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=800",
+      medium: "https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+  },
+  {
+    id: 261102,
+    src: {
+      original: "https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg",
+      large2x: "https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg?auto=compress&cs=tinysrgb&w=1200",
+      large: "https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg?auto=compress&cs=tinysrgb&w=800",
+      medium: "https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg?auto=compress&cs=tinysrgb&w=400",
+    },
+  },
+];
+
 /**
- * Fetch image results from Pexels
+ * Fetch image results from Pexels with multi-layer caching and 429 fallback protection
  */
 export async function fetchPexelsImage(query: string, orientation?: string | null) {
-  const url = new URL(PEXELS_IMAGE_ENDPOINT);
-  url.searchParams.set("query", query);
-  url.searchParams.set("per_page", "5");
-  if (orientation) url.searchParams.set("orientation", orientation);
+  const cacheKey = `${query}_${orientation || ""}`;
+  if (imageCache.has(cacheKey)) {
+    return imageCache.get(cacheKey) || [];
+  }
 
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: PEXELS_API_KEY },
-  });
-  if (!res.ok) throw new Error(`Pexels image API error: ${res.status}`);
-  const data = await res.json();
-  return data.photos || [];
+  // 1. Try local worker /api/pexels edge proxy first
+  try {
+    const proxyUrl = new URL("/api/pexels", window.location.origin);
+    proxyUrl.searchParams.set("query", query);
+    proxyUrl.searchParams.set("per_page", "5");
+    proxyUrl.searchParams.set("type", "image");
+    if (orientation) proxyUrl.searchParams.set("orientation", orientation);
+
+    const proxyRes = await fetch(proxyUrl.toString());
+    if (proxyRes.ok) {
+      const data = await proxyRes.json();
+      const photos = data.photos || [];
+      if (photos.length > 0) {
+        imageCache.set(cacheKey, photos);
+        return photos;
+      }
+    }
+  } catch (e) {
+    // Fallback to direct Pexels API
+  }
+
+  // 2. Direct Pexels API call
+  try {
+    const url = new URL(PEXELS_IMAGE_ENDPOINT);
+    url.searchParams.set("query", query);
+    url.searchParams.set("per_page", "5");
+    if (orientation) url.searchParams.set("orientation", orientation);
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: PEXELS_API_KEY },
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const photos = data.photos || [];
+      if (photos.length > 0) {
+        imageCache.set(cacheKey, photos);
+        return photos;
+      }
+    }
+  } catch (e) {
+    console.warn(`Pexels image request throttled/failed for "${query}", using curated fallback:`, e);
+  }
+
+  // 3. 429 Rate Limit / Error Fallback
+  return CURATED_FALLBACK_IMAGES;
 }
 
 /**
- * Fetch video results from Pexels
+ * Fetch video results from Pexels with caching and 429 protection
  */
 export async function fetchPexelsVideo(query: string, orientation?: string | null) {
-  const url = new URL(PEXELS_VIDEO_ENDPOINT);
-  url.searchParams.set("query", query);
-  url.searchParams.set("per_page", "5");
-  if (orientation) url.searchParams.set("orientation", orientation);
+  const cacheKey = `${query}_${orientation || ""}`;
+  if (videoCache.has(cacheKey)) {
+    return videoCache.get(cacheKey) || [];
+  }
 
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: PEXELS_API_KEY },
-  });
-  if (!res.ok) throw new Error(`Pexels video API error: ${res.status}`);
-  const data = await res.json();
-  return data.videos || [];
+  // 1. Try local worker /api/pexels edge proxy first
+  try {
+    const proxyUrl = new URL("/api/pexels", window.location.origin);
+    proxyUrl.searchParams.set("query", query);
+    proxyUrl.searchParams.set("per_page", "5");
+    proxyUrl.searchParams.set("type", "video");
+    if (orientation) proxyUrl.searchParams.set("orientation", orientation);
+
+    const proxyRes = await fetch(proxyUrl.toString());
+    if (proxyRes.ok) {
+      const data = await proxyRes.json();
+      const videos = data.videos || [];
+      if (videos.length > 0) {
+        videoCache.set(cacheKey, videos);
+        return videos;
+      }
+    }
+  } catch (e) {
+    // Fallback to direct
+  }
+
+  // 2. Direct Pexels video endpoint
+  try {
+    const url = new URL(PEXELS_VIDEO_ENDPOINT);
+    url.searchParams.set("query", query);
+    url.searchParams.set("per_page", "5");
+    if (orientation) url.searchParams.set("orientation", orientation);
+
+    const res = await fetch(url.toString(), {
+      headers: { Authorization: PEXELS_API_KEY },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const videos = data.videos || [];
+      videoCache.set(cacheKey, videos);
+      return videos;
+    }
+  } catch (e) {
+    console.warn(`Pexels video request throttled/failed for "${query}":`, e);
+  }
+
+  return [];
 }
 
 /**

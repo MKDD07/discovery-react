@@ -1,31 +1,28 @@
 import React, { useEffect, useState } from "react";
-
-const PEXELS_API_KEY =
-  (import.meta as any).env?.VITE_PEXELS_API_KEY ||
-  "y6WP5reQNH7abdL2uzdLTyV8pq0kMmF3CHf7ZNkiHo98DXIvORUOBSfi";
+import { fetchPexelsImage } from "../pexels/PexelsMediaSection";
 
 // List of 20 popular Indian locations / destinations for query search (focused on scenery/landscape/nature/architecture without people)
 const INDIA_LOCATIONS = [
-  { name: "Taj Mahal", query: "taj mahal agra architecture landscape scenery", region: "North India" },
-  { name: "Jaipur", query: "jaipur palace rajasthan architecture landscape", region: "Rajasthan" },
-  { name: "Goa", query: "goa beach sea landscape nature", region: "West Coast" },
-  { name: "Kerala", query: "kerala backwaters nature landscape lake", region: "South India" },
-  { name: "Varanasi", query: "varanasi ganges river ghat landscape", region: "North India" },
-  { name: "Ladakh", query: "ladakh pangong lake mountains landscape", region: "Himalayas" },
-  { name: "Mumbai", query: "mumbai gateway of india skyline architecture", region: "Maharashtra" },
-  { name: "Udaipur", query: "udaipur lake palace architecture landscape", region: "Rajasthan" },
-  { name: "Manali", query: "manali snow mountains landscape nature", region: "Himachal" },
-  { name: "Rishikesh", query: "rishikesh ganges river mountains landscape", region: "Uttarakhand" },
-  { name: "Darjeeling", query: "darjeeling tea gardens mountains landscape", region: "East India" },
-  { name: "Ooty", query: "ooty tea gardens mountains landscape nature", region: "Tamil Nadu" },
-  { name: "Amritsar", query: "golden temple amritsar architecture landscape", region: "Punjab" },
-  { name: "Hampi", query: "hampi ruins architecture landscape heritage", region: "Karnataka" },
-  { name: "Kashmir", query: "dal lake srinagar kashmir mountains landscape", region: "Kashmir" },
-  { name: "Munnar", query: "munnar tea estate green hills landscape", region: "Kerala" },
-  { name: "Shimla", query: "shimla hill station mountains landscape", region: "Himachal" },
-  { name: "Coorg", query: "coorg green hills nature landscape", region: "Karnataka" },
-  { name: "Andaman", query: "andaman radhanagar beach turquoise sea landscape", region: "Islands" },
-  { name: "Meghalaya", query: "meghalaya waterfall nature forest landscape", region: "North East" }
+  { name: "Taj Mahal", query: "taj mahal agra architecture landscape scenery", region: "North India", defaultImg: "https://images.pexels.com/photos/1603650/pexels-photo-1603650.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Jaipur", query: "jaipur palace rajasthan architecture landscape", region: "Rajasthan", defaultImg: "https://images.pexels.com/photos/3581368/pexels-photo-3581368.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Goa", query: "goa beach sea landscape nature", region: "West Coast", defaultImg: "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Kerala", query: "kerala backwaters nature landscape lake", region: "South India", defaultImg: "https://images.pexels.com/photos/962464/pexels-photo-962464.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Varanasi", query: "varanasi ganges river ghat landscape", region: "North India", defaultImg: "https://images.pexels.com/photos/814499/pexels-photo-814499.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Ladakh", query: "ladakh pangong lake mountains landscape", region: "Himalayas", defaultImg: "https://images.pexels.com/photos/1287460/pexels-photo-1287460.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Mumbai", query: "mumbai gateway of india skyline architecture", region: "Maharashtra", defaultImg: "https://images.pexels.com/photos/258154/pexels-photo-258154.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Udaipur", query: "udaipur lake palace architecture landscape", region: "Rajasthan", defaultImg: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Manali", query: "manali snow mountains landscape nature", region: "Himachal", defaultImg: "https://images.pexels.com/photos/618833/pexels-photo-618833.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Rishikesh", query: "rishikesh ganges river mountains landscape", region: "Uttarakhand", defaultImg: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Darjeeling", query: "darjeeling tea gardens mountains landscape", region: "East India", defaultImg: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Ooty", query: "ooty tea gardens mountains landscape nature", region: "Tamil Nadu", defaultImg: "https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Amritsar", query: "golden temple amritsar architecture landscape", region: "Punjab", defaultImg: "https://images.pexels.com/photos/1603650/pexels-photo-1603650.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Hampi", query: "hampi ruins architecture landscape heritage", region: "Karnataka", defaultImg: "https://images.pexels.com/photos/3581368/pexels-photo-3581368.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Kashmir", query: "dal lake srinagar kashmir mountains landscape", region: "Kashmir", defaultImg: "https://images.pexels.com/photos/1287460/pexels-photo-1287460.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Munnar", query: "munnar tea estate green hills landscape", region: "Kerala", defaultImg: "https://images.pexels.com/photos/962464/pexels-photo-962464.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Shimla", query: "shimla hill station mountains landscape", region: "Himachal", defaultImg: "https://images.pexels.com/photos/618833/pexels-photo-618833.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Coorg", query: "coorg green hills nature landscape", region: "Karnataka", defaultImg: "https://images.pexels.com/photos/261102/pexels-photo-261102.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Andaman", query: "andaman radhanagar beach turquoise sea landscape", region: "Islands", defaultImg: "https://images.pexels.com/photos/1078983/pexels-photo-1078983.jpeg?auto=compress&cs=tinysrgb&w=300" },
+  { name: "Meghalaya", query: "meghalaya waterfall nature forest landscape", region: "North East", defaultImg: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=300" }
 ];
 
 interface LocationItem {
@@ -74,44 +71,49 @@ export const CircularPexelsLocationSelection: React.FC<CircularPexelsLocationSel
       setLoading(true);
 
       try {
-        const fetchPromises = INDIA_LOCATIONS.map(async (loc, idx) => {
-          // Fetch up to 15 landscape images to get a random non-person location scenery result
-          const url = new URL("https://api.pexels.com/v1/search");
-          url.searchParams.set("query", loc.query);
-          url.searchParams.set("per_page", "15");
-          url.searchParams.set("orientation", "landscape");
+        const initialResults: LocationItem[] = INDIA_LOCATIONS.map((loc, idx) => ({
+          id: `loc-${idx}`,
+          name: loc.name,
+          region: loc.region,
+          imageUrl: loc.defaultImg,
+        }));
 
-          const response = await fetch(url.toString(), {
-            headers: { Authorization: PEXELS_API_KEY }
-          });
-
-          if (!response.ok) throw new Error("Pexels fetch error");
-
-          const data = await response.json();
-          const photos = data.photos || [];
-
-          // Pick a random image from fetched photos
-          const randomIndex = photos.length > 0 ? Math.floor(Math.random() * photos.length) : 0;
-          const photo = photos[randomIndex];
-
-          const imageUrl =
-            photo?.src?.medium ||
-            photo?.src?.large ||
-            photo?.src?.original ||
-            `https://images.pexels.com/photos/1603650/pexels-photo-1603650.jpeg?auto=compress&cs=tinysrgb&w=300`;
-
-          return {
-            id: `loc-${idx}-${Date.now()}`,
-            name: loc.name,
-            region: loc.region,
-            imageUrl
-          };
-        });
-
-        const results = await Promise.all(fetchPromises);
         if (isMounted) {
-          setLocations(results);
+          setLocations(initialResults);
           setLoading(false);
+        }
+
+        // Lazy load dynamic high-res photos without blocking
+        const dynamicResults = await Promise.all(
+          INDIA_LOCATIONS.map(async (loc, idx) => {
+            try {
+              const photos = await fetchPexelsImage(loc.query, "landscape");
+              const photo = photos[0];
+              const imageUrl =
+                photo?.src?.medium ||
+                photo?.src?.large ||
+                photo?.src?.original ||
+                loc.defaultImg;
+
+              return {
+                id: `loc-${idx}`,
+                name: loc.name,
+                region: loc.region,
+                imageUrl,
+              };
+            } catch {
+              return {
+                id: `loc-${idx}`,
+                name: loc.name,
+                region: loc.region,
+                imageUrl: loc.defaultImg,
+              };
+            }
+          })
+        );
+
+        if (isMounted) {
+          setLocations(dynamicResults);
         }
       } catch (error) {
         console.error("Failed to load Pexels India location images:", error);

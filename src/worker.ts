@@ -2154,6 +2154,92 @@ Output ONLY valid JSON matching this schema:
       });
     }
 
+    // ── 8. Intercept /api/pexels requests (Edge Cached & 429 Protected) ──
+    if (url.pathname.startsWith("/api/pexels")) {
+      const query = url.searchParams.get("query") || "luxury travel";
+      const type = (url.searchParams.get("type") || "image").toLowerCase();
+      const perPage = url.searchParams.get("per_page") || "5";
+      const orientation = url.searchParams.get("orientation") || "";
+
+      const rawPexelsKeys = [
+        env?.PEXELS_API_KEY,
+        env?.VITE_PEXELS_API_KEY,
+        "y6WP5reQNH7abdL2uzdLTyV8pq0kMmF3CHf7ZNkiHo98DXIvORUOBSfi",
+      ];
+      const pexelsKeys = rawPexelsKeys.filter((k): k is string => !!(k && k.trim()));
+
+      const endpoint =
+        type === "video"
+          ? "https://api.pexels.com/videos/search"
+          : "https://api.pexels.com/v1/search";
+
+      const targetUrl = new URL(endpoint);
+      targetUrl.searchParams.set("query", query);
+      targetUrl.searchParams.set("per_page", perPage);
+      if (orientation) targetUrl.searchParams.set("orientation", orientation);
+
+      for (const key of pexelsKeys) {
+        try {
+          const res = await fetch(targetUrl.toString(), {
+            headers: {
+              Authorization: key,
+              "User-Agent": "Discovery-Convoy-Worker/1.0",
+            },
+          });
+
+          if (res.ok) {
+            const data = await res.text();
+            return new Response(data, {
+              status: 200,
+              headers: {
+                "Content-Type": "application/json",
+                "Cache-Control": "public, max-age=86400, s-maxage=86400",
+                ...corsHeaders,
+              },
+            });
+          }
+        } catch (e) {
+          console.warn("Pexels fetch attempt failed:", e);
+        }
+      }
+
+      // Fallback response on 429 or failure to prevent broken UI
+      const fallbackPhotos = [
+        {
+          id: 1285625,
+          src: {
+            original: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg",
+            large2x: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=1200",
+            large: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=800",
+            medium: "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=400",
+          },
+          alt: query,
+        },
+        {
+          id: 1271619,
+          src: {
+            original: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg",
+            large2x: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=1200",
+            large: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=800",
+            medium: "https://images.pexels.com/photos/1271619/pexels-photo-1271619.jpeg?auto=compress&cs=tinysrgb&w=400",
+          },
+          alt: query,
+        },
+      ];
+
+      return new Response(
+        JSON.stringify(type === "video" ? { videos: [], page: 1, per_page: 5, total_results: 0 } : { photos: fallbackPhotos, page: 1, per_page: 5, total_results: fallbackPhotos.length }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "public, max-age=3600",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
     // ── 6. Serve static React assets with Edge SEO HTMLRewriter ────────
     if (!env?.ASSETS) {
       return new Response(
