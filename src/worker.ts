@@ -9,7 +9,7 @@ export interface Env {
   BLOGS_DB?: any; // Cloudflare D1 Database binding (Blogs: b15e9273-0279-42e7-b909-5cee71b871c0)
   HOTELS_DB?: any; // Cloudflare D1 Database binding (Hotels: 8d45fbed-8243-4fae-9d8a-b15ef0c2f42e)
   USERS_KV?: any; // Cloudflare KV binding
-  ASSETS: {
+  ASSETS?: {
     fetch: (request: Request) => Promise<Response>;
   };
 }
@@ -79,6 +79,44 @@ async function ensureLocationsTable(db: any) {
     await db.prepare(`CREATE INDEX IF NOT EXISTS idx_locations_active ON locations(is_active)`).run();
   } catch (err) {
     console.error("Locations table init error:", err);
+  }
+}
+
+// ── Cloudflare D1 Hotels Schema & Helpers ───────────────────────────
+async function ensureHotelsTable(db: any) {
+  if (!db) return;
+  try {
+    await db.prepare(
+      `CREATE TABLE IF NOT EXISTS hotels (
+        place_id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT,
+        region TEXT,
+        search_location TEXT,
+        rating REAL,
+        reviews_count INTEGER,
+        ranking TEXT,
+        price_level TEXT,
+        price_range TEXT,
+        amenities TEXT,
+        categories TEXT,
+        hotel_class TEXT,
+        website TEXT,
+        phone TEXT,
+        email TEXT,
+        address TEXT,
+        neighborhood TEXT,
+        latitude REAL,
+        longitude REAL,
+        images TEXT,
+        tripadvisor_link TEXT,
+        fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`
+    ).run();
+    await db.prepare(`CREATE INDEX IF NOT EXISTS idx_hotels_region ON hotels(region)`).run();
+    await db.prepare(`CREATE INDEX IF NOT EXISTS idx_hotels_search ON hotels(search_location)`).run();
+  } catch (err) {
+    console.error("Hotels table init error:", err);
   }
 }
 
@@ -1881,7 +1919,7 @@ Output ONLY valid JSON matching this schema:
     // ── 7a. GET /api/locations/header — megamenu destinations ───────────
     if (url.pathname === "/api/locations/header" && request.method === "GET") {
       try {
-        const db = env.DB;
+        const db = env?.BLOGS_DB || env?.DB;
         if (!db) return new Response(JSON.stringify({ domestic: [], international: [], europeAsia: [] }), {
           status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
         });
@@ -1917,10 +1955,11 @@ Output ONLY valid JSON matching this schema:
     const headerToggleMatch = url.pathname.match(/^\/api\/locations\/(\d+)\/header-toggle$/);
     if (headerToggleMatch && request.method === "PATCH") {
       try {
+        const db = env?.BLOGS_DB || env?.DB;
         const id = parseInt(headerToggleMatch[1]);
         const body = await request.json() as { show_in_header: number };
         const val = body.show_in_header === 1 ? 1 : 0;
-        await env.DB.prepare("UPDATE locations SET show_in_header=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(val, id).run();
+        await db.prepare("UPDATE locations SET show_in_header=?, updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(val, id).run();
         return new Response(JSON.stringify({ success: true, id, show_in_header: val }), {
           status: 200, headers: { "Content-Type": "application/json", ...corsHeaders }
         });
@@ -1940,6 +1979,7 @@ Output ONLY valid JSON matching this schema:
           headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
+      await ensureHotelsTable(hotelsDb);
 
       const q = url.searchParams.get("q") || "";
       const region = url.searchParams.get("region") || ""; // 'india' | 'international'
@@ -2115,6 +2155,16 @@ Output ONLY valid JSON matching this schema:
     }
 
     // ── 6. Serve static React assets with Edge SEO HTMLRewriter ────────
+    if (!env?.ASSETS) {
+      return new Response(
+        `<!DOCTYPE html><html><head><title>Discovery Convoy</title></head><body style="font-family:sans-serif;text-align:center;padding:50px;"><h1>Discovery Convoy Worker Active</h1><p>Static assets binding is not available in dashboard quick preview. Please test via the deployed worker URL or CLI preview.</p></body></html>`,
+        {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+        }
+      );
+    }
+
     const assetResponse = await env.ASSETS.fetch(request);
     const contentType = assetResponse.headers.get("content-type") || "";
 
@@ -2127,8 +2177,8 @@ Output ONLY valid JSON matching this schema:
       let ogImage =
         "https://images.pexels.com/photos/1285625/pexels-photo-1285625.jpeg?auto=compress&cs=tinysrgb&w=1200";
 
-      const locationsDb = env.DB;
-      const blogsDb = env.BLOGS_DB;
+      const locationsDb = env?.BLOGS_DB || env?.DB;
+      const blogsDb = env?.BLOGS_DB || env?.DB;
 
       // 1. Dynamic D1 SEO for /destination/:slug
       const destMatch = url.pathname.match(/^\/destination\/([a-zA-Z0-9_-]+)$/);
