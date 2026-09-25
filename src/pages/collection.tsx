@@ -11,8 +11,9 @@ import {
   Loader2,
   CheckCircle,
   Heart,
-} from "lucide-react";
-import { searchHotels, resizeImage } from "../services/serpApi";
+}
+  from "lucide-react";
+import { searchHotelsFromDB, resizeImage } from "../services/serpApi";
 import Button from "../components/snippets/button";
 import SEO from "../components/snippets/seo/SEO";
 
@@ -114,35 +115,30 @@ export default function CollectionPage({
     let isMounted = true;
     setLoading(true);
 
-    searchHotels({ q: theme.serpQuery, slot: "1" })
+    searchHotelsFromDB({ q: theme.serpQuery, region: "india", limit: 12 })
       .then((hotels) => {
         if (!isMounted) return;
         if (hotels && hotels.length > 0) {
           const formatted = hotels.map((h: any, idx: number) => {
-            const rawRate = h.rate_per_night?.extracted_lowest || h.rate_per_night?.lowest;
-            const numericPrice =
-              typeof rawRate === "number"
-                ? rawRate
-                : parseInt(String(rawRate || "18500").replace(/[^0-9]/g, "")) ||
-                  18500 + idx * 2500;
+            const numericPrice = h.rawPrice || 18500 + idx * 2500;
             return {
-              id: h.hotel_id || `luxe-col-${idx}`,
+              id: h.place_id || `luxe-col-${idx}`,
               name: h.name || "Signature Ultra-Luxe Property",
-              city: h.neighborhood || h.city || "Premier Destination",
-              rating: h.overall_rating ? Number(h.overall_rating).toFixed(1) : "4.9",
+              city: h.location || h.address || "Premier Destination",
+              rating: h.rating ? Number(h.rating).toFixed(1) : "4.9",
               reviews: h.reviews ? `${h.reviews}` : "450+",
               image:
-                h.images?.[0]?.original_image ||
-                h.images?.[0]?.thumbnail ||
+                h.images?.[0] ||
+                h.thumbnail ||
                 "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80",
-              price: `₹${numericPrice.toLocaleString("en-IN")}`,
+              price: h.price || `₹${numericPrice.toLocaleString("en-IN")}`,
               numericPrice,
               tag:
                 idx % 3 === 0
                   ? "Private Pool Villa"
                   : idx % 2 === 0
-                  ? "Signature Suite"
-                  : "Butler Included",
+                    ? "Signature Suite"
+                    : "Butler Included",
               amenities: h.amenities?.slice(0, 3) || [
                 "Private Pool",
                 "Butler Service",

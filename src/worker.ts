@@ -7,6 +7,7 @@ export interface Env {
   SESSION_SECRET?: string;
   DB?: any; // Cloudflare D1 Database binding (Users)
   BLOGS_DB?: any; // Cloudflare D1 Database binding (Blogs: b15e9273-0279-42e7-b909-5cee71b871c0)
+  HOTELS_DB?: any; // Cloudflare D1 Database binding (Hotels: 22be03d2-ab66-43c1-ba63-35a0da3fa7fe)
   USERS_KV?: any; // Cloudflare KV binding
   ASSETS: {
     fetch: (request: Request) => Promise<Response>;
@@ -1926,6 +1927,119 @@ Output ONLY valid JSON matching this schema:
       } catch (err: any) {
         return new Response(JSON.stringify({ error: err.message }), {
           status: 500, headers: { "Content-Type": "application/json", ...corsHeaders }
+        });
+      }
+    }
+
+    // ── 7.5. GET /api/hotels — query hotels from D1 (saves SerpAPI quota) ─
+    if (url.pathname === "/api/hotels" && request.method === "GET") {
+      const hotelsDb = env?.HOTELS_DB;
+      if (!hotelsDb) {
+        return new Response(JSON.stringify({ error: "HOTELS_DB binding not found" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+
+      const q = url.searchParams.get("q") || "";
+      const region = url.searchParams.get("region") || ""; // 'india' | 'international'
+      const placeId = url.searchParams.get("place_id") || "";
+      const limit = Math.min(parseInt(url.searchParams.get("limit") || "12", 10), 50);
+      const offset = parseInt(url.searchParams.get("offset") || "0", 10);
+
+      try {
+        const conditions: string[] = [];
+        const params: any[] = [];
+
+        if (placeId) {
+          conditions.push("place_id = ?");
+          params.push(placeId);
+        } else {
+          if (region) {
+            conditions.push("region = ?");
+            params.push(region);
+          }
+          if (q) {
+            conditions.push("(search_location LIKE ? OR name LIKE ? OR address LIKE ?)");
+            params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+          }
+        }
+
+        const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+        const sql = `SELECT place_id, name, type, region, search_location, rating, reviews_count,
+                            ranking, price_level, price_range, amenities, hotel_class,
+                            website, phone, address, latitude, longitude, images,
+                            tripadvisor_link, fetched_at
+                     FROM hotels ${where}
+                     ORDER BY rating DESC, reviews_count DESC
+                     LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+
+        const result = await hotelsDb.prepare(sql).bind(...params).all();
+        const rows = (result?.results || []) as any[];
+
+        // Shape each row into SerpHotelResult format the frontend expects
+        const hotels = rows.map((h: any) => {
+          let images: string[] = [];
+          try { images = JSON.parse(h.images || "[]"); } catch { images = []; }
+
+          let amenities: string[] = [];
+          try {
+            const rawAmenities = JSON.parse(h.amenities || "[]");
+            amenities = Array.isArray(rawAmenities)
+              ? rawAmenities.map((a: any) => (typeof a === "string" ? a : (a?.name || a?.amenity || String(a || "")))).filter(Boolean)
+              : [];
+          } catch { amenities = []; }
+
+          let categories: string[] = [];
+          try { categories = JSON.parse(h.categories || "[]"); } catch { categories = []; }
+
+          let priceRange: { low?: number; high?: number } = {};
+          try { priceRange = JSON.parse(h.price_range || "{}"); } catch {}
+
+          const rawPrice = priceRange.low || 0;
+
+          return {
+            place_id: h.place_id,
+            name: h.name || "",
+            rating: h.rating || 4.5,
+            reviews: h.reviews_count || 0,
+            ranking: h.ranking || "",
+            price: rawPrice ? `$${rawPrice}` : "",
+            rawPrice,
+            originalPrice: priceRange.high || 0,
+            link: h.tripadvisor_link || `https://www.tripadvisor.com/Hotel_Review-d${h.place_id}`,
+            thumbnail: images[0] || "",
+            images,
+            amenities,
+            categories,
+            gps_coordinates: h.latitude && h.longitude
+              ? { latitude: h.latitude, longitude: h.longitude }
+              : undefined,
+            address: h.address || "",
+            neighborhood: h.neighborhood || "",
+            website: h.website || "",
+            phone: h.phone || "",
+            email: h.email || "",
+            hotel_class: h.hotel_class || "",
+            type: h.type || "",
+            region: h.region || "",
+            search_location: h.search_location || "",
+          };
+        });
+
+        return new Response(JSON.stringify({ success: true, hotels, total: hotels.length }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "public, max-age=300",
+            ...corsHeaders,
+          },
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message || "Failed to query hotels DB" }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
     }

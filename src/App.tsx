@@ -419,18 +419,11 @@ function App() {
   btnText="View All Domestic"
   btnHref="/domestic"
   maxCards={8}
-/>
-
-<DomesticLocation
-  location="North India"
-  layout="swiper"
-  subtitle="Mountains, Valleys & Spiritual Destinations"
-  title="North India"
-  iconClass="fa-solid fa-mountain"
-  showBtn={true}
-  btnText="View All North India"
-  btnHref="/domestic/north"
-  maxCards={8}
+  tabs={[
+    { id: "India", label: "India", icon: "fa-solid fa-earth-asia" },
+    { id: "Delhi", label: "Delhi", icon: "fa-solid fa-monument" },
+    { id: "Mumbai", label: "Mumbai", icon: "fa-solid fa-city" },
+  ]}
 />
         <AboutArea />
         <FlightOffersSection />

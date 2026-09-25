@@ -26,7 +26,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/autoplay";
-import { searchHotels, resizeImage } from "../services/serpApi";
+import { searchHotelsFromDB, resizeImage } from "../services/serpApi";
 import { fetchPexelsVideo, pickVideoUrl } from "../components/sections/pexels/PexelsMediaSection";
 import SEO from "../components/snippets/seo/SEO";
 
@@ -438,55 +438,38 @@ export const LuxuryPage: React.FC<LuxuryPageProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    async function loadSerpLuxeHotels() {
+    async function loadDbLuxeHotels() {
       setIsLoadingLuxe(true);
       try {
-        const data = await searchHotels({
-          q: "5 star luxury palace resort hotels India",
-          slot: "1",
-        });
-        if (data?.properties && data.properties.length > 0 && isMounted) {
-          const mapped = data.properties.slice(0, 6).map((h: any, idx: number) => {
+        const hotels = await searchHotelsFromDB({ region: "india", limit: 6 });
+        if (hotels.length > 0 && isMounted) {
+          const mapped = hotels.map((h: any, idx: number) => {
             const defaultFallback = MOST_LOVED_PROPERTIES[idx % MOST_LOVED_PROPERTIES.length];
-            const imgUrl = h.thumbnail || (h.images && h.images[0]?.thumbnail) || defaultFallback.image;
-            let rawPriceNum = 24500;
-            if (h.rate_per_night?.extracted_lowest) {
-              rawPriceNum = h.rate_per_night.extracted_lowest;
-            } else if (h.rate_per_night?.extracted_before_taxes_fees) {
-              rawPriceNum = h.rate_per_night.extracted_before_taxes_fees;
-            } else if (typeof h.rate_per_night?.lowest === "number") {
-              rawPriceNum = h.rate_per_night.lowest;
-            }
-
-            const formattedPrice = `₹${rawPriceNum.toLocaleString("en-IN")}`;
-            const tagsList = h.amenities && h.amenities.length > 0
-              ? h.amenities.slice(0, 3)
-              : defaultFallback.tags;
-
+            const rawPriceNum = h.rawPrice || 24500;
             return {
-              id: `serp-luxe-${idx}`,
+              id: h.place_id || `db-luxe-${idx}`,
               name: h.name || defaultFallback.name,
-              city: defaultFallback.city,
-              rating: h.overall_rating || h.rating || 4.9,
+              city: h.location || defaultFallback.city,
+              rating: h.rating || 4.9,
               reviews: h.reviews || 1420 + idx * 110,
-              price: formattedPrice,
-              originalPrice: Math.round(rawPriceNum * 1.25),
-              image: imgUrl,
+              price: h.price || `₹${rawPriceNum.toLocaleString("en-IN")}`,
+              originalPrice: h.originalPrice || Math.round(rawPriceNum * 1.25),
+              image: h.images?.[0] || h.thumbnail || defaultFallback.image,
               reviewQuote: defaultFallback.reviewQuote,
-              tags: tagsList,
+              tags: defaultFallback.tags,
               serpHotel: h,
             };
           });
           setLuxeProperties(mapped);
         }
       } catch (e) {
-        console.warn("SerpAPI luxury hotels fetch error:", e);
+        console.warn("DB luxury hotels fetch error:", e);
       } finally {
         if (isMounted) setIsLoadingLuxe(false);
       }
     }
 
-    loadSerpLuxeHotels();
+    loadDbLuxeHotels();
     return () => {
       isMounted = false;
     };

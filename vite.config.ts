@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://discovery.mkmkataria07.workers.dev",
+        target: "https://discovery-react.mkmkataria07.workers.dev",
         changeOrigin: true,
       },
     },

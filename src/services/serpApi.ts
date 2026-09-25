@@ -22,6 +22,7 @@ export interface SerpFlightResult {
 }
 
 export interface SerpHotelResult {
+  place_id?: string;
   name: string;
   rating: number;
   reviews: number;
@@ -38,6 +39,11 @@ export interface SerpHotelResult {
   check_in_time?: string;
   check_out_time?: string;
   location?: string;
+  search_location?: string;
+  ranking?: string;
+  address?: string;
+  website?: string;
+  phone?: string;
 }
 
 export interface SerpHotelDetail extends SerpHotelResult {
@@ -218,6 +224,74 @@ export async function searchFlights({
 }
 
 
+// ── SECTION: HOTELS FROM D1 (no SerpAPI quota) ─────────────────────────────
+/**
+ * Fetch hotels from the local D1 cache. Returns SerpHotelResult[] — same shape
+ * as extractHotels() so any existing rendering code works without changes.
+ *
+ * @param q     Location / city name (e.g. "Mumbai")
+ * @param region 'india' | 'international' | '' (no filter)
+ * @param limit  Max results (default 12, capped at 50 server-side)
+ * @param offset Pagination offset
+ * @param placeId TripAdvisor place_id for a single hotel lookup
+ */
+export async function searchHotelsFromDB({
+  q = "",
+  region = "",
+  limit = 12,
+  offset = 0,
+  placeId = "",
+}: {
+  q?: string;
+  region?: "india" | "international" | "";
+  limit?: number;
+  offset?: number;
+  placeId?: string;
+}): Promise<SerpHotelResult[]> {
+  const params = new URLSearchParams();
+  if (placeId) params.set("place_id", placeId);
+  if (q) params.set("q", q);
+  if (region) params.set("region", region);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+
+  try {
+    const res = await fetch(`/api/hotels?${params.toString()}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json() as { success: boolean; hotels?: any[] };
+    if (!data.success || !Array.isArray(data.hotels)) return [];
+
+    return data.hotels.map((h: any): SerpHotelResult => ({
+      place_id: h.place_id,
+      name: h.name || "",
+      rating: h.rating || 4.5,
+      reviews: h.reviews || 0,
+      ranking: h.ranking || "",
+      price: h.price || "",
+      rawPrice: h.rawPrice || 0,
+      originalPrice: h.originalPrice || 0,
+      link: h.link || "#",
+      thumbnail: h.thumbnail || "",
+      images: Array.isArray(h.images) ? h.images : (h.thumbnail ? [h.thumbnail] : []),
+      gps_coordinates: h.gps_coordinates,
+      description: h.ranking || h.hotel_class || h.address || "",
+      amenities: Array.isArray(h.amenities)
+        ? h.amenities.map((a: any) => typeof a === "string" ? a : (a?.name || a?.amenity || String(a || ""))).filter(Boolean)
+        : [],
+      type: h.type || "hotel",
+      location: h.search_location || h.address || q,
+      search_location: h.search_location || "",
+      address: h.address || "",
+      website: h.website || "",
+      phone: h.phone || "",
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // ── SECTION: TRIPADVISOR PLACE ──────────────────────────────────────────────
 export async function searchTripAdvisorPlace(placeIdOrQuery: string, slot: "1" | "2" = "1") {
   const isNumericId = /^\d+$/.test(placeIdOrQuery.trim());
@@ -378,7 +452,7 @@ export function resizeImage(url: string, size = 400): string {
 
     // Tripadvisor (media-cdn.tripadvisor.com)
     if (url.includes("tripadvisor.com")) {
-      return url.replace(/\/photo-[a-z0-9]+\//i, `/photo-w/`);
+      return url.replace(/\/photo-[a-z0-9]+\//i, `/photo-o/`);
     }
 
     // Unsplash
@@ -632,6 +706,7 @@ const SerpAPI = {
   searchInternational,
   searchTripAdvisorPlace,
   searchHotels,
+  searchHotelsFromDB,
   searchHotelByName,
   searchVacations,
   extractOrganicResults,

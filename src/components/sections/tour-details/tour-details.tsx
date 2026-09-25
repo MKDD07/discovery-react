@@ -35,7 +35,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation as SwiperNav, Keyboard } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
-import SerpAPI, { SerpHotelDetail, resizeImage } from "../../../services/serpApi";
+import SerpAPI, { SerpHotelDetail, searchHotelsFromDB, resizeImage } from "../../../services/serpApi";
 import Button from "../../snippets/button";
 
 interface TourDetailsProps {
@@ -47,8 +47,9 @@ interface TourDetailsProps {
 }
 
 /* ── Amenity → Lucide icon map ──────────────────────────────────────── */
-const amenityIcon = (name: string): React.ReactNode => {
-  const n = name.toLowerCase();
+const amenityIcon = (name: any): React.ReactNode => {
+  const str = typeof name === "string" ? name : (name?.name || name?.amenity || String(name || ""));
+  const n = str.toLowerCase();
   if (n.includes("wifi") || n.includes("wi-fi") || n.includes("internet"))
     return <Wifi size={15} className="tp-stay-amenity-icon" />;
   if (n.includes("pool") || n.includes("swim"))
@@ -59,7 +60,8 @@ const amenityIcon = (name: string): React.ReactNode => {
     n.includes("restaurant") ||
     n.includes("breakfast") ||
     n.includes("food") ||
-    n.includes("dining")
+    n.includes("dining") ||
+    n.includes("bar")
   )
     return <Utensils size={15} className="tp-stay-amenity-icon" />;
   if (n.includes("parking") || n.includes("car"))
@@ -67,15 +69,17 @@ const amenityIcon = (name: string): React.ReactNode => {
   if (
     n.includes("airport") ||
     n.includes("transfer") ||
-    n.includes("shuttle")
+    n.includes("shuttle") ||
+    n.includes("taxi")
   )
     return <Plane size={15} className="tp-stay-amenity-icon" />;
-  if (n.includes("room service") || n.includes("concierge"))
+  if (n.includes("room service") || n.includes("concierge") || n.includes("butler") || n.includes("front desk"))
     return <ConciergeBell size={15} className="tp-stay-amenity-icon" />;
   if (
     n.includes("spa") ||
     n.includes("massage") ||
-    n.includes("wellness")
+    n.includes("wellness") ||
+    n.includes("sauna")
   )
     return <Sparkles size={15} className="tp-stay-amenity-icon" />;
   return <BedDouble size={15} className="tp-stay-amenity-icon" />;
@@ -97,6 +101,47 @@ const StarRow: React.FC<{ rating: number; size?: number }> = ({
     ))}
   </span>
 );
+
+/* ── Curated High-Res Fallback Images ────────────────────────────── */
+const FALLBACK_LUXURY_IMAGES = [
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=1200&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=1200&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1200&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=1200&auto=format&fit=crop&q=80",
+];
+
+/* ── Pre-check Image Reachability Fast ────────────────────────────────── */
+function checkImageReachable(url: string, timeoutMs = 3000): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!url || typeof url !== "string" || !url.startsWith("http")) {
+      return resolve(false);
+    }
+    const img = new Image();
+    let timer: any = null;
+
+    img.onload = () => {
+      clearTimeout(timer);
+      if (img.naturalWidth > 10 && img.naturalHeight > 10) {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    };
+
+    img.onerror = () => {
+      clearTimeout(timer);
+      resolve(false);
+    };
+
+    timer = setTimeout(() => {
+      img.src = "";
+      resolve(false);
+    }, timeoutMs);
+
+    img.src = url;
+  });
+}
 
 /* ── Skeleton loader ────────────────────────────────────────────────── */
 const TourDetailSkeleton: React.FC = () => (
@@ -127,6 +172,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
   const [wishlist, setWishlist] = useState(false);
+  const [validImages, setValidImages] = useState<string[]>([]);
 
   // Gallery Swiper Modal State
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
@@ -172,107 +218,109 @@ const TourDetails: React.FC<TourDetailsProps> = ({
     setLoading(true);
     setActiveImg(0);
 
-    // Initial seed from card
-    if (initialHotel) {
-      setHotel({
-        name: initialHotel.name || tourName,
-        rating: initialHotel.rating || 4.5,
-        reviews: initialHotel.reviews || 0,
-        price: cardPrice || initialHotel.price || "₹8,999",
-        rawPrice: initialHotel.rawPrice || 8999,
-        originalPrice: cardOriginalPrice || initialHotel.originalPrice,
-        link: initialHotel.link || "#",
-        thumbnail: initialHotel.thumbnail || "",
-        images:
-          initialHotel.images ||
-          (initialHotel.thumbnail ? [initialHotel.thumbnail] : []),
-        gps_coordinates: initialHotel.gps_coordinates,
-        description: initialHotel.description || "",
-        amenities: initialHotel.amenities || [
-          "Free Wi-Fi",
-          "Air conditioning",
-          "Room service",
-          "Swimming pool",
-          "Restaurant",
-          "Free parking",
-        ],
-        duration: "2 Nights / 3 Days",
-        groupSize: "1 – 8 guests",
-        languages: ["English", "Hindi"],
-        cancellation: "Free cancellation up to 24 hours before check-in",
-        included: [
-          "Deluxe accommodation",
-          "Daily buffet breakfast",
-          "Complimentary high-speed Wi-Fi",
-          "Swimming pool & leisure area access",
-          "Welcome beverage on arrival",
-        ],
-        excluded: [
-          "Flight & train fares",
-          "Personal expenses & mini bar charges",
-          "Optional sightseeing tickets",
-          "Travel insurance",
-        ],
-        highlights: [
-          "Prime location with easy accessibility",
-          "Top-rated hospitality & guest service",
-          "Authentic dining & wellness facilities",
-        ],
-      });
-    }
+    const initialRawPrice = cardPrice ? parseInt(cardPrice.replace(/[^0-9]/g, ""), 10) : 0;
+    const initialAmenities = (initialHotel?.amenities || [])
+      .map((a: any) => (typeof a === "string" ? a : (a?.name || a?.amenity || "")))
+      .filter(Boolean);
 
-    SerpAPI.searchHotelByName(tourName, location)
-      .then((data) => {
-        if (!mounted) return;
-        const detail = SerpAPI.extractHotelDetail(data, tourName);
-        if (detail) {
-          setHotel((prev) => ({
-            ...detail,
-            price: cardPrice || (prev?.price ?? detail.price),
-            originalPrice:
-              cardOriginalPrice ||
-              (prev?.originalPrice ?? detail.originalPrice),
-            rawPrice: prev?.rawPrice ?? detail.rawPrice,
-          }));
-        } else if (!initialHotel) {
-          setHotel({
-            name: tourName,
-            rating: 4.8,
-            reviews: 142,
-            price: cardPrice || "₹8,999",
-            rawPrice: 8999,
-            originalPrice: cardOriginalPrice || 11999,
-            link: `https://www.google.com/travel/hotels?q=${encodeURIComponent(
-              tourName
-            )}`,
-            thumbnail: "",
-            images: [],
-            amenities: [
-              "Free Wi-Fi",
-              "Swimming Pool",
-              "Restaurant",
-              "Spa",
-              "Free Parking",
-            ],
-            duration: "2 Nights / 3 Days",
-            groupSize: "1 – 8 guests",
-            languages: ["English", "Hindi"],
-            cancellation: "Free cancellation up to 24 hours before check-in",
-            included: [
-              "Accommodation",
-              "Breakfast Included",
-              "Free High-Speed Wi-Fi",
-              "Pool Access",
-            ],
-            excluded: [
-              "Personal expenses",
-              "Travel insurance",
-              "Additional room amenities",
-            ],
-          });
-        }
+    // Always seed immediately with URL params / initialHotel so page is never blank
+    setHotel({
+      name: initialHotel?.name || tourName,
+      rating: initialHotel?.rating || 4.5,
+      reviews: initialHotel?.reviews || 0,
+      price: cardPrice || initialHotel?.price || (initialRawPrice ? (isDollar ? `$${initialRawPrice}` : `₹${initialRawPrice}`) : ""),
+      rawPrice: initialHotel?.rawPrice || initialRawPrice || 0,
+      originalPrice: cardOriginalPrice || initialHotel?.originalPrice,
+      link: initialHotel?.link || "#",
+      thumbnail: initialHotel?.thumbnail || "",
+      images:
+        initialHotel?.images ||
+        (initialHotel?.thumbnail ? [initialHotel.thumbnail] : []),
+      gps_coordinates: initialHotel?.gps_coordinates,
+      description: initialHotel?.description || initialHotel?.ranking || "",
+      amenities: initialAmenities.length > 0 ? initialAmenities : [
+        "High-Speed Wi-Fi",
+        "Infinity Swimming Pool",
+        "Fine Dining & Breakfast",
+        "Luxury Spa & Wellness",
+        "24/7 Room Service",
+        "Valet Parking",
+        "Fitness Center",
+        "Airport Transfers",
+      ],
+      address: initialHotel?.address || location || "",
+      website: initialHotel?.website || "",
+      phone: initialHotel?.phone || "",
+      duration: "2 Nights / 3 Days",
+      groupSize: "1 – 8 guests",
+      languages: ["English", "Hindi"],
+      cancellation: "Free cancellation up to 24 hours before check-in",
+      included: [
+        "Deluxe accommodation",
+        "Daily buffet breakfast",
+        "Complimentary high-speed Wi-Fi",
+        "Swimming pool & leisure area access",
+        "Welcome beverage on arrival",
+      ],
+      excluded: [
+        "Flight & train fares",
+        "Personal expenses & mini bar charges",
+        "Optional sightseeing tickets",
+        "Travel insurance",
+      ],
+      highlights: initialAmenities.slice(0, 4),
+    });
+
+    // Enrich from DB — search by name so we get real images/amenities/prices
+    const placeId = initialHotel?.place_id || "";
+    searchHotelsFromDB({ q: tourName, placeId, limit: 1 })
+      .then((results) => {
+        if (!mounted || results.length === 0) return;
+        const h = results[0];
+        const cleanAmenities = (h.amenities || [])
+          .map((a: any) => (typeof a === "string" ? a : (a?.name || a?.amenity || "")))
+          .filter(Boolean);
+
+        setHotel((prev) => ({
+          ...(prev ?? {}),
+          name: h.name || tourName,
+          rating: h.rating || prev?.rating || 4.5,
+          reviews: h.reviews || prev?.reviews || 0,
+          price: cardPrice || h.price || prev?.price || "",
+          rawPrice: h.rawPrice || prev?.rawPrice || initialRawPrice || 0,
+          originalPrice: cardOriginalPrice || h.originalPrice || prev?.originalPrice,
+          link: h.link || prev?.link || "#",
+          thumbnail: h.thumbnail || prev?.thumbnail || "",
+          images: (h.images?.length ? h.images : prev?.images) || [],
+          gps_coordinates: h.gps_coordinates || prev?.gps_coordinates,
+          description: h.description || prev?.description || h.address || "",
+          amenities: cleanAmenities.length > 0 ? cleanAmenities : (prev?.amenities || []),
+          address: h.address || prev?.address || "",
+          website: h.website || prev?.website || "",
+          phone: h.phone || prev?.phone || "",
+          duration: prev?.duration || "2 Nights / 3 Days",
+          groupSize: prev?.groupSize || "1 – 8 guests",
+          languages: prev?.languages || ["English", "Hindi"],
+          cancellation: prev?.cancellation || "Free cancellation up to 24 hours before check-in",
+          included: prev?.included || [
+            "Deluxe accommodation",
+            "Daily buffet breakfast",
+            "Complimentary high-speed Wi-Fi",
+            "Swimming pool & leisure area access",
+            "Welcome beverage on arrival"
+          ],
+          excluded: prev?.excluded || [
+            "Flight & train fares",
+            "Personal expenses & mini bar charges",
+            "Optional sightseeing tickets",
+            "Travel insurance"
+          ],
+          highlights: cleanAmenities.slice(0, 4).length > 0 ? cleanAmenities.slice(0, 4) : (prev?.highlights || []),
+        } as SerpHotelDetail));
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error("DB Hotel fetch failed:", err);
+      })
       .finally(() => {
         if (mounted) setLoading(false);
       });
@@ -282,6 +330,15 @@ const TourDetails: React.FC<TourDetailsProps> = ({
     };
   }, [tourName, location, cardPrice, cardOriginalPrice, initialHotel]);
 
+  // Determine currency symbol
+  const isDollar = useMemo(() => {
+    return (cardPrice || "").startsWith("$") || (hotel?.price || "").startsWith("$");
+  }, [cardPrice, hotel?.price]);
+
+  const formatPrice = (amount: number) => {
+    return isDollar ? `$${amount.toLocaleString()}` : `₹${amount.toLocaleString("en-IN")}`;
+  };
+
   // Extract base unit price from cardPrice or hotel data
   const basePricePerPerson = useMemo(() => {
     if (hotel?.rawPrice && hotel.rawPrice > 0) return hotel.rawPrice;
@@ -289,7 +346,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
       const parsed = parseInt(cardPrice.replace(/[^0-9]/g, ""), 10);
       if (!isNaN(parsed) && parsed > 0) return parsed;
     }
-    return 3151;
+    return 450;
   }, [cardPrice, hotel?.rawPrice]);
 
   // Calculate number of nights
@@ -336,14 +393,54 @@ const TourDetails: React.FC<TourDetailsProps> = ({
     }, 200);
   };
 
-  const displayPrice = cardPrice || hotel?.price || `₹${basePricePerPerson.toLocaleString("en-IN")}`;
+  // Pre-validate and ensure only working images are displayed
+  useEffect(() => {
+    let active = true;
+    const candidates = Array.from(
+      new Set(
+        [
+          ...(hotel?.images || []),
+          hotel?.thumbnail,
+        ].filter((u): u is string => Boolean(u && typeof u === "string" && u.startsWith("http")))
+      )
+    );
+
+    if (candidates.length === 0) {
+      setValidImages(FALLBACK_LUXURY_IMAGES);
+      return;
+    }
+
+    // Fast pre-flight check on all candidate images
+    Promise.all(
+      candidates.map(async (url) => {
+        const isReachable = await checkImageReachable(url, 3000);
+        return isReachable ? url : null;
+      })
+    ).then((results) => {
+      if (!active) return;
+      const verified = results.filter((u): u is string => Boolean(u));
+      if (verified.length > 0) {
+        setValidImages(verified);
+      } else {
+        setValidImages(FALLBACK_LUXURY_IMAGES);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [hotel?.images, hotel?.thumbnail]);
+
+  const displayPrice = cardPrice || hotel?.price || formatPrice(basePricePerPerson);
   const displayOriginalPrice = cardOriginalPrice || hotel?.originalPrice;
   const images =
-    hotel?.images && hotel.images.length > 0
+    validImages.length > 0
+      ? validImages
+      : hotel?.images && hotel.images.length > 0
       ? hotel.images
       : hotel?.thumbnail
       ? [hotel.thumbnail]
-      : [];
+      : FALLBACK_LUXURY_IMAGES;
 
   const mapsUrl = hotel?.gps_coordinates
     ? `https://www.google.com/maps/search/?api=1&query=${hotel.gps_coordinates.latitude},${hotel.gps_coordinates.longitude}`
@@ -460,9 +557,23 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                         }}
                       >
                         <img
-                          src={resizeImage(images[activeImg], 1000)}
+                          src={resizeImage(images[activeImg] || images[0], 1000)}
                           alt={hotel.name}
                           key={activeImg}
+                          loading="eager"
+                          fetchPriority="high"
+                          style={{
+                            objectFit: "cover",
+                            width: "100%",
+                            height: "100%",
+                          }}
+                          onError={() => {
+                            setValidImages((prev) => {
+                              const remaining = prev.filter((_, idx) => idx !== activeImg);
+                              return remaining.length > 0 ? remaining : FALLBACK_LUXURY_IMAGES;
+                            });
+                            setActiveImg(0);
+                          }}
                         />
                         {images.length > 1 && (
                           <>
@@ -536,6 +647,10 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                                   <img
                                     src={resizeImage(img, 400)}
                                     alt={`Hotel view ${realIdx}`}
+                                    loading="eager"
+                                    onError={() => {
+                                      setValidImages((prev) => prev.filter((u) => u !== img));
+                                    }}
                                   />
                                   {isLast && (
                                     <div
@@ -615,6 +730,10 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                           <img
                             src={resizeImage(img, 1000)}
                             alt={`${hotel.name} - photo ${i + 1}`}
+                            loading="eager"
+                            onError={() => {
+                              setValidImages((prev) => prev.filter((u) => u !== img));
+                            }}
                           />
                         </SwiperSlide>
                       ))}
@@ -654,7 +773,14 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                           swiperInstance?.slideTo(i);
                         }}
                       >
-                        <img src={resizeImage(img, 200)} alt={`Thumb ${i + 1}`} />
+                        <img
+                          src={resizeImage(img, 200)}
+                          alt={`Thumb ${i + 1}`}
+                          loading="eager"
+                          onError={() => {
+                            setValidImages((prev) => prev.filter((u) => u !== img));
+                          }}
+                        />
                       </div>
                     ))}
                   </div>
@@ -715,7 +841,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                     </h4>
                     <div className="tp-stay-amenity-grid">
                       {(hotel.amenities && hotel.amenities.length > 0
-                        ? hotel.amenities
+                        ? hotel.amenities.map((a: any) => (typeof a === "string" ? a : (a?.name || a?.amenity || ""))).filter(Boolean)
                         : [
                             "High-Speed Wi-Fi",
                             "Infinity Swimming Pool",
@@ -727,8 +853,8 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                             "Airport Transfers",
                             "Air Conditioning",
                           ]
-                      ).map((amenity) => (
-                        <div key={amenity} className="tp-stay-amenity-item">
+                      ).map((amenity: string, idx: number) => (
+                        <div key={`${amenity}-${idx}`} className="tp-stay-amenity-item">
                           {amenityIcon(amenity)}
                           <span className="tp-stay-amenity-text">{amenity}</span>
                         </div>
@@ -820,7 +946,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                           </span>
                           {displayOriginalPrice && (
                             <span className="tp-stay-old-price">
-                              ₹{displayOriginalPrice.toLocaleString("en-IN")}
+                              {typeof displayOriginalPrice === "number" ? formatPrice(displayOriginalPrice) : displayOriginalPrice}
                             </span>
                           )}
                           <span className="tp-stay-price-suffix">
@@ -877,7 +1003,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                                 Adults (12+ yrs)
                               </div>
                               <div className="text-muted" style={{ fontSize: "11px" }}>
-                                ₹{calculation.adultRate.toLocaleString("en-IN")} / night
+                                {formatPrice(calculation.adultRate)} / night
                               </div>
                             </div>
                             <div className="d-flex align-items-center gap-2">
@@ -916,7 +1042,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                                 Children (2-11 yrs)
                               </div>
                               <div className="text-muted" style={{ fontSize: "11px" }}>
-                                50% Off (₹{calculation.childRate.toLocaleString("en-IN")})
+                                50% Off ({formatPrice(calculation.childRate)})
                               </div>
                             </div>
                             <div className="d-flex align-items-center gap-2">
@@ -969,17 +1095,17 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                           <div className="d-flex flex-column gap-1">
                             <div className="tp-stay-breakdown-row">
                               <span>
-                                Adults ({adults} × ₹{calculation.adultRate.toLocaleString("en-IN")}):
+                                Adults ({adults} × {formatPrice(calculation.adultRate)}):
                               </span>
-                              <span className="text-dark fw-medium">₹{(adults * calculation.adultRate * numberOfNights).toLocaleString("en-IN")}</span>
+                              <span className="text-dark fw-medium">{formatPrice(adults * calculation.adultRate * numberOfNights)}</span>
                             </div>
 
                             {children > 0 && (
                               <div className="tp-stay-breakdown-row">
                                 <span>
-                                  Children ({children} × ₹{calculation.childRate.toLocaleString("en-IN")}):
+                                  Children ({children} × {formatPrice(calculation.childRate)}):
                                 </span>
-                                <span className="text-dark fw-medium">₹{(children * calculation.childRate * numberOfNights).toLocaleString("en-IN")}</span>
+                                <span className="text-dark fw-medium">{formatPrice(children * calculation.childRate * numberOfNights)}</span>
                               </div>
                             )}
 
@@ -987,18 +1113,18 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                               <span className="d-flex align-items-center gap-1">
                                 <Percent size={12} /> Special Promo Discount (10%):
                               </span>
-                              <span className="fw-semibold">-₹{calculation.discount.toLocaleString("en-IN")}</span>
+                              <span className="fw-semibold">-{formatPrice(calculation.discount)}</span>
                             </div>
 
                             <div className="tp-stay-breakdown-row">
                               <span>Applicable GST (18%):</span>
-                              <span className="text-dark fw-medium">₹{calculation.gstAmount.toLocaleString("en-IN")}</span>
+                              <span className="text-dark fw-medium">{formatPrice(calculation.gstAmount)}</span>
                             </div>
 
                             {/* Total Payable */}
                             <div className="tp-stay-breakdown-total">
                               <span>Total Amount:</span>
-                              <span className="fs-6 text-dark">₹{calculation.finalTotal.toLocaleString("en-IN")}</span>
+                              <span className="fs-6 text-dark">{formatPrice(calculation.finalTotal)}</span>
                             </div>
                           </div>
                         </div>
@@ -1015,7 +1141,7 @@ const TourDetails: React.FC<TourDetailsProps> = ({
                           icon={<CreditCard size={15} />}
                           iconPosition="left"
                         >
-                          Book Now for ₹{calculation.finalTotal.toLocaleString("en-IN")}
+                          Book Now for {formatPrice(calculation.finalTotal)}
                         </Button>
                         <Button
                           variant="stroke"

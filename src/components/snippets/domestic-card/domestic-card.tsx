@@ -78,17 +78,21 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
     const t = e.target as HTMLElement;
     if (t.closest(".tp-tour-media-meta") || t.closest(".tp-tour-wishlist")) return;
     e.preventDefault();
+    const hotelLoc = hotel.search_location || location || "India";
     const slug = encodeURIComponent(hotel.name);
     const priceParam = encodeURIComponent(hotel.price || "");
     const origParam = hotel.originalPrice ? `&mrp=${hotel.originalPrice}` : "";
-    const locParam = encodeURIComponent(location || "");
+    const locParam = encodeURIComponent(hotelLoc);
     window.history.pushState(
-      { hotel, location },
+      { hotel, location: hotelLoc },
       "",
       `/tour/${slug}?price=${priceParam}${origParam}&loc=${locParam}`
     );
-    window.dispatchEvent(new PopStateEvent("popstate", { state: { hotel, location } }));
+    window.dispatchEvent(new PopStateEvent("popstate", { state: { hotel, location: hotelLoc } }));
   };
+
+  const isDollar = (hotel.price || "").startsWith("$");
+  const displayCardLocation = hotel.search_location || location || "India";
 
   return (
     <>
@@ -99,7 +103,7 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
           style={{ cursor: "pointer" }}
         >
           <div className="tp-tour-thumb p-relative fix">
-            <a href={hotel.link} className="image">
+            <a href={hotel.link} className="image" onClick={navigateToTour}>
               {!mainImgLoaded && (
                 <div className="tp-skeleton-thumb position-absolute w-100 h-100 top-0 left-0"></div>
               )}
@@ -149,14 +153,14 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
               <span className="tp-tour-review-score tp-ff-inter">( {hotel.reviews} Reviews )</span>
             </div>
             <h3 className="tp-tour-title fw-500 mb-10">
-              <a href={hotel.link} style={{ fontSize: '17px' }}>
-  {hotel.name}
-</a>
+              <a href={`/tour/${encodeURIComponent(hotel.name)}`} onClick={navigateToTour} style={{ fontSize: '17px' }}>
+                {hotel.name}
+              </a>
             </h3>
             <div className="tp-tour-info">
               <span>
                 <i className="fa-solid fa-location-dot mr-5"></i>
-                {location}
+                {displayCardLocation}
               </span>
               <span>
                 <i className="fa-regular fa-clock mr-5"></i>
@@ -171,11 +175,11 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
               <div className="tp-tour-price">
                 <div className="tp-tour-top-price d-flex align-items-center gap-2">
                   <span className="tp-tour-prefix">From:</span>
-                  {hotel.originalPrice && (
+                  {hotel.originalPrice ? (
                     <span className="tp-tour-old-price text-decoration-line-through text-muted small">
-                      ₹{hotel.originalPrice.toLocaleString("en-IN")}
+                      {isDollar ? `$${hotel.originalPrice.toLocaleString()}` : `₹${hotel.originalPrice.toLocaleString("en-IN")}`}
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <div className="tp-tour-bottom-price">
                   <span className="tp-tour-new-price fw-700">{hotel.price}</span>
@@ -184,7 +188,8 @@ export const DomesticCard: React.FC<DomesticCardProps> = ({ hotel, location = "B
               </div>
               <div className="tp-tour-btn">
                 <a
-                  href={hotel.link}
+                  href={`/tour/${encodeURIComponent(hotel.name)}`}
+                  onClick={navigateToTour}
                   className="tp-btn-sm fw-500 tp-ff-inter"
                 >
                   Book A tour

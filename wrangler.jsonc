@@ -18,6 +18,11 @@
       "binding": "BLOGS_DB",
       "database_name": "discovery_convoy_blogs",
       "database_id": "b15e9273-0279-42e7-b909-5cee71b871c0"
+    },
+    {
+      "binding": "HOTELS_DB",
+      "database_name": "discovery_convoy_hotels",
+      "database_id": "22be03d2-ab66-43c1-ba63-35a0da3fa7fe"
     }
   ],
   "observability": {

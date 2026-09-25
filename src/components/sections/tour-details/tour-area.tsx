@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import SerpAPI, { SerpHotelResult } from "../../../services/serpApi";
+import SerpAPI, { SerpHotelResult, searchHotelsFromDB } from "../../../services/serpApi";
 import DomesticCard from "../../snippets/domestic-card/domestic-card";
 import DomesticCardSkeleton from "../../snippets/domestic-card/domestic-card-skeleton";
 
@@ -21,10 +21,10 @@ const TourArea: React.FC<TourAreaProps> = ({
     setLoading(true);
     setError(null);
 
-    SerpAPI.searchHotels({ q: location })
-      .then((data) => {
+    searchHotelsFromDB({ q: location, limit: maxCards })
+      .then((hotels) => {
         if (!isMounted) return;
-        setHotels(SerpAPI.extractHotels(data, maxCards));
+        setHotels(hotels);
       })
       .catch(() => {
         if (!isMounted) return;

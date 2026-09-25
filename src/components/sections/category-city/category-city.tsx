@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import DomesticCard from "../../snippets/domestic-card/domestic-card";
 import DomesticCardSkeleton from "../../snippets/domestic-card/domestic-card-skeleton";
-import SerpAPI, { SerpHotelResult } from "../../../services/serpApi";
+import SerpAPI, { SerpHotelResult, searchHotelsFromDB } from "../../../services/serpApi";
 
 interface CategoryCityProps {
   location?: string;
@@ -17,15 +17,14 @@ export const CategoryCity: React.FC<CategoryCityProps> = ({ location = "Kashmir"
     let isMounted = true;
     setLoading(true);
 
-    SerpAPI.searchHotels({ q: location })
-      .then((data) => {
+    searchHotelsFromDB({ q: location, limit: 12 })
+      .then((hotels) => {
         if (!isMounted) return;
-        const extracted = SerpAPI.extractHotels(data, 12);
-        setHotels(extracted);
+        setHotels(hotels);
       })
       .catch((err) => {
         if (!isMounted) return;
-        console.error("CategoryCity SerpApi Error:", err);
+        console.error("CategoryCity DB Error:", err);
       })
       .finally(() => {
         if (isMounted) setLoading(false);

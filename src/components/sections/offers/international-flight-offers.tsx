@@ -4,10 +4,10 @@ import { Autoplay } from "swiper/modules";
 import "swiper/css";
 
 const INTER_FLIGHT_OFFER_IMAGES = [
-  "/assets/img/offers-inter-flight/int_flight_001.png",
-  "/assets/img/offers-inter-flight/int_flight_002.png",
-  "/assets/img/offers-inter-flight/int_flight_003.png",
-  "/assets/img/offers-inter-flight/int_flight_004.png",
+  "/assets/img/offers-inter-flight/int_flight_001.webp",
+  "/assets/img/offers-inter-flight/int_flight_002.webp",
+  "/assets/img/offers-inter-flight/int_flight_003.webp",
+  "/assets/img/offers-inter-flight/int_flight_004.webp",
 ];
 
 export const InternationalFlightOffersSection: React.FC = () => {

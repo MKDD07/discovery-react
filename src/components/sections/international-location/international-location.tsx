@@ -7,7 +7,7 @@ import "swiper/css/pagination";
 import HeadingContainer, { TabItem } from "../../snippets/heading-container/heading-container";
 import DomesticCard from "../../snippets/domestic-card/domestic-card";
 import DomesticCardSkeleton from "../../snippets/domestic-card/domestic-card-skeleton";
-import SerpAPI, { SerpHotelResult } from "../../../services/serpApi";
+import SerpAPI, { SerpHotelResult, searchHotelsFromDB } from "../../../services/serpApi";
 
 export interface InternationalLocationSettings {
   location?: string;
@@ -51,15 +51,14 @@ export const InternationalLocation: React.FC<InternationalLocationSettings> = ({
     setLoading(true);
     setError(null);
 
-    SerpAPI.searchHotels({ q: searchLocation })
-      .then((data) => {
+    searchHotelsFromDB({ q: searchLocation, region: "international", limit: maxCards })
+      .then((hotels) => {
         if (!isMounted) return;
-        const extracted = SerpAPI.extractHotels(data, maxCards);
-        setHotels(extracted);
+        setHotels(hotels);
       })
       .catch((err) => {
         if (!isMounted) return;
-        console.error("SerpAPI Hotels Error:", err);
+        console.error("DB Hotels Error:", err);
         setError("Could not load international hotels.");
       })
       .finally(() => {
